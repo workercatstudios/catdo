@@ -115,6 +115,10 @@ test("upgrades the old service worker without dropping offline account data", as
     await page.waitForFunction(
       async () => !!(await navigator.serviceWorker.getRegistration())?.waiting,
     );
+    const homepage = await context.newPage();
+    await homepage.goto("http://127.0.0.1:4176/");
+    await expect(homepage.getByText("A fresh CatDo is ready.")).toHaveCount(0);
+    await homepage.close();
     await page.reload();
     await expect(page.getByText("A fresh CatDo is ready.")).toBeVisible();
     page.once("dialog", (dialog) => dialog.accept());

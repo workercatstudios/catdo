@@ -4,6 +4,7 @@ import {
   createRootRoute,
   Outlet,
   Link,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { themeScript, ThemeListener } from "../lib/theme";
@@ -57,6 +58,11 @@ function Document({ children }: { children: ReactNode }) {
 }
 function Updates() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
+  const inApp = useRouterState({
+    select: (state) =>
+      state.location.pathname === "/app" ||
+      state.location.pathname.startsWith("/app/"),
+  });
   useEffect(() => {
     const pointer = () => {
       document.documentElement.dataset.input = "pointer";
@@ -70,7 +76,8 @@ function Updates() {
       void navigator.serviceWorker
         .register("/sw.js")
         .then((r) => {
-          if (r.waiting) setWaiting(r.waiting);
+          if (r.waiting && navigator.serviceWorker.controller)
+            setWaiting(r.waiting);
           r.addEventListener("updatefound", () => {
             const next = r.installing;
             next?.addEventListener("statechange", () => {
@@ -88,7 +95,7 @@ function Updates() {
       window.removeEventListener("keydown", keyboard);
     };
   }, []);
-  return waiting ? (
+  return waiting && inApp ? (
     <div className="update-notice" role="status">
       A fresh CatDo is ready.{" "}
       <button
