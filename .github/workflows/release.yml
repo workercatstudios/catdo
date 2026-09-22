@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Validate version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate tag against Cargo version
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: python3 scripts/release-metadata.py "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: version
+    uses: ./.github/workflows/check.yml
+
+  build:
+    name: Build Linux x86-64
+    needs: [version, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+      - run: cargo build --locked --release -p catdo-desktop
+      - name: Package and smoke-test binary
+        run: |
+          ./target/release/catdo --help
+          bash scripts/package-linux.sh
+          python3 scripts/check-release.py --archive dist/catdo-*-linux-x86_64.tar.gz
+      - name: Build and smoke-test AppImage
+        run: bash scripts/package-appimage.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: catdo-linux-x86_64
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub release
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: catdo-linux-x86_64
+          path: dist
+      - name: Publish archive and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          cd dist
+          sha256sum --check ./*.sha256
+          options=()
+          if [[ "$PRERELEASE" == true ]]; then
+            options+=(--prerelease --latest=false)
+          fi
+          gh release create "$RELEASE_TAG" ./*.AppImage ./*.tar.gz ./*.sha256 \
+            --verify-tag --title "CatDo $RELEASE_TAG" --generate-notes \
+            "${options[@]}"

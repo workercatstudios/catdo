@@ -1,0 +1,4 @@
+[env]
+# GPUI Kit's font backend supports loading Fedora's installed Fontconfig at
+# runtime, avoiding a build-time dependency on Fontconfig development headers.
+RUST_FONTCONFIG_DLOPEN = "1"

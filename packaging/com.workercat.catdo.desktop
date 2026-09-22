@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CatDo
+Comment=A comfortable place to get things done
+Exec=catdo
+Icon=com.workercat.catdo
+Terminal=false
+Categories=Office;ProjectManagement;
+StartupWMClass=com.workercat.catdo

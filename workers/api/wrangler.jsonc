@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "catdo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../../apps/web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "vars": {
+    "APP_ORIGIN": "https://catdo.workercat.com",
+    "CLERK_ISSUER": "https://clerk.workercat.com",
+    "CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsud29ya2VyY2F0LmNvbSQ",
+    "CLERK_DESKTOP_CLIENT_ID": "Qpyu4U9xj6tZswWT",
+  },
+  "routes": [
+    {
+      "pattern": "catdo.workercat.com",
+      "custom_domain": true,
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ACCOUNTS",
+        "class_name": "CatDoAccount",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CatDoAccount"],
+    },
+  ],
+}
