@@ -169,6 +169,8 @@ For setup, checks, and deployment, start with the [developer guide](docs/develop
 
 CatDo is **source available** under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). Use, modification, and redistribution are subject to those terms. Commercial use requires a separate license from WorkerCat. Dependencies retain their own licenses; no trademark rights are granted.
 
+Use the repository’s [security policy](./SECURITY.md) instead of a public issue for suspected vulnerabilities.
+
 ---
 
 <p align="center">Made by <a href="https://workercat.com">WorkerCat</a>. One task at a time.</p>
