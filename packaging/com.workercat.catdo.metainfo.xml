@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.workercat.catdo</id>
+  <name>CatDo</name>
+  <summary>A calm personal task manager</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>PolyForm-Noncommercial-1.0.0</project_license>
+  <developer id="com.workercat">
+    <name>WorkerCat</name>
+  </developer>
+  <description>
+    <p>Organize personal and work tasks in separate workspaces, plan with a calendar,
+    and keep recurring tasks on track. Work offline and sign in to sync across devices.</p>
+  </description>
+  <launchable type="desktop-id">com.workercat.catdo.desktop</launchable>
+  <url type="homepage">https://catdo.workercat.com</url>
+  <url type="vcs-browser">https://github.com/workercatstudios/catdo</url>
+  <url type="bugtracker">https://github.com/workercatstudios/catdo/issues</url>
+  <provides>
+    <binary>catdo</binary>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>ProjectManagement</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+</component>

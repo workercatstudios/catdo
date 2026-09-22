@@ -30,6 +30,7 @@ printf '%s  %s\n' 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec26
 catdo_stage="$(mktemp -d)"
 trap 'rm -rf -- "$catdo_stage"' EXIT
 catdo_appdir="$catdo_stage/CatDo.AppDir"
+install -Dm644 packaging/com.workercat.catdo.metainfo.xml "$catdo_appdir/usr/share/metainfo/com.workercat.catdo.metainfo.xml"
 install -Dm644 LICENSE.md "$catdo_appdir/usr/share/doc/catdo/LICENSE.md"
 install -Dm644 NOTICE "$catdo_appdir/usr/share/doc/catdo/NOTICE"
 install -Dm644 packaging/README.md "$catdo_appdir/usr/share/doc/catdo/README.md"

@@ -153,6 +153,7 @@ bash scripts/package-appimage.sh
 ```
 
 AppImage packaging downloads a pinned, checksum-verified linuxdeploy tool into
-ignored `.local/release-tools`. The release archive includes the desktop icon,
+ignored `.local/release-tools`; `patchelf` must be installed on the build host.
+The AppImage runtime is pinned and checksum-verified as well. The release archive includes the desktop icon,
 launcher, installer, license, and notices. Packaging tests install into a
 throwaway directory, never the developer's task database.

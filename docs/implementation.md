@@ -45,7 +45,7 @@ Recurring reminders preserve wall-clock time in the current system timezone acro
 
 The GPUI test platform verifies keyboard creation/save, invalid draft handling, workspace isolation, completion/undo, date controls, recurrence selection, and persistence after reopen. Kit UI tests click the real appearance controls, check returning to System, and verify restoring a saved override. Core tests cover month-end and leap-year recurrence, missed occurrences, relative schedules, cyclic ancestry rejection, atomic validation, and stale-write protection.
 
-The native app has been launched on Fedora through XWayland and window-only captures have been inspected. Native Wayland startup also leaves a running process, but the available X11 inspection path cannot verify its window. The cua-driver accessibility snapshot was slow and returned only window metadata; its background pointer action had no verified effect. No claim is made about assistive-technology support or automated native pointer interaction. Those need a separate platform pass before a public release.
+The native app has been launched on Fedora through XWayland and window-only captures have been inspected. Native Wayland startup also leaves a running process, but the available X11 inspection path cannot verify its window. Assistive-technology support and native Wayland interaction still need a dedicated platform pass before a broader release.
 
 ## Authentication
 
