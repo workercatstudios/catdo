@@ -2,12 +2,12 @@ import {
   emptyData,
   validateData,
   dataSchema,
-} from "../../../packages/domain/src/model";
+} from "../../../../packages/domain/src/model";
 import {
   merge,
   type Pending,
   type Snapshot,
-} from "../../../packages/domain/src/sync";
+} from "../../../../packages/domain/src/sync";
 import { z } from "zod";
 export const pendingSchema = z.object({
   id: z.uuid(),

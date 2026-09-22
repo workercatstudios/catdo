@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
+import { Button } from "./components/ui/button";
+import { ThemeControl } from "./lib/theme";
 import type { Data } from "../../../packages/domain/src/model";
 export function Management({
   data,
-  close,
   naming,
   act,
   change,
@@ -10,31 +10,21 @@ export function Management({
   exportTasks,
 }: {
   data: Data;
-  close: () => void;
   naming: (kind: "workspace" | "project", id?: string) => void;
   act: (fn: () => Promise<unknown>) => void;
   change: (fn: (d: Data) => void) => Promise<void>;
   error: string;
   exportTasks: () => void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
   return (
-    <dialog
-      className="manage"
-      ref={dialog}
-      onCancel={close}
-      aria-labelledby="manage-title"
-    >
-      {" "}
-      <div className="editor-head">
-        <h2 id="manage-title">Workspaces & projects</h2>
-        <button aria-label="Close management" onClick={() => close()}>
-          ×
-        </button>
+    <section className="manage">
+      <div className="page-heading">
+        <p className="eyebrow">Make yourself at home</p>
+        <h1>Settings</h1>
+        <p className="muted">Your spaces, your preferences, your data.</p>
       </div>
+      <ThemeControl />
+      <h2>Workspaces & projects</h2>
       <p className="muted">
         Archives keep your tasks and history. Restore them whenever you need.
       </p>
@@ -45,8 +35,8 @@ export function Management({
               {w.name}
               {w.archived ? " · archived" : ""}
             </strong>
-            <button onClick={() => naming("workspace", w.id)}>Rename</button>
-            <button
+            <Button onClick={() => naming("workspace", w.id)}>Rename</Button>
+            <Button
               onClick={() =>
                 act(() =>
                   change((d) => {
@@ -57,7 +47,7 @@ export function Management({
               }
             >
               {w.archived ? "Restore" : "Archive"}
-            </button>
+            </Button>
           </div>
           {data.projects
             .filter((p) => p.workspace_id === w.id)
@@ -67,8 +57,8 @@ export function Management({
                   {p.name}
                   {p.archived ? " · archived" : ""}
                 </span>
-                <button onClick={() => naming("project", p.id)}>Rename</button>
-                <button
+                <Button onClick={() => naming("project", p.id)}>Rename</Button>
+                <Button
                   onClick={() =>
                     act(() =>
                       change((d) => {
@@ -79,7 +69,7 @@ export function Management({
                   }
                 >
                   {p.archived ? "Restore" : "Archive"}
-                </button>
+                </Button>
               </div>
             ))}
         </div>
@@ -89,7 +79,7 @@ export function Management({
           {error}
         </p>
       )}
-      <button onClick={() => exportTasks()}>Export all tasks</button>
-    </dialog>
+      <Button onClick={() => exportTasks()}>Export all tasks</Button>
+    </section>
   );
 }

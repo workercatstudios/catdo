@@ -52,34 +52,33 @@ Use the Node version in `.node-version`, pnpm from `package.json`, and Rust from
 
 ```sh
 pnpm install --frozen-lockfile
-cp workers/api/.dev.vars.example workers/api/.dev.vars
+cp apps/web/.dev.vars.example apps/web/.dev.vars
 ```
 
 Fill `.dev.vars` with your own Clerk development instance configuration. Keep secrets out of source control. Create a public OAuth client for the desktop with device authorization and `openid profile email offline_access` scopes. Development users and task storage are separate from production.
 
 ```sh
-pnpm build
-pnpm api:dev
+pnpm dev
 ```
 
-Open `http://127.0.0.1:8787/app`. Optionally run `pnpm dev` in another terminal for Vite at `http://127.0.0.1:5173`, which proxies API requests to Wrangler. The `--local-upstream` argument in `api:dev` preserves the local Origin when Wrangler has a production custom domain.
+Open `http://127.0.0.1:5173/app`. TanStack Start runs public pages, the task app, and the API in one Cloudflare Vite development server. For the production build and service worker, run `pnpm build` followed by `pnpm --filter @catdo/web preview` (port 4173). Set `APP_ORIGIN` in local `.dev.vars` to the origin you use for sign-in.
 
 To connect the native client to local development:
 
 ```sh
-CATDO_API_URL=http://127.0.0.1:8787 cargo run -p catdo-desktop -- --data-dir /tmp/catdo-dev
+CATDO_API_URL=http://127.0.0.1:5173 cargo run -p catdo-desktop -- --data-dir /tmp/catdo-dev
 ```
 
 Wrangler emulates a SQLite Durable Object per account locally. No production task data is used. Clerk development users are distinct from production users.
 
 ## Deployment
 
-Production is a Cloudflare Worker named `catdo`, with static assets and SQLite-backed Durable Objects. Public configuration and the custom domain are in `workers/api/wrangler.jsonc`. Each account has independent task storage.
+Production is a Cloudflare Worker named `catdo`, with TanStack Start server rendering, static assets, and SQLite-backed Durable Objects. Public configuration and the custom domain are in `apps/web/wrangler.jsonc`. Each account has independent task storage.
 
-For your own deployment, update the domain and public Clerk configuration in `workers/api/wrangler.jsonc`, authenticate the installed Wrangler CLI, and set your production Clerk secret through its hidden prompt:
+For your own deployment, update the domain and public Clerk configuration in `apps/web/wrangler.jsonc`, authenticate the installed Wrangler CLI, and set your production Clerk secret through its hidden prompt:
 
 ```sh
-pnpm exec wrangler secret put CLERK_SECRET_KEY --config workers/api/wrangler.jsonc
+pnpm exec wrangler secret put CLERK_SECRET_KEY --config apps/web/wrangler.jsonc
 pnpm run deploy
 ```
 
@@ -91,6 +90,7 @@ Use `pnpm run deploy`, since `pnpm deploy` is a different built-in command. Do n
 pnpm check
 pnpm test
 pnpm build
+pnpm test:e2e
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
@@ -99,7 +99,7 @@ cargo test --workspace
 A development-only integration example uses the real desktop OAuth/keyring/storage/sync code. Authorize its printed code with a disposable Clerk development user:
 
 ```sh
-CATDO_API_URL=http://127.0.0.1:8787 cargo run -p catdo-desktop --example sync_smoke
+CATDO_API_URL=http://127.0.0.1:5173 cargo run -p catdo-desktop --example sync_smoke
 ```
 
 It checks native task upload, offline edit and database reopen, retry idempotency, recurrence dates, and completion history. It creates a clearly named test task in that development user's local Wrangler account.
@@ -108,11 +108,11 @@ It checks native task upload, offline edit and database reopen, retry idempotenc
 
 - `crates/catdo-core`: Rust domain rules, recurrence, SQLite storage, sync, and tests.
 - `apps/desktop`: GPUI screens, browser authorization, keyring credentials, reminders.
-- `apps/web`: landing page, web app, IndexedDB storage, offline shell.
+- `apps/web`: TanStack Start public site, shadcn task app, API, IndexedDB storage, and offline shell.
 - `packages/domain`: TypeScript domain rules and sync contract.
-- `workers/api`: authenticated API and per-account Durable Object storage.
+- `apps/web/src/server`: authenticated HTTP API and per-account Durable Object storage.
 
-Sync currently sends complete snapshots and caps an account's serialized task data at 900 KB. Conflicting edits to the same record require a choice; changes to different records merge automatically. Web Manage includes JSON export. See [implementation notes](implementation.md) for the protocol and limits.
+Sync currently sends complete snapshots and caps an account's serialized task data at 900 KB. Conflicting edits to the same record require a choice; changes to different records merge automatically. Web Settings includes JSON export. See [implementation notes](implementation.md) for the protocol and limits.
 
 Reminders require the desktop app to be running and a working notification service; web push and background delivery are not implemented. Dates are date-only, while reminders have local times. Recurrence shows the current occurrence, rather than an infinite calendar preview. Task and subtask completion are independent. Browser caches and desktop data remain on the device after sign-out; avoid offline access on a shared computer. Native Android, production load testing, and a full accessibility pass remain outstanding.
 
@@ -157,3 +157,13 @@ ignored `.local/release-tools`; `patchelf` must be installed on the build host.
 The AppImage runtime is pinned and checksum-verified as well. The release archive includes the desktop icon,
 launcher, installer, license, and notices. Packaging tests install into a
 throwaway directory, never the developer's task database.
+
+## Web migration and browser checks
+
+The Worker name `catdo`, `ACCOUNTS` binding, exported `CatDoAccount` class, and `v1` SQLite migration are unchanged. Do not rename these or add a replacement migration for the web rewrite: existing production accounts must retain their storage. `/api/config`, `/api/me`, and `/api/sync` keep the native HTTP contract.
+
+Public pages render on the server. The app authenticates on the client so the cached shell can open existing account-scoped IndexedDB data without an auth round trip. The service worker caches only the generic app shell and static assets, never API responses. A waiting worker asks for a reload and never reloads an open task automatically. Existing `catdo-shell-*` caches are retired when the new worker activates; the `catdo` IndexedDB database is not changed.
+
+`pnpm test:e2e` runs Playwright against the production preview, with disposable local accounts and offline browser data. Install its browser once with `pnpm exec playwright install chromium`; on Linux CI use `--with-deps`. An installed Chrome can be selected with `CHROME_PATH=/path/to/chrome`. Tests do not require production credentials.
+
+Public page content and release links live in `apps/web/src/site/content.ts`. Keep the version and asset URLs there current when publishing a desktop release. shadcn components are source-owned in `src/components/ui` and configured in `components.json`; theme tokens and reduced-motion styles are shared by the site and app.

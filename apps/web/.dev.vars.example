@@ -4,4 +4,4 @@ CLERK_PUBLISHABLE_KEY=pk_test_replace_me
 CLERK_SECRET_KEY=sk_test_replace_me
 CLERK_ISSUER=https://your-development-instance.clerk.accounts.dev
 CLERK_DESKTOP_CLIENT_ID=replace_with_your_public_oauth_client_id
-APP_ORIGIN=http://127.0.0.1:8787
+APP_ORIGIN=http://127.0.0.1:5173

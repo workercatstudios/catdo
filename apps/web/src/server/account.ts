@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { AccountStore } from "./sync";
-import type { Pending } from "../../../packages/domain/src/sync";
+import type { Pending } from "../../../../packages/domain/src/sync";
 export class CatDoAccount extends DurableObject<Record<string, never>> {
   private store: AccountStore;
   constructor(ctx: DurableObjectState, env: Record<string, never>) {

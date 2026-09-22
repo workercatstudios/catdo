@@ -1,0 +1,156 @@
+/* Pointer feedback is tiny. Navigation and all keyboard actions stay immediate. */
+html[data-input="pointer"] .ui-button {
+  transition: transform 120ms var(--ease-out);
+}
+html[data-input="pointer"] .ui-button:active {
+  transform: scale(0.97);
+  transition-duration: 160ms;
+}
+html[data-input="pointer"] .dialog-content {
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+@starting-style {
+  html[data-input="pointer"] .dialog-content {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  html[data-input="pointer"] .editor {
+    transform: translateX(6%);
+  }
+}
+html[data-input="keyboard"] *,
+html[data-input="keyboard"] *::before,
+html[data-input="keyboard"] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .site-nav a:hover,
+  .site-footer a:hover {
+    color: var(--primary);
+  }
+  .sidebar-inner nav a:hover {
+    background: var(--selected);
+  }
+  .ui-button:hover {
+    filter: brightness(0.96);
+  }
+  .check:hover {
+    border-color: var(--primary);
+    background: var(--selected);
+  }
+  .scroll-thumb:hover {
+    background: color-mix(in srgb, var(--foreground) 42%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-input="pointer"] .ui-button,
+  html[data-input="pointer"] .dialog-content {
+    transition: opacity 150ms var(--ease-out);
+  }
+  html[data-input="pointer"] .ui-button:active {
+    transform: none;
+  }
+  @starting-style {
+    html[data-input="pointer"] .dialog-content,
+    html[data-input="pointer"] .editor {
+      transform: none;
+    }
+  }
+}
+
+/* A first-visit introduction, then direct, user-controlled product exploration. */
+.hero-heading,
+.hero-copy,
+.product-tour {
+  animation: home-enter 500ms var(--ease-out) backwards;
+}
+.hero-copy {
+  animation-delay: 60ms;
+}
+.product-tour {
+  animation-delay: 120ms;
+}
+@keyframes home-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+html:not([data-input="keyboard"]) .screenshot-layer {
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out),
+    visibility 200ms;
+  transform: translateY(6px);
+}
+html:not([data-input="keyboard"]) .screenshot-layer[data-active="true"] {
+  transform: translateY(0);
+}
+.site summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.site summary::-webkit-details-marker {
+  display: none;
+}
+.site summary::after {
+  content: "+";
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform 180ms var(--ease-out);
+}
+.site details[open] > summary::after {
+  transform: rotate(45deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-actions .inline-link svg {
+    transition: transform 160ms var(--ease-out);
+  }
+  .hero-actions .inline-link:hover svg {
+    transform: translateY(2px);
+  }
+  .preview-controls button:hover {
+    background: var(--surface);
+    color: var(--foreground);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-heading,
+  .hero-copy,
+  .product-tour {
+    animation: home-fade 150ms var(--ease-out) backwards;
+  }
+  html:not([data-input="keyboard"]) .screenshot-layer[data-active] {
+    transform: none;
+    transition:
+      opacity 150ms var(--ease-out),
+      visibility 150ms;
+  }
+  .site summary::after {
+    transition: none;
+  }
+  .hero-actions .inline-link:hover svg {
+    transform: none;
+  }
+}
+@keyframes home-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

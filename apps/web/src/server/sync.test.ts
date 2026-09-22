@@ -6,8 +6,8 @@ import {
   initialData,
   newTask,
   saveTask,
-} from "../../../packages/domain/src/model";
-import type { Pending } from "../../../packages/domain/src/sync";
+} from "../../../../packages/domain/src/model";
+import type { Pending } from "../../../../packages/domain/src/sync";
 function account() {
   const db = new DatabaseSync(":memory:");
   const storage: AccountStorage = {

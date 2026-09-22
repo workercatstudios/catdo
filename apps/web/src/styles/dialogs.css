@@ -1,0 +1,154 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(10 20 13 / 0.3);
+  z-index: 50;
+}
+.dialog-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 51;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: none;
+}
+.dialog-content > h2 {
+  padding-right: 28px;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.dialog-content > p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.dialog-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dialog-close {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  background: transparent;
+  border: 0;
+  padding: 6px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 5px;
+}
+.editor {
+  left: auto;
+  right: 0;
+  top: 0;
+  translate: none;
+  width: min(440px, 100vw);
+  height: 100dvh;
+  max-height: none;
+  border-radius: 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  padding: 30px;
+  box-shadow: none;
+}
+.editor > h2 {
+  margin-bottom: 30px;
+}
+.editor label {
+  font-size: 12px;
+}
+.editor .field-help {
+  font-size: 10px;
+  margin-top: -10px;
+}
+.two-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.editor-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.editor-actions > .ui-button:first-child {
+  background: var(--surface);
+  color: var(--foreground);
+}
+.weekdays {
+  display: flex;
+  gap: 4px;
+}
+.weekdays .ui-button {
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.weekdays [aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.manage > .theme-control {
+  max-width: 300px;
+  margin-bottom: 40px;
+}
+.manage > h2 {
+  font-size: 19px;
+  margin-bottom: 12px;
+}
+.manage > p {
+  font-size: 12px;
+}
+.manage-group {
+  border-top: 1px solid var(--border);
+  padding: 15px 0;
+  margin-top: 20px;
+}
+.manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.manage-row > strong,
+.manage-row > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.manage-row .ui-button {
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 10px;
+  padding: 5px 8px;
+  height: 30px;
+}
+.manage-row.indented {
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}

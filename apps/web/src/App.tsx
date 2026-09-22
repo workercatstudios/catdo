@@ -1,3 +1,14 @@
+import { useBlocker, useLocation, useNavigate } from "@tanstack/react-router";
+import { AppSidebar } from "./components/app-sidebar";
+import { NamingDialog, type Naming } from "./components/naming-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "./components/ui/dialog";
+import { Button } from "./components/ui/button";
+import { appPath, parseAppPath } from "./lib/app-route";
 import {
   useEffect,
   useMemo,
@@ -37,16 +48,17 @@ export function App({
     [owner, getToken],
   );
   const [, render] = useReducer((n) => n + 1, 0);
-  const [workspace, setWorkspace] = useState(""),
-    [view, setView] = useState("today"),
-    [search, setSearch] = useState(""),
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const { workspace, view, valid } = parseAppPath(location.pathname);
+  const [namingTarget, setNamingTarget] = useState<Naming | null>(null);
+  const [search, setSearch] = useState(""),
     [quick, setQuick] = useState(""),
     [editor, setEditor] = useState<Task | null>(null),
     [editorDirty, setEditorDirty] = useState(false),
     [error, setError] = useState(""),
     [undo, setUndo] = useState<Undo[]>([]),
-    [menu, setMenu] = useState(false),
-    [manage, setManage] = useState(false);
+    [menu, setMenu] = useState(false);
   useEffect(() => {
     const unsubscribe = store.subscribe(render);
     void store.open();
@@ -90,30 +102,46 @@ export function App({
         view === "today" ? localDay() : null,
       ),
     );
+  useBlocker({
+    shouldBlockFn: () =>
+      editorDirty && !confirm("Discard unsaved task changes?"),
+    enableBeforeUnload: editorDirty,
+  });
   useEffect(() => {
-    if (!editorDirty) return;
-    const guard = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", guard);
-    return () => window.removeEventListener("beforeunload", guard);
-  }, [editorDirty]);
+    setEditorDirty(false);
+    setEditor(null);
+    setSearch("");
+    setMenu(false);
+  }, [location.pathname]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "k" &&
+        !editor &&
+        !namingTarget
+      ) {
         e.preventDefault();
-        document.querySelector<HTMLInputElement>("#search")?.focus();
+        const mobile = matchMedia("(max-width: 720px)").matches;
+        if (mobile) setMenu(true);
+        setTimeout(
+          () =>
+            document
+              .querySelector<HTMLInputElement>(
+                mobile ? ".mobile-sidebar #search" : ".desktop-sidebar #search",
+              )
+              ?.focus(),
+          0,
+        );
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !editor) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "Enter" &&
+        !editor &&
+        !namingTarget
+      ) {
         e.preventDefault();
         add();
-      }
-      if (e.key === "Escape" && canLeave()) {
-        setEditorDirty(false);
-        setEditor(null);
-        setManage(false);
-        setMenu(false);
       }
     };
     window.addEventListener("keydown", key);
@@ -173,176 +201,93 @@ export function App({
     ? "Search"
     : view.startsWith("project:")
       ? (projects.find((p) => p.id === view.slice(8))?.name ?? "Project")
-      : view === "completed"
-        ? "Completed"
-        : (nav.find((n) => n[0] === view)?.[1] ?? "Today");
-  const navigate = (value: string) => {
-    if (!canLeave()) return;
-    setEditorDirty(false);
-    setView(value);
-    setSearch("");
-    setEditor(null);
-    setMenu(false);
+      : view === "settings"
+        ? "Settings"
+        : view === "completed"
+          ? "Completed"
+          : (nav.find((n) => n[0] === view)?.[1] ?? "Today");
+  const navigate = (value: string, nextWorkspace = workspaceId) => {
+    void routerNavigate({ to: appPath(nextWorkspace, value) });
   };
+  if (
+    !valid ||
+    (workspace && workspace !== workspaceId) ||
+    (view.startsWith("project:") &&
+      !projects.some((p) => p.id === view.slice(8)))
+  )
+    return (
+      <main className="not-found">
+        <h1>This space isn’t available.</h1>
+        <p>It may be archived, or belong to another account.</p>
+        <Button onClick={() => navigate("today")}>Back to Today</Button>
+      </main>
+    );
   const naming = (kind: "workspace" | "project", id?: string) => {
     const rows = kind === "workspace" ? data.workspaces : data.projects;
     const existing = rows.find((r) => r.id === id);
-    const name = prompt(
-      existing ? "Rename" : "Name your " + kind,
-      existing?.name ?? "",
-    );
-    if (!name?.trim()) return;
-    act(() =>
-      change((d) => {
-        const rows = kind === "workspace" ? d.workspaces : d.projects;
-        if (
-          rows.some(
-            (r) =>
-              r.id !== id &&
-              r.name.toLowerCase() === name.trim().toLowerCase() &&
-              (kind === "workspace" ||
-                ("workspace_id" in r && r.workspace_id === workspaceId)),
-          )
-        )
-          throw Error("That name is already used here.");
-        if (id) {
-          rows.find((r) => r.id === id)!.name = name.trim();
-        } else if (kind === "workspace")
-          d.workspaces.push({
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            archived: false,
-          });
-        else
-          d.projects.push({
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            archived: false,
-            workspace_id: workspaceId,
-          });
-      }),
-    );
+    setNamingTarget({ kind, id, name: existing?.name ?? "" });
   };
+  const saveName = async (name: string) => {
+    if (!namingTarget || !name.trim()) return;
+    const { kind, id } = namingTarget;
+    const projectWorkspace = id
+      ? data.projects.find((p) => p.id === id)?.workspace_id
+      : workspaceId;
+    await change((d) => {
+      const rows = kind === "workspace" ? d.workspaces : d.projects;
+      if (
+        rows.some(
+          (r) =>
+            r.id !== id &&
+            r.name.toLowerCase() === name.trim().toLowerCase() &&
+            (kind === "workspace" ||
+              ("workspace_id" in r && r.workspace_id === projectWorkspace)),
+        )
+      )
+        throw Error("That name is already used here.");
+      if (id) {
+        rows.find((r) => r.id === id)!.name = name.trim();
+      } else if (kind === "workspace")
+        d.workspaces.push({
+          id: crypto.randomUUID(),
+          name: name.trim(),
+          archived: false,
+        });
+      else
+        d.projects.push({
+          id: crypto.randomUUID(),
+          name: name.trim(),
+          archived: false,
+          workspace_id: workspaceId,
+        });
+    });
+  };
+  const sidebar = (
+    <AppSidebar
+      data={data}
+      workspace={workspaceId}
+      view={view}
+      tasks={tasks}
+      today={today}
+      search={search}
+      setSearch={setSearch}
+      navigate={navigate}
+      naming={naming}
+      account={account}
+    />
+  );
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${menu ? "open" : ""}`}>
-        <a className="brand" href="/">
-          <img src="/cat.png" alt="" />
-          <strong>CatDo</strong>
-          <span>by WorkerCat</span>
-        </a>
-        <div className="workspace-control">
-          <select
-            aria-label="Workspace"
-            value={workspaceId}
-            onChange={(e) => {
-              if (!canLeave()) return;
-              setEditorDirty(false);
-              setEditor(null);
-              setWorkspace(e.target.value);
-              setView("today");
-              setSearch("");
-            }}
-          >
-            {data.workspaces
-              .filter((w) => !w.archived)
-              .map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-          </select>
-          <button
-            className="icon-button"
-            aria-label="New workspace"
-            onClick={() => naming("workspace")}
-          >
-            <Icon name="plus" />
-          </button>
-        </div>
-        <div className="search">
-          <Icon name="search" />
-          <input
-            id="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search workspace"
-            aria-label="Search workspace"
-          />
-          <kbd>Ctrl K</kbd>
-        </div>
-        <nav>
-          {nav.map(([id, label]) => (
-            <button
-              key={id}
-              className={view === id && !search ? "selected" : ""}
-              onClick={() => navigate(id)}
-            >
-              <Icon name={id} />
-              <span>{label}</span>
-              {id === "today" && (
-                <small>
-                  {tasks.filter(
-                    (t) =>
-                      (t.scheduled && t.scheduled <= today) ||
-                      (t.due && t.due <= today),
-                  ).length || ""}
-                </small>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="section-label">
-          <span>Projects</span>
-          <button
-            className="icon-button"
-            aria-label="New project"
-            onClick={() => naming("project")}
-          >
-            <Icon name="plus" />
-          </button>
-        </div>
-        <nav className="projects">
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              className={view === `project:${p.id}` ? "selected" : ""}
-              onClick={() => navigate(`project:${p.id}`)}
-            >
-              <Icon name="project" />
-              <span>{p.name}</span>
-              <small>
-                {tasks.filter((t) => t.project_id === p.id && !t.parent_id)
-                  .length || ""}
-              </small>
-            </button>
-          ))}
-          {projects.length === 0 && (
-            <p className="sidebar-hint">
-              A place for each project.
-              <br />
-              Add your first one with +.
-            </p>
-          )}
-        </nav>
-        <nav>
-          <button
-            onClick={() => navigate("completed")}
-            className={view === "completed" ? "selected" : ""}
-          >
-            <Icon name="completed" />
-            <span>Completed</span>
-          </button>
-          <button onClick={() => setManage(true)}>
-            <Icon name="project" />
-            <span>Manage spaces</span>
-          </button>
-        </nav>
-        <div className="account">
-          {account}
-          <span>A little more organized.</span>
-        </div>
-      </aside>
+      <aside className="sidebar desktop-sidebar">{sidebar}</aside>
+      <Dialog open={menu} onOpenChange={setMenu}>
+        <DialogContent className="mobile-sidebar">
+          <DialogTitle className="sr-only">Navigation</DialogTitle>
+          <DialogDescription className="sr-only">
+            Workspaces and task views
+          </DialogDescription>
+          {sidebar}
+        </DialogContent>
+      </Dialog>
       <main className="main">
         <header className="topbar">
           <button
@@ -357,10 +302,10 @@ export function App({
             <span className="slash">/</span>
             {title}
           </span>
-          <button className="primary" onClick={add}>
+          <Button onClick={add}>
             <Icon name="plus" />
             Add task
-          </button>
+          </Button>
         </header>
         <div
           className={`content ${view === "calendar" && !search ? "wide" : ""}`}
@@ -402,7 +347,16 @@ export function App({
               </button>
             </div>
           )}
-          {view === "calendar" && !search ? (
+          {view === "settings" && !search ? (
+            <Management
+              data={data}
+              naming={naming}
+              act={act}
+              change={change}
+              error={error}
+              exportTasks={() => act(() => store.export())}
+            />
+          ) : view === "calendar" && !search ? (
             <Calendar
               tasks={tasks}
               open={openEditor}
@@ -558,6 +512,12 @@ export function App({
             setEditorDirty(false);
             setEditor(null);
           }}
+          dismiss={() => {
+            if (canLeave()) {
+              setEditorDirty(false);
+              setEditor(null);
+            }
+          }}
           open={(task) => {
             setEditorDirty(false);
             setEditor(structuredClone(task));
@@ -565,15 +525,12 @@ export function App({
           onDirty={setEditorDirty}
         />
       )}
-      {manage && (
-        <Management
-          data={data}
-          close={() => setManage(false)}
-          naming={naming}
-          act={act}
-          change={change}
-          error={error}
-          exportTasks={() => act(() => store.export())}
+      {namingTarget && (
+        <NamingDialog
+          key={namingTarget.kind + (namingTarget.id ?? "")}
+          target={namingTarget}
+          close={() => setNamingTarget(null)}
+          save={saveName}
         />
       )}
     </div>

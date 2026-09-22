@@ -1,61 +1,47 @@
-// Only cache the application shell and same-origin public assets. Never cache
-// task API responses, auth traffic, or credentials; tasks live in account-scoped IDB.
-const CACHE = "catdo-shell-__VERSION__";
+const CACHE = "catdo-shell-start-__VERSION__";
+const ASSETS = __ASSETS__;
 self.addEventListener("install", (event) =>
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(__ASSETS__))),
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS))),
 );
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "ACTIVATE") self.skipWaiting();
+});
 self.addEventListener("activate", (event) =>
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key.startsWith("catdo-shell-") && key !== CACHE)
-            .map((key) => caches.delete(key)),
-        ),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      for (const key of await caches.keys())
+        if (key.startsWith("catdo-shell-") && key !== CACHE)
+          await caches.delete(key);
+      await self.clients.claim();
+    })(),
   ),
 );
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request,
+    url = new URL(request.url);
   if (
+    request.method !== "GET" ||
     url.origin !== self.location.origin ||
-    event.request.method !== "GET" ||
     url.pathname.startsWith("/api/")
   )
     return;
-  if (event.request.mode === "navigate") {
+  const app = url.pathname === "/app" || url.pathname.startsWith("/app/");
+  if (request.mode === "navigate" && app) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok && url.pathname.startsWith("/app")) {
-            const clone = response.clone();
-            event.waitUntil(
-              caches.open(CACHE).then((c) => c.put("/app", clone)),
-            );
-          }
-          return response;
-        })
-        .catch(() => caches.match("/app")),
+      fetch(request).catch(async () => {
+        const cached = await caches.match("/app", {
+          cacheName: CACHE,
+          ignoreVary: true,
+        });
+        return cached || Response.error();
+      }),
     );
     return;
   }
-  if (url.pathname.startsWith("/assets/") || url.pathname === "/cat.png")
+  if (ASSETS.includes(url.pathname) && url.pathname !== "/app")
     event.respondWith(
-      caches.match(event.request).then(
-        (cached) =>
-          cached ||
-          fetch(event.request).then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              event.waitUntil(
-                caches.open(CACHE).then((c) => c.put(event.request, clone)),
-              );
-            }
-            return response;
-          }),
-      ),
+      caches
+        .match(request, { cacheName: CACHE, ignoreVary: true })
+        .then((hit) => hit || fetch(request)),
     );
 });

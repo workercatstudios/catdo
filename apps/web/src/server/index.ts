@@ -1,10 +1,8 @@
 import { createClerkClient } from "@clerk/backend";
 import { pendingSchema } from "./sync";
-import { CatDoAccount } from "./account";
-export { CatDoAccount };
+import type { CatDoAccount } from "./account";
 export interface Env {
   ACCOUNTS: DurableObjectNamespace<CatDoAccount>;
-  ASSETS: Fetcher;
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_ISSUER: string;
@@ -22,7 +20,8 @@ const json = (body: unknown, status = 200) =>
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/"))
+      return json({ error: "Not found" }, 404);
     if (url.pathname === "/api/config" && request.method === "GET")
       return json({
         publishableKey: env.CLERK_PUBLISHABLE_KEY ?? "",
@@ -42,7 +41,7 @@ export default {
     const allowed = [
       env.APP_ORIGIN,
       ...(new URL(env.APP_ORIGIN).hostname === "127.0.0.1"
-        ? ["http://127.0.0.1:5173"]
+        ? ["http://127.0.0.1:5173", "http://127.0.0.1:4173"]
         : []),
     ];
     if (origin && !allowed.includes(origin)) {

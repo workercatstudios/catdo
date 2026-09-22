@@ -1,0 +1,107 @@
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.calendar-controls h1 {
+  font-size: 25px;
+}
+.calendar-controls > div {
+  display: flex;
+  gap: 5px;
+}
+.calendar-controls button {
+  font-size: 12px;
+  height: 32px;
+}
+.calendar-key {
+  font-size: 10px;
+  display: flex;
+  gap: 14px;
+  margin: 18px 0 25px;
+  flex-wrap: wrap;
+}
+.calendar-key > span:last-child {
+  margin-left: auto;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+.weekday {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.calendar-day {
+  min-height: 110px;
+  padding: 7px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.calendar-day.outside {
+  background: var(--surface);
+  color: var(--muted);
+}
+.calendar-day.selected {
+  background: var(--selected);
+}
+.day-number {
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  margin-bottom: 5px;
+}
+.day-number.today {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.calendar-task {
+  border: 0;
+  border-radius: 4px;
+  padding: 5px;
+  background: var(--surface);
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  text-align: left;
+  margin: 2px 0;
+}
+.agenda {
+  margin-top: 32px;
+}
+.agenda h2 {
+  font-size: 17px;
+  margin-bottom: 18px;
+}
+.agenda > .muted {
+  font-size: 12px;
+}
+.agenda-task {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.agenda-task span {
+  color: var(--muted);
+  font-size: 10px;
+}

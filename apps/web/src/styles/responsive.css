@@ -1,0 +1,135 @@
+@media (max-width: 1100px) {
+  .content {
+    padding: 40px 35px;
+  }
+  .brand small {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .desktop-sidebar {
+    display: none;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+  .mobile-sidebar {
+    left: 0;
+    top: 0;
+    translate: none;
+    width: 280px;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    padding: 0;
+    background: var(--sidebar);
+    overflow: hidden;
+  }
+  .mobile-sidebar .sidebar-inner {
+    padding-top: 55px;
+  }
+  .mobile-sidebar .dialog-close {
+    top: 14px;
+    right: 14px;
+  }
+  .topbar {
+    padding: 0 18px;
+    height: 62px;
+    gap: 9px;
+  }
+  .topbar > span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+  .slash {
+    margin: 0 6px;
+  }
+  .topbar .ui-button {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+  .content {
+    padding: 34px 24px;
+  }
+  .content.wide {
+    padding: 26px 16px;
+  }
+  .status {
+    padding: 8px 18px;
+    gap: 15px;
+    font-size: 9px;
+  }
+  .status button {
+    font-size: 10px;
+  }
+  .page-heading h1 {
+    font-size: 29px;
+  }
+  .project-name {
+    display: none;
+  }
+  .task-row {
+    gap: 11px;
+  }
+  .calendar-controls h1 {
+    font-size: 20px;
+  }
+  .calendar-controls button {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+  .calendar-key > span:last-child {
+    display: none;
+  }
+  .calendar-day {
+    min-height: 80px;
+    padding: 3px;
+  }
+  .calendar-task {
+    font-size: 8px;
+    padding: 3px;
+  }
+  .weekday {
+    font-size: 9px;
+    padding: 10px 0;
+  }
+  .manage-row {
+    font-size: 12px;
+  }
+  .editor {
+    padding: 24px;
+  }
+  .two-fields {
+    gap: 10px;
+  }
+  .two-fields input {
+    width: 100%;
+    font-size: 12px;
+  }
+  .not-found h1 {
+    font-size: 28px;
+  }
+  .brand small {
+    display: none;
+  }
+}
+@media (forced-colors: active) {
+  .check {
+    border-color: ButtonText;
+  }
+  .scroll-thumb {
+    background: CanvasText;
+  }
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+    format("woff2");
+}

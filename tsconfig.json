@@ -9,12 +9,14 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["@cloudflare/workers-types", "vite/client", "node"]
+    "types": ["@cloudflare/workers-types", "vite/client", "node"],
+    "paths": {
+      "@/*": ["./apps/web/src/*"]
+    }
   },
   "include": [
     "apps/web/src",
     "packages",
-    "workers/api/src",
     "apps/web/vite.config.ts",
     "vitest.config.ts"
   ]

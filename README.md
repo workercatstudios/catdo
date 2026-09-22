@@ -29,7 +29,7 @@
       <img alt="Desktop: GPUI Kit" src="https://shieldcn.dev/badge/Desktop-GPUI_Kit-grey.svg?variant=outline&amp;size=sm&amp;logo=rust&amp;mode=light">
     </picture>
   </a>
-  <a href="workers/api">
+  <a href="apps/web/src/server">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Sync-Cloudflare-orange.svg?variant=outline&amp;size=sm&amp;logo=cloudflare&amp;mode=dark">
       <img alt="Sync: Cloudflare" src="https://shieldcn.dev/badge/Sync-Cloudflare-orange.svg?variant=outline&amp;size=sm&amp;logo=cloudflare&amp;mode=light">
@@ -158,15 +158,15 @@ Text fields keep their own undo history.
 | ---------------------------- | ------------------------------------------- | ---------------------------------------- |
 | Desktop                      | Rust + GPUI Kit                             | [`apps/desktop`](apps/desktop)           |
 | Desktop domain and storage   | Rust + SQLite                               | [`crates/catdo-core`](crates/catdo-core) |
-| Website and web app          | React + Vite + IndexedDB                    | [`apps/web`](apps/web)                   |
+| Website and web app          | TanStack Start + shadcn/ui + IndexedDB                    | [`apps/web`](apps/web)                   |
 | Web domain and sync contract | TypeScript                                  | [`packages/domain`](packages/domain)     |
-| API and account storage      | Cloudflare Workers + SQLite Durable Objects | [`workers/api`](workers/api)             |
+| API and account storage      | Cloudflare Workers + SQLite Durable Objects | [`apps/web/src/server`](apps/web/src/server)             |
 
 Changes are saved locally before syncing. Edits to different records merge automatically; conflicting edits to the same record ask you to choose. CatDo shares WorkerCat sign-in while keeping its own task storage, separated by account.
 
-A few current boundaries: desktop reminders need the app open, recurring tasks show their current occurrence, and sync supports up to 900 KB of serialized task data per account. Signing out keeps local task data on the device. Web Manage includes JSON export.
+A few current boundaries: desktop reminders need the app open, recurring tasks show their current occurrence, and sync supports up to 900 KB of serialized task data per account. Signing out keeps local task data on the device. Web Settings includes JSON export.
 
-For setup, checks, and deployment, start with the [developer guide](docs/development.md). The [implementation notes](docs/implementation.md) explain storage, recurrence, sync, and current limits; the [product brief](docs/product-brief.md) covers the direction.
+For setup, checks, and deployment, start with the [developer guide](docs/development.md). The [implementation notes](docs/implementation.md) explain storage, recurrence, sync, and current limits.
 
 ## License
 
