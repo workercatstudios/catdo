@@ -1,7 +1,9 @@
-use crate::app::{CatDo, CloseEditor, CreateKind, Find, NewTask, SaveTask, TodayView, Undo, View};
+use crate::app::{
+    CatDo, CloseEditor, CreateKind, Find, NewTask, Quit, SaveTask, TodayView, Undo, View,
+};
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::component::{
-    IconName, Sizable, StyledExt,
+    IconName, Sizable, StyledExt, TitleBar,
     button::{Button, ButtonVariants},
     input::Input,
 };
@@ -27,10 +29,15 @@ impl Render for CatDo {
             .key_context("CatDo")
             .track_focus(&self.focus)
             .size_full()
-            .h_flex()
+            .v_flex()
             .bg(p.background)
             .text_color(p.foreground)
             .text_sm()
+            .on_action(cx.listener(|this, _: &Quit, _, cx| {
+                if this.save_before_close(cx) {
+                    cx.quit();
+                }
+            }))
             .on_action(cx.listener(|this, _: &NewTask, window, cx| this.new_task(window, cx)))
             .on_action(cx.listener(|this, _: &Find, window, cx| {
                 this.search.read(cx).focus_handle(cx).focus(window, cx)
@@ -56,110 +63,127 @@ impl Render for CatDo {
                     this.navigate(View::Today, window, cx)
                 }),
             )
-            .child(self.render_sidebar(cx))
+            .when(
+                matches!(window.window_decorations(), Decorations::Client { .. }),
+                |el| {
+                    el.child(
+                        TitleBar::new()
+                            .child(div().text_sm().child("CatDo"))
+                            .on_close_window(cx.listener(|this, _, window, cx| {
+                                if this.save_before_close(cx) {
+                                    window.remove_window();
+                                }
+                            })),
+                    )
+                },
+            )
             .child(
                 div()
-                    .v_flex()
+                    .h_flex()
                     .flex_1()
-                    .min_w_0()
-                    .h_full()
+                    .min_h_0()
+                    .w_full()
+                    .child(self.render_sidebar(cx))
                     .child(
                         div()
-                            .h_flex()
-                            .h(px(62.))
-                            .flex_shrink_0()
-                            .items_center()
-                            .justify_between()
-                            .px_8()
-                            .border_b_1()
-                            .border_color(p.border)
+                            .v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .h_full()
                             .child(
                                 div()
-                                    .text_xs()
-                                    .text_color(p.muted_foreground)
-                                    .child(format!(
-                                        "{workspace}   /   {}",
-                                        if searching {
-                                            "Search".into()
-                                        } else {
-                                            self.title()
-                                        }
-                                    )),
-                            )
-                            .child(
-                                Button::new("new-task")
-                                    .primary()
-                                    .small()
-                                    .icon(IconName::Plus)
-                                    .label("Add task")
-                                    .tooltip("Ctrl+N")
-                                    .on_click(
-                                        cx.listener(|this, _, window, cx| {
-                                            this.new_task(window, cx)
-                                        }),
+                                    .h_flex()
+                                    .h(px(62.))
+                                    .flex_shrink_0()
+                                    .items_center()
+                                    .justify_between()
+                                    .px_8()
+                                    .border_b_1()
+                                    .border_color(p.border)
+                                    .child(div().text_xs().text_color(p.muted_foreground).child(
+                                        format!(
+                                            "{workspace}   /   {}",
+                                            if searching {
+                                                "Search".into()
+                                            } else {
+                                                self.title()
+                                            }
+                                        ),
+                                    ))
+                                    .child(
+                                        Button::new("new-task")
+                                            .primary()
+                                            .small()
+                                            .icon(IconName::Plus)
+                                            .label("Add task")
+                                            .tooltip("Ctrl+N")
+                                            .on_click(cx.listener(|this, _, window, cx| {
+                                                this.new_task(window, cx)
+                                            })),
                                     ),
-                            ),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_h_0()
-                            .when(self.view == View::Calendar && !searching, |el| {
-                                el.child(self.render_calendar(cx))
-                            })
-                            .when(self.view == View::Manage && !searching, |el| {
-                                el.child(self.render_management(cx))
-                            })
-                            .when(
-                                (self.view != View::Calendar && self.view != View::Manage)
-                                    || searching,
-                                |el| el.child(self.render_task_list(cx)),
-                            ),
-                    )
-                    .child(
-                        div()
-                            .h_flex()
-                            .min_h(px(38.))
-                            .px_6()
-                            .py_2()
-                            .items_center()
-                            .gap_3()
-                            .border_t_1()
-                            .border_color(p.border)
-                            .text_xs()
-                            .text_color(p.muted_foreground)
+                            )
                             .child(
                                 div()
                                     .flex_1()
-                                    .when_some(self.message.clone(), |el, (message, error)| {
-                                        el.text_color(if error {
-                                            p.destructive
-                                        } else {
-                                            p.muted_foreground
-                                        })
-                                        .child(message)
+                                    .min_h_0()
+                                    .when(self.view == View::Calendar && !searching, |el| {
+                                        el.child(self.render_calendar(cx))
                                     })
-                                    .when(self.message.is_none(), |el| {
-                                        el.child("Saved on this device")
-                                    }),
+                                    .when(self.view == View::Manage && !searching, |el| {
+                                        el.child(self.render_management(cx))
+                                    })
+                                    .when(
+                                        (self.view != View::Calendar && self.view != View::Manage)
+                                            || searching,
+                                        |el| el.child(self.render_task_list(cx)),
+                                    ),
                             )
-                            .when(!self.undo.is_empty(), |el| {
-                                el.child(
-                                    Button::new("undo")
-                                        .ghost()
-                                        .xsmall()
-                                        .label("Undo")
-                                        .tooltip("Ctrl+Z")
-                                        .on_click(
-                                            cx.listener(|this, _, window, cx| {
-                                                this.undo(window, cx)
+                            .child(
+                                div()
+                                    .h_flex()
+                                    .min_h(px(38.))
+                                    .px_6()
+                                    .py_2()
+                                    .items_center()
+                                    .gap_3()
+                                    .border_t_1()
+                                    .border_color(p.border)
+                                    .text_xs()
+                                    .text_color(p.muted_foreground)
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .when_some(
+                                                self.message.clone(),
+                                                |el, (message, error)| {
+                                                    el.text_color(if error {
+                                                        p.destructive
+                                                    } else {
+                                                        p.muted_foreground
+                                                    })
+                                                    .child(message)
+                                                },
+                                            )
+                                            .when(self.message.is_none(), |el| {
+                                                el.child("Saved on this device")
                                             }),
-                                        ),
-                                )
-                            }),
-                    ),
+                                    )
+                                    .when(!self.undo.is_empty(), |el| {
+                                        el.child(
+                                            Button::new("undo")
+                                                .ghost()
+                                                .xsmall()
+                                                .label("Undo")
+                                                .tooltip("Ctrl+Z")
+                                                .on_click(cx.listener(|this, _, window, cx| {
+                                                    this.undo(window, cx)
+                                                })),
+                                        )
+                                    }),
+                            ),
+                    )
+                    .when_some(self.editor.clone(), |el, editor| el.child(editor)),
             )
-            .when_some(self.editor.clone(), |el, editor| el.child(editor))
             .when_some(self.create_kind, |el, kind| {
                 el.child(
                     div()

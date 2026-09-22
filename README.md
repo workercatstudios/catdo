@@ -104,6 +104,8 @@ chmod +x CatDo.AppImage
 
 Replace `CatDo.AppImage` with the downloaded filename. A `.tar.gz` with a user-level installer and SHA-256 checksums is also provided. Release builds target glibc 2.39 or newer; graphics drivers and a desktop session are still required. See the [Linux package notes](packaging/README.md) for installation and AppImage troubleshooting.
 
+The sidebar update button downloads a new release on the first click and installs it on the second. Closing the window keeps sync and reminders running in the tray; reopen it from the tray or your launcher. **Ctrl+Q** exits completely. See [updates and tray support](packaging/README.md#updates-and-the-system-tray) for details.
+
 ### Build from source
 
 With Rust and the Linux build dependencies installed, start the desktop from the repository root:
@@ -145,6 +147,7 @@ The demo generator refuses to overwrite an existing database. See the [developer
 | `Ctrl+S` | Save task details                                    |
 | `Ctrl+Z` | Undo the last task action                            |
 | `Ctrl+1` | Go to Today                                          |
+| `Ctrl+Q` | Quit CatDo, including the tray                        |
 | `Escape` | Save and close details, or dismiss a creation dialog |
 
 Text fields keep their own undo history.

@@ -2,7 +2,9 @@ mod app;
 mod calendar;
 mod cloud;
 mod commands;
+mod desktop;
 mod editor;
+mod instance;
 mod management;
 mod reminders;
 mod shell;
@@ -14,6 +16,9 @@ mod tests;
 mod theme;
 #[cfg(test)]
 mod theme_tests;
+mod tray;
+mod update_ui;
+mod updates;
 
 use anyhow::{Context, Result};
 use catdo_core::Store;
@@ -50,6 +55,9 @@ fn run() -> Result<()> {
             .data_local_dir()
             .to_path_buf(),
     };
+    let Some(instance) = instance::Instance::claim(&path)? else {
+        return Ok(());
+    };
     let mut store = Store::open(&path.join("catdo.sqlite3"))?;
     let data = store.load()?;
     gpui_kit::application()
@@ -57,28 +65,10 @@ fn run() -> Result<()> {
         .run(move |cx| {
             gpui_kit::init(cx);
             app::bind_keys(cx);
-            cx.on_window_closed(|cx, _| {
-                if cx.windows().is_empty() {
-                    cx.quit();
-                }
-            })
-            .detach();
-            let options = WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                    None,
-                    size(px(1240.), px(820.)),
-                    cx,
-                ))),
-                window_min_size: Some(size(px(980.), px(650.))),
-                titlebar: Some(TitlebarOptions {
-                    title: Some("CatDo".into()),
-                    ..Default::default()
-                }),
-                app_id: Some("com.workercat.catdo".into()),
-                ..Default::default()
-            };
+            let options = desktop::window_options(cx);
             if let Err(error) = cx.open_window(options, |window, cx| {
                 let view = cx.new(|cx| app::CatDo::new(store, data, window, cx));
+                desktop::start(view.clone(), instance, cx);
                 cx.new(|cx| Root::new(view, window, cx))
             }) {
                 eprintln!("Could not open CatDo: {error:#}");

@@ -244,5 +244,12 @@ impl CatDo {
                 cx,
             ))
             .child(self.render_theme_control(cx))
+            .child(
+                div()
+                    .h_flex()
+                    .justify_end()
+                    .pt_2()
+                    .child(self.render_update(cx)),
+            )
     }
 }

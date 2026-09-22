@@ -14,12 +14,13 @@ use crate::editor::{TaskEditor, input};
 
 actions!(
     catdo,
-    [NewTask, Find, Undo, SaveTask, CloseEditor, TodayView]
+    [NewTask, Find, Undo, SaveTask, CloseEditor, TodayView, Quit]
 );
 
 pub fn bind_keys(cx: &mut App) {
     cx.bind_keys([
         KeyBinding::new("ctrl-n", NewTask, Some("CatDo")),
+        KeyBinding::new("ctrl-q", Quit, Some("CatDo")),
         KeyBinding::new("ctrl-f", Find, Some("CatDo")),
         KeyBinding::new("ctrl-z", Undo, Some("CatDo")),
         KeyBinding::new("ctrl-s", SaveTask, Some("CatDo")),
@@ -54,6 +55,7 @@ struct Preferences {
 
 pub struct CatDo {
     pub data: Data,
+    pub(crate) update_state: crate::update_ui::UpdateState,
     pub(crate) appearance: crate::theme::Appearance,
     pub(crate) sync_status: String,
     pub(crate) sync_enabled: bool,
@@ -103,74 +105,9 @@ impl CatDo {
                 cx,
             )
         });
-        let subscriptions = vec![
-            cx.observe_window_appearance(window, |this, window, cx| {
-                if this.appearance == crate::theme::Appearance::System {
-                    this.appearance.apply(window, cx);
-                }
-            }),
-            cx.subscribe(&search, |_, _, _: &InputEvent, cx| cx.notify()),
-            cx.subscribe_in(&quick_add, window, |this, _, event, window, cx| {
-                if matches!(event, InputEvent::PressEnter { .. }) {
-                    this.quick_create(window, cx);
-                }
-            }),
-            cx.subscribe_in(&name_input, window, |this, _, event, window, cx| {
-                if matches!(event, InputEvent::PressEnter { .. }) {
-                    this.create_named(window, cx);
-                }
-            }),
-            cx.subscribe_in(
-                &workspace_select,
-                window,
-                |this, _, event: &SelectEvent<Vec<SharedString>>, window, cx| {
-                    if let SelectEvent::Confirm(Some(_)) = event
-                        && let Some(id) = this
-                            .workspace_select
-                            .read(cx)
-                            .selected_index(cx)
-                            .and_then(|index| {
-                                this.data
-                                    .workspaces
-                                    .iter()
-                                    .filter(|w| !w.archived)
-                                    .nth(index.row)
-                            })
-                            .map(|w| w.id)
-                    {
-                        this.switch_workspace(id, window, cx);
-                    }
-                },
-            ),
-        ];
         let today = Local::now().date_naive();
         let focus = cx.focus_handle();
         focus.focus(window, cx);
-        let entity = cx.entity().downgrade();
-        window.on_window_should_close(cx, move |_, cx| {
-            entity
-                .update(cx, |this, cx| {
-                    if !this.commit_editor(cx) {
-                        return false;
-                    }
-                    this.views.insert(
-                        this.workspace_id,
-                        (this.view, this.month, this.selected_day),
-                    );
-                    if let Err(error) = this.store.set_preference(
-                        "navigation",
-                        &Preferences {
-                            workspace_id: this.workspace_id,
-                            views: this.views.clone(),
-                        },
-                    ) {
-                        this.error(error.to_string(), cx);
-                        return false;
-                    }
-                    true
-                })
-                .unwrap_or(true)
-        });
         Self::start_reminders(cx);
         Self::start_sync(cx);
         let sync_enabled = store
@@ -180,6 +117,7 @@ impl CatDo {
             .unwrap_or(false);
         let mut app = Self {
             appearance,
+            update_state: Default::default(),
             workspace_id: data.workspaces.iter().find(|w| !w.archived).unwrap().id,
             data,
             sync_status: "Saved on this device".into(),
@@ -203,7 +141,7 @@ impl CatDo {
             undo: Vec::new(),
             message: None,
             focus,
-            _subscriptions: subscriptions,
+            _subscriptions: Vec::new(),
         };
         if let Ok(Some(preferences)) = app.store.preference::<Preferences>("navigation") {
             app.views = preferences.views;
@@ -233,7 +171,97 @@ impl CatDo {
                 app.refresh_workspace_select(window, cx);
             }
         }
+        app.bind_window(window, cx);
         app
+    }
+
+    fn bind_window(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self._subscriptions = vec![
+            cx.observe_window_appearance(window, |this, window, cx| {
+                if this.appearance == crate::theme::Appearance::System {
+                    this.appearance.apply(window, cx);
+                }
+            }),
+            cx.subscribe(&self.search, |_, _, _: &InputEvent, cx| cx.notify()),
+            cx.subscribe_in(&self.quick_add, window, |this, _, event, window, cx| {
+                if matches!(event, InputEvent::PressEnter { .. }) {
+                    this.quick_create(window, cx);
+                }
+            }),
+            cx.subscribe_in(&self.name_input, window, |this, _, event, window, cx| {
+                if matches!(event, InputEvent::PressEnter { .. }) {
+                    this.create_named(window, cx);
+                }
+            }),
+            cx.subscribe_in(
+                &self.workspace_select,
+                window,
+                |this, _, event: &SelectEvent<Vec<SharedString>>, window, cx| {
+                    if let SelectEvent::Confirm(Some(_)) = event
+                        && let Some(id) = this
+                            .workspace_select
+                            .read(cx)
+                            .selected_index(cx)
+                            .and_then(|index| {
+                                this.data
+                                    .workspaces
+                                    .iter()
+                                    .filter(|w| !w.archived)
+                                    .nth(index.row)
+                            })
+                            .map(|w| w.id)
+                    {
+                        this.switch_workspace(id, window, cx);
+                    }
+                },
+            ),
+        ];
+        let entity = cx.entity().downgrade();
+        window.on_window_should_close(cx, move |_, cx| {
+            entity
+                .update(cx, |this, cx| this.save_before_close(cx))
+                .unwrap_or(true)
+        });
+    }
+
+    pub(crate) fn reopen(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // GPUI subscriptions and input state belong to a window. Recreate those,
+        // while retaining tasks, undo, sync work, reminders, and the staged update.
+        let search = self.search.read(cx).value();
+        let quick = self.quick_add.read(cx).value();
+        let name = self.name_input.read(cx).value();
+        self.search = input(&search, "Search this workspace", window, cx);
+        self.quick_add = input(&quick, "Add a task…", window, cx);
+        self.name_input = input(&name, "Name", window, cx);
+        self.workspace_select =
+            cx.new(|cx| SelectState::new(Vec::<SharedString>::new(), None, window, cx));
+        self.refresh_workspace_select(window, cx);
+        self.appearance.apply(window, cx);
+        self.bind_window(window, cx);
+        self.focus.focus(window, cx);
+    }
+
+    pub(crate) fn save_before_close(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.commit_editor(cx) {
+            return false;
+        }
+        self.views.insert(
+            self.workspace_id,
+            (self.view, self.month, self.selected_day),
+        );
+        if let Err(error) = self.store.set_preference(
+            "navigation",
+            &Preferences {
+                workspace_id: self.workspace_id,
+                views: self.views.clone(),
+            },
+        ) {
+            self.error(error.to_string(), cx);
+            return false;
+        }
+        self.editor = None;
+        self.editor_subscription = None;
+        true
     }
 
     pub fn change(

@@ -44,6 +44,26 @@ your tasks. `XDG_BIN_HOME` and `XDG_DATA_HOME` overrides are respected.
 Tasks are stored in `~/.local/share/catdo/catdo.sqlite3` by default. Desktop use
 needs no account; choose **Sign in to sync** to connect your WorkerCat account.
 
+## Updates and the system tray
+
+CatDo checks GitHub Releases at startup and every six hours. The small button at
+the bottom of the sidebar offers a download when a newer stable version is
+available. Click once to download and verify it, then click again to install and
+restart. Its tooltip explains the current action; when up to date, click it to
+check again. Downloads and installation only happen when you click.
+
+Both AppImages and regular Linux binaries can update themselves. Keep CatDo in a
+folder you can write to; system-owned installations need to be updated manually.
+Updates replace the executable at its existing path and leave your task database
+alone. A `.previous` copy of the executable is retained for rollback.
+
+Closing the window keeps CatDo in the system tray, with sync and reminders still
+running. Click the tray icon, choose **Open CatDo**, or launch CatDo again to
+reopen it. Choose **Quit CatDo** in the tray menu or press **Ctrl+Q** to exit.
+On GNOME, a StatusNotifier/AppIndicator tray extension is required. If no tray is
+available, closing the window exits normally. If the tray disappears while CatDo
+is closed, its window reopens.
+
 If the native Wayland graphics path has trouble, try:
 
 ```sh
