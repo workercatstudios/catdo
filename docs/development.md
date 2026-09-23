@@ -73,9 +73,9 @@ Wrangler emulates a SQLite Durable Object per account locally. No production tas
 
 ## Deployment
 
-Production is a Cloudflare Worker named `catdo`, with TanStack Start server rendering, static assets, and SQLite-backed Durable Objects. Public configuration and the custom domain are in `apps/web/wrangler.jsonc`. Each account has independent task storage.
+Production is a Cloudflare Worker named `catdo`, with TanStack Start server rendering, static assets, and SQLite-backed Durable Objects. Public configuration is in `apps/web/wrangler.jsonc`; the custom domain is managed in Cloudflare. Each account has independent task storage.
 
-For your own deployment, update the domain and public Clerk configuration in `apps/web/wrangler.jsonc`, authenticate the installed Wrangler CLI, and set your production Clerk secret through its hidden prompt:
+For your own deployment, update the public Clerk configuration in `apps/web/wrangler.jsonc`, connect your domain in Cloudflare, authenticate the installed Wrangler CLI, and set your production Clerk secret through its hidden prompt:
 
 ```sh
 pnpm exec wrangler secret put CLERK_SECRET_KEY --config apps/web/wrangler.jsonc
@@ -130,6 +130,8 @@ Linux x86-64 desktop and signed Android APK on Ubuntu 24.04, smoke-tests the pac
 AppImage, a `.tar.gz`, an `.apk`, and SHA-256 checksums to GitHub Releases. Android signing uses the repository secrets described in the [Android app guide](../apps/android/README.md). Only the publish
 job receives `contents: write`. No cloud deployment runs as part of a release.
 
+Linux packages have both versioned filenames for existing desktop updaters and stable filenames for the homepage's latest-release links. Both names refer to identical package bytes, but their checksum files name their respective assets. The Android APK only needs the stable filename.
+
 To release:
 
 1. Update the workspace version in `Cargo.toml` and refresh `Cargo.lock` with
@@ -168,4 +170,4 @@ Public pages render on the server. The app authenticates on the client so the ca
 
 `pnpm test:e2e` runs Playwright against the production preview, with disposable local accounts and offline browser data. Install its browser once with `pnpm exec playwright install chromium`; on Linux CI use `--with-deps`. An installed Chrome can be selected with `CHROME_PATH=/path/to/chrome`. Tests do not require production credentials.
 
-Public page content and release links live in `apps/web/src/site/content.ts`. Keep the version and asset URLs there current when publishing a desktop release. shadcn components are source-owned in `src/components/ui` and configured in `components.json`; theme tokens and reduced-motion styles are shared by the site and app.
+Public page content and stable latest-release links live in `apps/web/src/site/content.ts`. shadcn components are source-owned in `src/components/ui` and configured in `components.json`; theme tokens and reduced-motion styles are shared by the site and app.
