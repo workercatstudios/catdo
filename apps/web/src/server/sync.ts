@@ -2,6 +2,7 @@ import {
   emptyData,
   validateData,
   dataSchema,
+  type Data,
 } from "../../../../packages/domain/src/model";
 import {
   merge,
@@ -23,6 +24,40 @@ export interface AccountStorage {
     ): Iterable<Record<string, SqlValue>>;
   };
   transactionSync<T>(callback: () => T): T;
+}
+/** The local starter workspace gets a new ID on every device. On a first
+ * upload, join its contents to the account's existing Personal workspace. */
+function joinStarterWorkspace(pending: Pending, remote: Data): Data {
+  if (pending.base.workspaces.length) return pending.data;
+  const local = pending.data.workspaces.filter(
+    (w) => w.name === "Personal" && !w.archived,
+  );
+  const existing = remote.workspaces.filter(
+    (w) => w.name === "Personal" && !w.archived,
+  );
+  if (local.length !== 1 || existing.length !== 1) return pending.data;
+  const from = local[0].id;
+  const to = existing[0].id;
+  if (from === to) return pending.data;
+  return {
+    ...pending.data,
+    workspaces: pending.data.workspaces.map((w) =>
+      w.id === from ? { ...w, id: to } : w,
+    ),
+    projects: pending.data.projects.map((p) =>
+      p.workspace_id === from ? { ...p, workspace_id: to } : p,
+    ),
+    tasks: pending.data.tasks.map((t) =>
+      t.workspace_id === from ? { ...t, workspace_id: to } : t,
+    ),
+    history: pending.data.history.map((h) => ({
+      ...h,
+      task:
+        h.task.workspace_id === from
+          ? { ...h.task, workspace_id: to }
+          : h.task,
+    })),
+  };
 }
 /** Each instance belongs to one authenticated Clerk user. Transactions contain
  * both the new snapshot and its receipt, so a lost response is safe to retry. */
@@ -58,7 +93,11 @@ export class AccountStore {
         ].length
       )
         return { status: 200, body: current };
-      const result = merge(pending.base, pending.data, current.data);
+      const result = merge(
+        pending.base,
+        joinStarterWorkspace(pending, current.data),
+        current.data,
+      );
       if (result.conflicts.length)
         return {
           status: 409,

@@ -98,3 +98,36 @@ it("does not resurrect a remotely deleted task on a stale unrelated edit", () =>
   ).toBe(200);
   expect(store.snapshot().data.tasks).toEqual([]);
 });
+
+it("joins a new device's Personal workspace to the existing account", () => {
+  const store = account();
+  const desktop = initial();
+  expect(store.push(desktop).status).toBe(200);
+  const phone = initial();
+  phone.data.tasks[0].title = "Raid with the boys";
+  phone.data.tasks[0].scheduled = "2026-09-23";
+  const phoneWorkspace = phone.data.workspaces[0].id;
+  phone.data.projects.push({
+    id: crypto.randomUUID(),
+    workspace_id: phoneWorkspace,
+    name: "Plans",
+    archived: false,
+  });
+  const result = store.push(phone);
+  expect(result.status).toBe(200);
+  const synced = store.snapshot().data;
+  expect(synced.workspaces).toEqual(desktop.data.workspaces);
+  expect(synced.tasks.map((t) => t.title).sort()).toEqual([
+    "Raid with the boys",
+    "Task",
+  ]);
+  expect(synced.tasks.map((t) => t.workspace_id)).toEqual([
+    desktop.data.workspaces[0].id,
+    desktop.data.workspaces[0].id,
+  ]);
+  expect(synced.projects[0].workspace_id).toBe(
+    desktop.data.workspaces[0].id,
+  );
+  expect(store.push(phone).status).toBe(200);
+  expect(store.snapshot().data.tasks).toHaveLength(2);
+});
