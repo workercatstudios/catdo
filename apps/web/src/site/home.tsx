@@ -65,7 +65,7 @@ export function Home() {
               <a href={release.archive}>Or get the tar.gz ↗</a>
             </div>
             <p className="download-requirements">
-              Version {release.version} · Linux x86_64 · glibc 2.39+
+              Latest release · Linux x86_64 · glibc 2.39+
             </p>
             <details className="install-details">
               <summary>How to install</summary>

@@ -1,11 +1,9 @@
 export const repository = "https://github.com/workercatstudios/catdo";
 export const release = {
-  version: "0.2.3",
-  date: "2026-09-23",
-  url: `${repository}/releases/tag/v0.2.3`,
-  appImage: `${repository}/releases/download/v0.2.3/catdo-0.2.3-linux-x86_64.AppImage`,
-  archive: `${repository}/releases/download/v0.2.3/catdo-0.2.3-linux-x86_64.tar.gz`,
-  android: `${repository}/releases/download/v0.2.3/catdo-0.2.3-android.apk`,
+  url: `${repository}/releases/latest`,
+  appImage: `${repository}/releases/latest/download/catdo-linux-x86_64.AppImage`,
+  archive: `${repository}/releases/latest/download/catdo-linux-x86_64.tar.gz`,
+  android: `${repository}/releases/latest/download/catdo-android.apk`,
 };
 export const guides = [
   {

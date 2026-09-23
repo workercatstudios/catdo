@@ -54,6 +54,12 @@ jobs:
           python3 scripts/check-release.py --archive dist/catdo-*-linux-x86_64.tar.gz
       - name: Build and smoke-test AppImage
         run: bash scripts/package-appimage.sh
+      - name: Add stable download names
+        run: |
+          version="${{ needs.version.outputs.version }}"
+          cp "dist/catdo-$version-linux-x86_64.AppImage" dist/catdo-linux-x86_64.AppImage
+          cp "dist/catdo-$version-linux-x86_64.tar.gz" dist/catdo-linux-x86_64.tar.gz
+          (cd dist && sha256sum catdo-linux-x86_64.AppImage > catdo-linux-x86_64.AppImage.sha256 && sha256sum catdo-linux-x86_64.tar.gz > catdo-linux-x86_64.tar.gz.sha256)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: catdo-linux-x86_64
@@ -109,7 +115,8 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -F "versionCode='$RELEASE_CODE' versionName='$RELEASE_VERSION'"
           mkdir -p dist
           cp "$apk" "dist/catdo-$RELEASE_VERSION-android.apk"
-          (cd dist && sha256sum "catdo-$RELEASE_VERSION-android.apk" > "catdo-$RELEASE_VERSION-android.apk.sha256")
+          cp "$apk" dist/catdo-android.apk
+          (cd dist && sha256sum "catdo-$RELEASE_VERSION-android.apk" > "catdo-$RELEASE_VERSION-android.apk.sha256" && sha256sum catdo-android.apk > catdo-android.apk.sha256)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: catdo-android

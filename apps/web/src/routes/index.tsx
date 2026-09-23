@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     ...seo(
       "/",
-      "CatDo · A calm task manager for web and Linux",
+      "CatDo · A calm task manager for web, Android, and Linux",
       "Organize tasks, projects, and everyday life with CatDo. Separate workspaces, due dates, recurring tasks, a calendar, and offline access. Free to use.",
     ),
     scripts: [
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
           name: "CatDo",
           url: "https://catdo.workercat.com",
           applicationCategory: "ProductivityApplication",
-          operatingSystem: "Linux, Web",
+          operatingSystem: "Android, Linux, Web",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           description:
             "Organize tasks, projects, and everyday life with CatDo. Separate workspaces, due dates, recurring tasks, a calendar, and offline access. Free to use.",
