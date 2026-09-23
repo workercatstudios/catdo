@@ -65,6 +65,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+      - run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
       - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
         working-directory: apps/android
