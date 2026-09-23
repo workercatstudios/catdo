@@ -1,5 +1,10 @@
 package com.workercat.catdo.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,7 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.clerk.api.Clerk
 import com.clerk.ui.auth.AuthView
+import com.google.firebase.messaging.FirebaseMessaging
 import com.workercat.catdo.data.*
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -59,6 +66,34 @@ fun CatDoApp(vm: CatDoViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val selectedProject = data.projects.firstOrNull { it.id == vm.projectId }
     val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() >= 600.dp }
+    val context = LocalContext.current
+    var notificationsEnabled by remember { mutableStateOf(FirebaseMessaging.getInstance().isAutoInitEnabled) }
+    val enableNotifications = {
+        val messaging = FirebaseMessaging.getInstance()
+        messaging.register()
+            .addOnSuccessListener {
+                messaging.isAutoInitEnabled = true
+                notificationsEnabled = true
+            }
+            .addOnFailureListener { vm.message = "Notifications need Google Play services and a connection." }
+    }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) enableNotifications()
+        else vm.message = "Allow notifications in Android settings to receive CatDo alerts."
+    }
+    val toggleNotifications: (Boolean) -> Unit = { enabled ->
+        if (!enabled) {
+            val messaging = FirebaseMessaging.getInstance()
+            messaging.isAutoInitEnabled = false
+            messaging.unregister().addOnFailureListener {
+                vm.message = "Could not stop notifications yet. Check your connection and try again."
+            }
+            notificationsEnabled = false
+        } else if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        else enableNotifications()
+    }
 
     LifecycleStartEffect(vm.signedIn) {
         val poll = if (vm.signedIn) scope.launch {
@@ -212,7 +247,7 @@ fun CatDoApp(vm: CatDoViewModel) {
                     Section.Projects -> if (vm.projectId == null) ProjectOverview(data, workspace, vm) else
                         TaskSection(data, workspace, vm, selectedProject?.name ?: "Project", "Keep the next step moving.",
                             data.tasks.filter { it.workspaceId == workspace.id && it.projectId == vm.projectId && it.completedAt == null })
-                    Section.Settings -> SettingsScreen(workspace, vm)
+                    Section.Settings -> SettingsScreen(workspace, vm, notificationsEnabled, toggleNotifications)
                     Section.Search -> SearchScreen(data, workspace, vm)
                     Section.Calendar -> CalendarScreen(data, workspace, vm)
                     else -> {
@@ -440,7 +475,7 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
 }
 
 @Composable
-private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel) {
+private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 100.dp)) {
         SectionHeading(workspace.name, "Settings", "Make CatDo yours.", 0)
         ListItem(headlineContent = { Text("Workspace") }, supportingContent = { Text(workspace.name) },
@@ -453,6 +488,11 @@ private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel) {
         ListItem(headlineContent = { Text("Saved on this device") },
             supportingContent = { Text("Your tasks stay available without a connection.") },
             leadingContent = { Icon(Icons.Outlined.OfflinePin, null, tint = MaterialTheme.colorScheme.primary) })
+        ListItem(headlineContent = { Text("Notifications") },
+            supportingContent = { Text("Allow alerts sent to this device") },
+            leadingContent = { Icon(Icons.Outlined.NotificationsNone, null) },
+            trailingContent = { Switch(checked = notificationsEnabled, onCheckedChange = onNotificationsChanged) },
+            modifier = Modifier.clickable { onNotificationsChanged(!notificationsEnabled) })
         if (vm.signedIn) {
             ListItem(headlineContent = { Text(if (vm.syncing) "Syncing…" else "Sync now") },
                 supportingContent = { Text("Keep this device up to date with your WorkerCat account") },

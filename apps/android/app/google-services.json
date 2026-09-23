@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556990684372",
+    "project_id": "catdo-9b516",
+    "storage_bucket": "catdo-9b516.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556990684372:android:b91442033caf57c3a46f41",
+        "android_client_info": {
+          "package_name": "com.workercat.catdo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfTZK_lcaXur5HeSW21UOYUsil2r0V3uk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
