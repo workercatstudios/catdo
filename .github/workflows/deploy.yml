@@ -62,4 +62,4 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          pnpm --filter @catdo/web deploy
+          pnpm --filter @catdo/web run deploy
