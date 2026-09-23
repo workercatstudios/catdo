@@ -64,16 +64,30 @@ export default {
             acceptsToken: "session_token",
             authorizedParties: allowed,
           });
-      const auth = oauth?.isAuthenticated ? oauth : sessionState?.toAuth();
+      let auth = oauth?.isAuthenticated ? oauth : sessionState?.toAuth();
+      // Native Clerk calls have no browser Origin or azp claim. They still use
+      // a signed bearer token; verify it again without browser-origin pinning,
+      // then accept only the claimless native case.
+      if (
+        !auth?.isAuthenticated &&
+        !origin &&
+        sessionState?.reason === "token-invalid-authorized-parties"
+      ) {
+        const nativeState = await clerk.authenticateRequest(request, {
+          acceptsToken: "session_token",
+        });
+        const native = nativeState.toAuth();
+        if (
+          native?.isAuthenticated &&
+          native.tokenType === "session_token" &&
+          native.sessionClaims.azp === undefined
+        ) auth = native;
+      }
       if (!auth?.isAuthenticated || !("userId" in auth) || !auth.userId) {
-        // A rejected token's origin is useful for setting the exact allowlist.
-        // Never log bearer tokens, account claims, or task data.
+        // Reason codes only: never log bearer tokens, session claims, or task data.
         console.warn("CatDo auth denied", {
           oauth: oauthState.reason,
           session: sessionState?.reason,
-          authorizedParty: sessionState?.reason === "token-invalid-authorized-parties"
-            ? getAuthorizedParty(request)
-            : undefined,
         });
         return json({ error: "Sign in again to sync." }, 401);
       }
@@ -145,17 +159,3 @@ export default {
     }
   },
 };
-
-function getAuthorizedParty(request: Request): string | undefined {
-  try {
-    const token = request.headers.get("authorization")?.slice(7);
-    const encoded = token?.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? "";
-    const claim = JSON.parse(atob(encoded)).azp;
-    if (typeof claim !== "string" || claim.length > 128) return undefined;
-    const url = new URL(claim);
-    if (!["https:", "http:", "clerk:"].includes(url.protocol)) return undefined;
-    return url.origin === "null" ? `${url.protocol}//${url.host}` : url.origin;
-  } catch {
-    return undefined;
-  }
-}

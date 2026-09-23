@@ -72,6 +72,29 @@ it("rejects an unrelated origin even with a bearer token", async () => {
   ).toBe(403);
   expect(auth.verify).not.toHaveBeenCalled();
 });
+it("accepts a verified native session without an origin or azp", async () => {
+  auth.verify.mockImplementation(async (_request, options) => ({
+    reason: options.authorizedParties ? "token-invalid-authorized-parties" : undefined,
+    toAuth: () =>
+      options.acceptsToken === "session_token" && !options.authorizedParties
+        ? { isAuthenticated: true, tokenType: "session_token", userId: "user_a", sessionClaims: {} }
+        : null,
+  }));
+  expect((await worker.fetch(request({ authorization: "Bearer fixture" }), env)).status).toBe(200);
+  expect(getByName).toHaveBeenCalledWith("user_a");
+  expect(auth.verify).toHaveBeenCalledWith(expect.any(Request), { acceptsToken: "session_token" });
+});
+it("does not accept a session from a different browser origin as native", async () => {
+  auth.verify.mockImplementation(async (_request, options) => ({
+    reason: options.authorizedParties ? "token-invalid-authorized-parties" : undefined,
+    toAuth: () =>
+      options.acceptsToken === "session_token" && !options.authorizedParties
+        ? { isAuthenticated: true, tokenType: "session_token", userId: "user_a", sessionClaims: { azp: "https://elsewhere.example" } }
+        : null,
+  }));
+  expect((await worker.fetch(request({ authorization: "Bearer fixture" }), env)).status).toBe(401);
+  expect(getByName).not.toHaveBeenCalled();
+});
 it("rejects expired sessions and OAuth tokens issued to another client", async () => {
   auth.value = {
     isAuthenticated: false,
