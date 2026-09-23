@@ -54,21 +54,25 @@ export default {
       });
       // OAuth access JWTs have client_id, not a browser azp claim. Verify the
       // two token kinds separately so sessions still require an allowed origin.
-      const oauth = (
-        await clerk.authenticateRequest(request, {
-          acceptsToken: "oauth_token",
-        })
-      ).toAuth();
-      const auth = oauth?.isAuthenticated
-        ? oauth
-        : (
-            await clerk.authenticateRequest(request, {
-              acceptsToken: "session_token",
-              authorizedParties: allowed,
-            })
-          ).toAuth();
-      if (!auth?.isAuthenticated || !("userId" in auth) || !auth.userId)
+      const oauthState = await clerk.authenticateRequest(request, {
+        acceptsToken: "oauth_token",
+      });
+      const oauth = oauthState.toAuth();
+      const sessionState = oauth?.isAuthenticated
+        ? null
+        : await clerk.authenticateRequest(request, {
+            acceptsToken: "session_token",
+            authorizedParties: allowed,
+          });
+      const auth = oauth?.isAuthenticated ? oauth : sessionState?.toAuth();
+      if (!auth?.isAuthenticated || !("userId" in auth) || !auth.userId) {
+        // Reason codes only: never log bearer tokens, session claims, or task data.
+        console.warn("CatDo auth denied", {
+          oauth: oauthState.reason,
+          session: sessionState?.reason,
+        });
         return json({ error: "Sign in again to sync." }, 401);
+      }
       if (
         auth.tokenType === "oauth_token" &&
         (!env.CLERK_DESKTOP_CLIENT_ID ||
