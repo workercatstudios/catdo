@@ -130,7 +130,7 @@ Linux x86-64 desktop and signed Android APK on Ubuntu 24.04, smoke-tests the pac
 AppImage, a `.tar.gz`, an `.apk`, and SHA-256 checksums to GitHub Releases. Android signing uses the repository secrets described in the [Android app guide](../apps/android/README.md). Only the publish
 job receives `contents: write`. No cloud deployment runs as part of a release.
 
-Linux packages have both versioned filenames for existing desktop updaters and stable filenames for the homepage's latest-release links. Both names refer to identical package bytes, but their checksum files name their respective assets. The Android APK only needs the stable filename.
+Linux packages have both versioned filenames for existing desktop updaters and stable filenames for the homepage's latest-release links. Both names refer to identical package bytes, but their checksum files name their respective assets. The Android APK has one versioned filename, `catdo-<version>-android.apk`. The homepage's `/download/android` route resolves it from the latest GitHub release.
 
 To release:
 

@@ -3,7 +3,7 @@ export const release = {
   url: `${repository}/releases/latest`,
   appImage: `${repository}/releases/latest/download/catdo-linux-x86_64.AppImage`,
   archive: `${repository}/releases/latest/download/catdo-linux-x86_64.tar.gz`,
-  android: `${repository}/releases/latest/download/catdo-android.apk`,
+  android: "/download/android",
 };
 export const guides = [
   {

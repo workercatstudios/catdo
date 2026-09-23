@@ -28,7 +28,7 @@ Firebase Crashlytics reports fatal crashes and selected notification and sync fa
 
 The production WorkerCat Clerk instance needs Native API enabled and `com.workercat.catdo` registered as an Android application with the release certificate SHA-256 fingerprint. Email authentication uses Clerk's native UI. Social sign-in also needs its redirect URL allowlisted in Clerk.
 
-Release CI reads the signing keystore and passwords from repository secrets `ANDROID_RELEASE_KEYSTORE_BASE64`, `ANDROID_RELEASE_STORE_PASSWORD`, and `ANDROID_RELEASE_KEY_PASSWORD`. The keystore must contain alias `catdo-release`. Keep an independent, secure backup of the keystore and passwords: Android updates must use the same signing key. The APK version name follows the release tag, and its version code increases with each Release workflow run.
+Release CI reads the signing keystore and passwords from repository secrets `ANDROID_RELEASE_KEYSTORE_BASE64`, `ANDROID_RELEASE_STORE_PASSWORD`, and `ANDROID_RELEASE_KEY_PASSWORD`. The keystore must contain alias `catdo-release`. Keep an independent, secure backup of the keystore and passwords: Android updates must use the same signing key. The release APK is named `catdo-<version>-android.apk`; its version name follows the release tag, and its version code increases with each Release workflow run.
 
 The current build uses `compileSdk 36` and Compose BOM `2026.04.01` because SDK Platform 37, required by Compose 1.12, is absent from the public Android SDK repository available in this environment. The app targets Android 16 (API 36) and supports Android 8.0 and newer.
 

@@ -1,9 +1,11 @@
 import handler from "@tanstack/react-start/server-entry";
+import { androidDownload } from "./server/download";
 export { CatDoAccount } from "./server/account";
 export default {
   async fetch(request: Request) {
-    const response = await handler.fetch(request);
     const path = new URL(request.url).pathname;
+    if (path === "/download/android") return androidDownload(request);
+    const response = await handler.fetch(request);
     const headers = new Headers(response.headers);
     if (response.status === 404) headers.set("X-Robots-Tag", "noindex");
     headers.set("X-Content-Type-Options", "nosniff");
