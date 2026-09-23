@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.workercat.catdo.sync.DeviceLogin
+import com.clerk.api.Clerk
 import com.workercat.catdo.sync.SyncClient
 import com.workercat.catdo.data.AppData
 import com.workercat.catdo.data.CatDoRepository
@@ -17,6 +17,8 @@ import com.workercat.catdo.data.newTask
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import java.net.UnknownHostException
 import java.util.UUID
 
 enum class Section { Today, Inbox, Upcoming, Calendar, Projects, Completed, Search, Settings }
@@ -33,25 +35,36 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
     var nameDialog by mutableStateOf<String?>(null)
     var message by mutableStateOf<String?>(null)
     var undoPrompt by mutableStateOf<String?>(null)
-    var signedIn by mutableStateOf(syncClient.signedIn)
+    var signedIn by mutableStateOf(false)
     var syncing by mutableStateOf(false)
-    var deviceLogin by mutableStateOf<DeviceLogin?>(null)
+    var authOpen by mutableStateOf(false)
+    val clerkReady = Clerk.isInitialized
+    val clerkError = Clerk.initializationError
     private var syncJob: Job? = null
     private var syncRequested = false
 
-    fun startLogin() = viewModelScope.launch {
-        if (deviceLogin != null || syncing) return@launch
-        syncing = true
-        runCatching { syncClient.beginLogin() }.onSuccess { login ->
-            deviceLogin = login
-            viewModelScope.launch {
-                runCatching { syncClient.finishLogin(login) }.onSuccess {
-                    signedIn = true
-                    deviceLogin = null
-                }.onFailure { message = it.message ?: "Could not sign in."; deviceLogin = null }
-            }
-        }.onFailure { message = it.message ?: "Could not start sign-in." }
-        syncing = false
+    init {
+        viewModelScope.launch {
+            Clerk.sessionFlow.collectLatest { signedIn = it != null }
+        }
+    }
+
+    fun startLogin() {
+        authOpen = true
+    }
+
+    fun authComplete() {
+        authOpen = false
+        sync()
+    }
+
+    private fun readableError(error: Throwable, fallback: String): String =
+        if (error is UnknownHostException || error.cause is UnknownHostException)
+            "Can't reach CatDo. Check your connection or Private DNS and try again. Your tasks are saved here."
+        else error.message ?: fallback
+
+    fun closeAuth() {
+        authOpen = false
     }
 
     fun sync() = viewModelScope.launch {
@@ -60,7 +73,7 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
         do {
             syncRequested = false
             syncing = true
-            runCatching { syncClient.sync() }.onFailure { message = it.message ?: "Could not sync. Your tasks are saved here." }
+            runCatching { syncClient.sync() }.onFailure { message = readableError(it, "Could not sync. Your tasks are saved here.") }
             syncing = false
         } while (syncRequested && signedIn)
     }

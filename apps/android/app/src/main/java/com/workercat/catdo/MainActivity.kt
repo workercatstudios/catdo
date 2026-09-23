@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         ViewModelProvider(this, object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-                CatDoRepository(applicationContext).let { CatDoViewModel(it, SyncClient(applicationContext, it)) } as T
+                CatDoRepository(applicationContext).let { CatDoViewModel(it, SyncClient(it)) } as T
         })[CatDoViewModel::class.java]
     }
 

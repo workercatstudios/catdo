@@ -1,9 +1,5 @@
 package com.workercat.catdo.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,6 +24,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import com.clerk.api.Clerk
+import com.clerk.ui.auth.AuthView
 import com.workercat.catdo.data.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -60,7 +58,6 @@ fun CatDoApp(vm: CatDoViewModel) {
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val selectedProject = data.projects.firstOrNull { it.id == vm.projectId }
-    val context = LocalContext.current
     val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() >= 600.dp }
 
     LifecycleStartEffect(vm.signedIn) {
@@ -79,6 +76,34 @@ fun CatDoApp(vm: CatDoViewModel) {
             vm.undoPrompt = null
             if (snackbar.showSnackbar(prompt, actionLabel = "Undo", duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undo()
         }
+    }
+
+    if (vm.authOpen) {
+        val ready by vm.clerkReady.collectAsStateWithLifecycle()
+        val error by vm.clerkError.collectAsStateWithLifecycle()
+        when {
+            ready -> AuthView(
+                onDismiss = vm::closeAuth,
+                onAuthComplete = vm::authComplete,
+            )
+            else -> Column(Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                if (error == null) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(20.dp))
+                    Text("Connecting to sign-in…")
+                } else {
+                    Text("Can't reach sign-in", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Check your connection or Private DNS, then try again.")
+                    Spacer(Modifier.height(20.dp))
+                    Button(onClick = { Clerk.reinitialize() }) { Text("Try again") }
+                }
+                TextButton(onClick = vm::closeAuth) { Text("Back to CatDo") }
+            }
+        }
+        return
     }
 
     ModalNavigationDrawer(
@@ -250,29 +275,6 @@ fun CatDoApp(vm: CatDoViewModel) {
         }
     }
 
-    vm.deviceLogin?.let { login ->
-        AlertDialog(
-            onDismissRequest = { vm.deviceLogin = null },
-            title = { Text("Sign in to sync") },
-            text = { Column {
-                Text("Open the secure sign-in page and enter this code:")
-                Spacer(Modifier.height(18.dp))
-                Text(login.userCode, style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(10.dp))
-                Text("This screen will close when you finish signing in.", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } },
-            confirmButton = { TextButton(onClick = {
-                val url = login.verificationUriComplete ?: login.verificationUri
-                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-            }) { Text("Open sign-in") } },
-            dismissButton = { TextButton(onClick = {
-                val clipboard = context.getSystemService(ClipboardManager::class.java)
-                clipboard.setPrimaryClip(ClipData.newPlainText("CatDo sign-in code", login.userCode))
-            }) { Text("Copy code") } },
-        )
-    }
     state.conflict?.let {
         AlertDialog(
             onDismissRequest = {}, title = { Text("Choose which changes to keep") },

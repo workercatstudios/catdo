@@ -1,11 +1,11 @@
 export const repository = "https://github.com/workercatstudios/catdo";
 export const release = {
-  version: "0.2.1",
+  version: "0.2.2",
   date: "2026-09-23",
-  url: `${repository}/releases/tag/v0.2.1`,
-  appImage: `${repository}/releases/download/v0.2.1/catdo-0.2.1-linux-x86_64.AppImage`,
-  archive: `${repository}/releases/download/v0.2.1/catdo-0.2.1-linux-x86_64.tar.gz`,
-  android: `${repository}/releases/download/v0.2.1/catdo-0.2.1-android.apk`,
+  url: `${repository}/releases/tag/v0.2.2`,
+  appImage: `${repository}/releases/download/v0.2.2/catdo-0.2.2-linux-x86_64.AppImage`,
+  archive: `${repository}/releases/download/v0.2.2/catdo-0.2.2-linux-x86_64.tar.gz`,
+  android: `${repository}/releases/download/v0.2.2/catdo-0.2.2-android.apk`,
 };
 export const guides = [
   {
@@ -15,7 +15,7 @@ export const guides = [
     sections: [
       [
         "Start with what’s on your mind",
-        "Open CatDo and sign in with your WorkerCat account. Your account works across the web and Linux app. Add a task in Inbox: a title is enough. You can add notes, dates, and subtasks whenever you need them.",
+        "Open CatDo and sign in with your WorkerCat account. Your account works across the web, Android, and Linux apps. Add a task in Inbox: a title is enough. You can add notes, dates, and subtasks whenever you need them.",
       ],
       [
         "Make room for different parts of life",
