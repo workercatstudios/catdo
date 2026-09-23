@@ -117,7 +117,7 @@ export const guides = [
       ],
       [
         "Crash and sync diagnostics",
-        "The Android app sends crash reports and limited failure events to Firebase Crashlytics. Reports can include device and app details and error stack traces. CatDo does not add task content, account IDs, or sign-in tokens to these reports. The sync server logs authentication rejection reason codes without tokens or task data.",
+        "The Android app sends crash reports and limited failure events to Firebase Crashlytics. Reports can include device and app details and error stack traces. CatDo does not add task content, account IDs, or sign-in tokens to these reports. Cloudflare keeps short-lived request metadata and the sync server's authentication rejection reason codes to help diagnose failures; CatDo does not add tokens or task data to those logs.",
       ],
       [
         "Backups and questions",
