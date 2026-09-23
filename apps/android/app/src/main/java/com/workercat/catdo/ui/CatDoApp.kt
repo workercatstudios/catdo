@@ -38,6 +38,8 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -68,37 +70,35 @@ fun CatDoApp(vm: CatDoViewModel) {
     val selectedProject = data.projects.firstOrNull { it.id == vm.projectId }
     val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() >= 600.dp }
     val context = LocalContext.current
-    var notificationsEnabled by remember {
-        mutableStateOf(runCatching { FirebaseMessaging.getInstance().isAutoInitEnabled }.getOrDefault(false))
+    var notificationsEnabled by remember { mutableStateOf(false) }
+    var notificationBusy by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        notificationsEnabled = runCatching {
+            withContext(Dispatchers.IO) { FirebaseMessaging.getInstance().isAutoInitEnabled }
+        }.getOrDefault(false)
+        notificationBusy = false
     }
-    var notificationBusy by remember { mutableStateOf(false) }
     val enableNotifications = {
         if (!notificationBusy) {
             notificationBusy = true
-            Diagnostics.event("notifications_register_start")
-            try {
-                val messaging = FirebaseMessaging.getInstance()
-                messaging.register().addOnCompleteListener { task ->
-                    try {
-                        if (task.isSuccessful) {
-                            messaging.isAutoInitEnabled = true
-                            notificationsEnabled = true
-                            Diagnostics.event("notifications_register_success")
-                        } else {
-                            Diagnostics.failure("notifications_register_failed", task.exception ?: IllegalStateException("Registration failed"))
-                            vm.message = "Notifications could not connect. Check Google Play services and try again."
-                        }
-                    } catch (error: Exception) {
-                        Diagnostics.failure("notifications_enable_failed", error)
-                        vm.message = "Notifications could not start. Please try again."
-                    } finally {
-                        notificationBusy = false
+            scope.launch {
+                try {
+                    // Auto-init handles registration and retries. The switch reflects
+                    // the saved preference, which can succeed before registration does.
+                    notificationsEnabled = withContext(Dispatchers.IO) {
+                        FirebaseMessaging.getInstance().apply { isAutoInitEnabled = true }.isAutoInitEnabled
                     }
+                    if (notificationsEnabled) Diagnostics.event("notifications_enabled")
+                    else vm.message = "Notifications could not be enabled. Please try again."
+                } catch (error: Exception) {
+                    Diagnostics.failure("notifications_enable_failed", error)
+                    notificationsEnabled = runCatching {
+                        withContext(Dispatchers.IO) { FirebaseMessaging.getInstance().isAutoInitEnabled }
+                    }.getOrDefault(false)
+                    if (!notificationsEnabled) vm.message = "Notifications could not be enabled. Please try again."
+                } finally {
+                    notificationBusy = false
                 }
-            } catch (error: Exception) {
-                Diagnostics.failure("notifications_register_failed", error)
-                notificationBusy = false
-                vm.message = "Notifications could not start. Please try again."
             }
         }
     }
@@ -111,21 +111,27 @@ fun CatDoApp(vm: CatDoViewModel) {
         if (notificationBusy) Unit
         else if (!enabled) {
             notificationBusy = true
-            try {
-                val messaging = FirebaseMessaging.getInstance()
-                messaging.isAutoInitEnabled = false
-                notificationsEnabled = false
-                messaging.unregister().addOnCompleteListener { task ->
-                    notificationBusy = false
-                    if (!task.isSuccessful) {
-                        Diagnostics.failure("notifications_unregister_failed", task.exception ?: IllegalStateException("Unregister failed"))
-                        vm.message = "Could not finish turning off notifications. Try again later."
+            scope.launch {
+                try {
+                    val cleanup = withContext(Dispatchers.IO) {
+                        FirebaseMessaging.getInstance().run {
+                            isAutoInitEnabled = false
+                            unregister()
+                        }
                     }
+                    notificationsEnabled = false
+                    cleanup.addOnFailureListener { error ->
+                        Diagnostics.failure("notifications_unregister_failed", error)
+                    }
+                } catch (error: Exception) {
+                    Diagnostics.failure("notifications_unregister_failed", error)
+                    notificationsEnabled = runCatching {
+                        withContext(Dispatchers.IO) { FirebaseMessaging.getInstance().isAutoInitEnabled }
+                    }.getOrDefault(true)
+                    if (notificationsEnabled) vm.message = "Could not turn off notifications. Please try again."
+                } finally {
+                    notificationBusy = false
                 }
-            } catch (error: Exception) {
-                Diagnostics.failure("notifications_unregister_failed", error)
-                notificationBusy = false
-                vm.message = "Could not turn off notifications. Please try again."
             }
         } else if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED

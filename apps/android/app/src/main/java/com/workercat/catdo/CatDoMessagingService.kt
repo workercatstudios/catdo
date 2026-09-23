@@ -16,6 +16,7 @@ import com.google.firebase.messaging.RemoteMessage
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class CatDoMessagingService : FirebaseMessagingService() {
     override fun onRegistered(installationId: String) {
+        Diagnostics.event("notifications_registered")
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             Log.d("CatDoFCM", "Test installation ID: $installationId")
         }
