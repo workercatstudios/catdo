@@ -84,7 +84,7 @@ pnpm run deploy
 
 Use `pnpm run deploy`, since `pnpm deploy` is a different built-in command. Do not put a development secret into production.
 
-The `Deploy site` GitHub Actions workflow deploys the current `main` commit after the `Checks` workflow succeeds. It builds with the installed project tooling and runs Wrangler against the existing `catdo` Worker. Set repository variable `CLOUDFLARE_ACCOUNT_ID` and repository secret `CLOUDFLARE_API_TOKEN`; scope the token to the CatDo Worker with Workers Editor access and rotate it before expiration. The existing `catdo.workercat.com` custom domain is managed in Cloudflare, so the Wrangler configuration omits routes. Adding or changing a custom domain requires Workers Routes Write for that zone. The existing `CLERK_SECRET_KEY` remains a Worker secret in Cloudflare and is not stored in GitHub.
+The `Deploy site` GitHub Actions workflow deploys the current `main` commit after the `Checks` workflow succeeds. It builds with the installed project tooling, uploads a version of the existing `catdo` Worker, and promotes that version to all traffic. Set repository variable `CLOUDFLARE_ACCOUNT_ID` and repository secret `CLOUDFLARE_API_TOKEN`; scope the token to the CatDo Worker with Workers Editor access and rotate it before expiration. The existing `catdo.workercat.com` custom domain is managed in Cloudflare, so the Wrangler configuration omits routes. Adding or changing a custom domain requires Workers Routes Write for that zone. The existing `CLERK_SECRET_KEY` remains a Worker secret in Cloudflare and is not stored in GitHub.
 
 ## Checks
 

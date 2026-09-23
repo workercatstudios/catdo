@@ -54,7 +54,7 @@ jobs:
         if: steps.current.outputs.deploy == 'true'
       - run: pnpm build
         if: steps.current.outputs.deploy == 'true'
-      - name: Deploy to Cloudflare
+      - name: Upload and deploy Worker version
         if: steps.current.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -62,4 +62,6 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          pnpm --filter @catdo/web run deploy
+          version_tag="site-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          pnpm --filter @catdo/web exec wrangler versions upload --tag "$version_tag" --message "GitHub ${GITHUB_SHA}"
+          pnpm --filter @catdo/web exec wrangler versions deploy --version-tag "$version_tag@100%" --yes
