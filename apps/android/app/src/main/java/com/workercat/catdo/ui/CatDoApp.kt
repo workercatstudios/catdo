@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import com.clerk.api.Clerk
 import com.clerk.ui.auth.AuthView
 import com.google.firebase.messaging.FirebaseMessaging
+import com.workercat.catdo.Diagnostics
 import com.workercat.catdo.data.*
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
@@ -67,31 +68,76 @@ fun CatDoApp(vm: CatDoViewModel) {
     val selectedProject = data.projects.firstOrNull { it.id == vm.projectId }
     val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() >= 600.dp }
     val context = LocalContext.current
-    var notificationsEnabled by remember { mutableStateOf(FirebaseMessaging.getInstance().isAutoInitEnabled) }
+    var notificationsEnabled by remember {
+        mutableStateOf(runCatching { FirebaseMessaging.getInstance().isAutoInitEnabled }.getOrDefault(false))
+    }
+    var notificationBusy by remember { mutableStateOf(false) }
     val enableNotifications = {
-        val messaging = FirebaseMessaging.getInstance()
-        messaging.register()
-            .addOnSuccessListener {
-                messaging.isAutoInitEnabled = true
-                notificationsEnabled = true
+        if (!notificationBusy) {
+            notificationBusy = true
+            Diagnostics.event("notifications_register_start")
+            try {
+                val messaging = FirebaseMessaging.getInstance()
+                messaging.register().addOnCompleteListener { task ->
+                    try {
+                        if (task.isSuccessful) {
+                            messaging.isAutoInitEnabled = true
+                            notificationsEnabled = true
+                            Diagnostics.event("notifications_register_success")
+                        } else {
+                            Diagnostics.failure("notifications_register_failed", task.exception ?: IllegalStateException("Registration failed"))
+                            vm.message = "Notifications could not connect. Check Google Play services and try again."
+                        }
+                    } catch (error: Exception) {
+                        Diagnostics.failure("notifications_enable_failed", error)
+                        vm.message = "Notifications could not start. Please try again."
+                    } finally {
+                        notificationBusy = false
+                    }
+                }
+            } catch (error: Exception) {
+                Diagnostics.failure("notifications_register_failed", error)
+                notificationBusy = false
+                vm.message = "Notifications could not start. Please try again."
             }
-            .addOnFailureListener { vm.message = "Notifications need Google Play services and a connection." }
+        }
     }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notificationBusy = false
         if (granted) enableNotifications()
         else vm.message = "Allow notifications in Android settings to receive CatDo alerts."
     }
     val toggleNotifications: (Boolean) -> Unit = { enabled ->
-        if (!enabled) {
-            val messaging = FirebaseMessaging.getInstance()
-            messaging.isAutoInitEnabled = false
-            messaging.unregister().addOnFailureListener {
-                vm.message = "Could not stop notifications yet. Check your connection and try again."
+        if (notificationBusy) Unit
+        else if (!enabled) {
+            notificationBusy = true
+            try {
+                val messaging = FirebaseMessaging.getInstance()
+                messaging.isAutoInitEnabled = false
+                notificationsEnabled = false
+                messaging.unregister().addOnCompleteListener { task ->
+                    notificationBusy = false
+                    if (!task.isSuccessful) {
+                        Diagnostics.failure("notifications_unregister_failed", task.exception ?: IllegalStateException("Unregister failed"))
+                        vm.message = "Could not finish turning off notifications. Try again later."
+                    }
+                }
+            } catch (error: Exception) {
+                Diagnostics.failure("notifications_unregister_failed", error)
+                notificationBusy = false
+                vm.message = "Could not turn off notifications. Please try again."
             }
-            notificationsEnabled = false
         } else if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        ) {
+            notificationBusy = true
+            try { notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            catch (error: Exception) {
+                Diagnostics.failure("notifications_permission_failed", error)
+                notificationBusy = false
+                vm.message = "Could not ask for notification permission. Try again."
+            }
+        }
         else enableNotifications()
     }
 
@@ -247,7 +293,7 @@ fun CatDoApp(vm: CatDoViewModel) {
                     Section.Projects -> if (vm.projectId == null) ProjectOverview(data, workspace, vm) else
                         TaskSection(data, workspace, vm, selectedProject?.name ?: "Project", "Keep the next step moving.",
                             data.tasks.filter { it.workspaceId == workspace.id && it.projectId == vm.projectId && it.completedAt == null })
-                    Section.Settings -> SettingsScreen(workspace, vm, notificationsEnabled, toggleNotifications)
+                    Section.Settings -> SettingsScreen(workspace, vm, notificationsEnabled, notificationBusy, toggleNotifications)
                     Section.Search -> SearchScreen(data, workspace, vm)
                     Section.Calendar -> CalendarScreen(data, workspace, vm)
                     else -> {
@@ -475,7 +521,7 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
 }
 
 @Composable
-private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
+private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, notificationBusy: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 100.dp)) {
         SectionHeading(workspace.name, "Settings", "Make CatDo yours.", 0)
         ListItem(headlineContent = { Text("Workspace") }, supportingContent = { Text(workspace.name) },
@@ -491,11 +537,11 @@ private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificatio
         ListItem(headlineContent = { Text("Notifications") },
             supportingContent = { Text("Allow alerts sent to this device") },
             leadingContent = { Icon(Icons.Outlined.NotificationsNone, null) },
-            trailingContent = { Switch(checked = notificationsEnabled, onCheckedChange = onNotificationsChanged) },
-            modifier = Modifier.clickable { onNotificationsChanged(!notificationsEnabled) })
+            trailingContent = { Switch(checked = notificationsEnabled, enabled = !notificationBusy, onCheckedChange = onNotificationsChanged) },
+            modifier = Modifier.clickable(enabled = !notificationBusy) { onNotificationsChanged(!notificationsEnabled) })
         if (vm.signedIn) {
             ListItem(headlineContent = { Text(if (vm.syncing) "Syncing…" else "Sync now") },
-                supportingContent = { Text("Keep this device up to date with your WorkerCat account") },
+                supportingContent = { Text(vm.syncStatus ?: "Keep this device up to date with your WorkerCat account") },
                 leadingContent = { Icon(Icons.Outlined.Sync, null, tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.clickable(enabled = !vm.syncing) { vm.sync() })
             ListItem(headlineContent = { Text("Sign out") },

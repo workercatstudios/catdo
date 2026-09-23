@@ -105,7 +105,7 @@ export const guides = [
     sections: [
       [
         "On your devices",
-        "The web app saves your tasks in IndexedDB and caches the app files for offline use. It remembers the last account and your appearance preference in local storage. The Linux app saves tasks in its local database. Signing out does not erase saved task data.",
+        "The web app saves your tasks in IndexedDB and caches the app files for offline use. It remembers the last account and your appearance preference in local storage. The Linux and Android apps save tasks on the device. Signing out does not erase saved task data.",
       ],
       [
         "With your account",
@@ -114,6 +114,10 @@ export const guides = [
       [
         "In sync storage",
         "Task data is sent over HTTPS to CatDo on Cloudflare and stored in an account-specific Durable Object. This supports syncing across devices. CatDo does not claim end-to-end encryption: the service processes task data to store and sync it.",
+      ],
+      [
+        "Crash and sync diagnostics",
+        "The Android app sends crash reports and limited failure events to Firebase Crashlytics. Reports can include device and app details and error stack traces. CatDo does not add task content, account IDs, or sign-in tokens to these reports. The sync server logs authentication rejection reason codes without tokens or task data.",
       ],
       [
         "Backups and questions",

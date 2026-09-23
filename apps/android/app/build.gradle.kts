@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -12,8 +13,8 @@ android {
         applicationId = "com.workercat.catdo"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 10
-        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.4"
+        versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 11
+        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.5"
     }
 
     signingConfigs {
@@ -59,6 +60,7 @@ dependencies {
     implementation("com.clerk:clerk-android-ui:1.1.8")
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-crashlytics")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20260719")

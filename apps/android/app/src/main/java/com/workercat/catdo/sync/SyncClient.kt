@@ -21,6 +21,11 @@ private const val API = "https://catdo.workercat.com"
 
 private data class Response(val status: Int, val json: JSONObject)
 
+class SyncHttpException(val status: Int, val endpoint: String) : IllegalStateException(
+    if (status == 401) "Sign-in was rejected by CatDo. Your tasks are safe on this device."
+    else "Sync is unavailable ($status). Your tasks are safe on this device."
+)
+
 private fun request(method: String, address: String, bearer: String, body: String? = null): Response {
     val uri = URI(address)
     require(uri.scheme == "https" && uri.host == URI(API).host) { "Unexpected sync server." }
@@ -67,7 +72,7 @@ class SyncClient(private val repository: CatDoRepository) {
 
     private fun identity(accessToken: String): String {
         val response = request("GET", "$API/api/me", accessToken)
-        require(response.status in 200..299) { "Sign in again to sync." }
+        if (response.status !in 200..299) throw SyncHttpException(response.status, "identity")
         return response.json.getString("userId")
     }
 
@@ -87,9 +92,8 @@ class SyncClient(private val repository: CatDoRepository) {
                     put("base", DataJson.encode(pending.base))
                     put("data", DataJson.encode(pending.data))
                 }.toString())
-                require(response.status in 200..299 || response.status == 409) {
-                    "Sync is unavailable (${response.status}). Your changes are saved on this device."
-                }
+                if (response.status !in 200..299 && response.status != 409)
+                    throw SyncHttpException(response.status, "sync")
                 val remote = Snapshot(response.json.getLong("revision"), DataJson.decode(response.json.getJSONObject("data")))
                 if (!repository.acceptRemote(remote, response.status != 409)) return@withContext false
                 val updated = repository.state.value

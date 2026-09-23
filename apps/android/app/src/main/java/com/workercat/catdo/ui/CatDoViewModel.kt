@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.clerk.api.Clerk
 import com.workercat.catdo.sync.SyncClient
+import com.workercat.catdo.sync.SyncHttpException
+import com.workercat.catdo.Diagnostics
 import com.workercat.catdo.data.AppData
 import com.workercat.catdo.data.CatDoRepository
 import com.workercat.catdo.data.Project
@@ -37,15 +39,24 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
     var undoPrompt by mutableStateOf<String?>(null)
     var signedIn by mutableStateOf(false)
     var syncing by mutableStateOf(false)
+    var syncStatus by mutableStateOf<String?>(null)
     var authOpen by mutableStateOf(false)
     val clerkReady = Clerk.isInitialized
     val clerkError = Clerk.initializationError
     private var syncJob: Job? = null
     private var syncRequested = false
+    private var lastSyncFailure: String? = null
 
     init {
         viewModelScope.launch {
-            Clerk.sessionFlow.collectLatest { signedIn = it != null }
+            Clerk.sessionFlow.collectLatest {
+                val wasSignedIn = signedIn
+                signedIn = it != null
+                if (signedIn != wasSignedIn) {
+                    lastSyncFailure = null
+                    syncStatus = null
+                }
+            }
         }
     }
 
@@ -55,6 +66,7 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
 
     fun authComplete() {
         authOpen = false
+        lastSyncFailure = null
         sync()
     }
 
@@ -73,7 +85,24 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
         do {
             syncRequested = false
             syncing = true
-            runCatching { syncClient.sync() }.onFailure { message = readableError(it, "Could not sync. Your tasks are saved here.") }
+            runCatching { syncClient.sync() }.onSuccess {
+                syncStatus = null
+                lastSyncFailure = null
+                Diagnostics.event("sync_success")
+            }.onFailure { error ->
+                val kind = when (error) {
+                    is SyncHttpException -> "http_${error.endpoint}_${error.status}"
+                    is UnknownHostException -> "network_dns"
+                    else -> "${error.javaClass.simpleName}"
+                }
+                syncStatus = readableError(error, "Could not sync. Your tasks are saved here.")
+                if (kind != lastSyncFailure) {
+                    Diagnostics.event("sync_failed_$kind")
+                    if (error is SyncHttpException) Diagnostics.failure("sync_failed_$kind", error)
+                    message = syncStatus
+                    lastSyncFailure = kind
+                }
+            }
             syncing = false
         } while (syncRequested && signedIn)
     }
