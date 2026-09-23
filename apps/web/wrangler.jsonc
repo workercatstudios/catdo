@@ -10,12 +10,6 @@
     "CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsud29ya2VyY2F0LmNvbSQ",
     "CLERK_DESKTOP_CLIENT_ID": "Qpyu4U9xj6tZswWT",
   },
-  "routes": [
-    {
-      "pattern": "catdo.workercat.com",
-      "custom_domain": true,
-    },
-  ],
   "durable_objects": {
     "bindings": [
       {
