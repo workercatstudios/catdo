@@ -12,7 +12,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 1
-        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.1.0"
+        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.1"
     }
 
     signingConfigs {

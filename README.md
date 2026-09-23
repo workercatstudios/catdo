@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://catdo.workercat.com/app">Open CatDo</a> ·
   <a href="https://catdo.workercat.com">Website</a> ·
-  <a href="https://github.com/workercatstudios/catdo/releases">Download for Linux</a> ·
+  <a href="https://github.com/workercatstudios/catdo/releases">Download apps</a> ·
   <a href="docs/development.md">Developer guide</a>
 </p>
 
@@ -87,7 +87,7 @@ _Screenshots show the current Linux desktop with sample tasks._
 | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Linux desktop** | Built and tested on Fedora. Local use needs no account; sign in to sync.                                         |
 | **Web**           | [Available now](https://catdo.workercat.com/app), with offline editing after the first online visit and sign-in. |
-| **Android**       | Native app source in [`apps/android`](apps/android). Builds locally; release testing and store distribution are ahead. |
+| **Android**       | [Signed APK on GitHub Releases](https://github.com/workercatstudios/catdo/releases/latest). Native source is in [`apps/android`](apps/android); Play Store distribution is ahead. |
 | **Windows**       | Planned after Linux.                                                                                             |
 | **macOS**         | Not planned.                                                                                                     |
 

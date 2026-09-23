@@ -82,8 +82,9 @@ export function Home() {
               <a href={release.url}>Release notes and checksums ↗</a>
             </details>
             <p className="platform-note">
-              On another device? <a href="/app">Use the web app.</a> Android and
-              Windows apps are planned.
+              On Android? <a href={release.android}>Download the APK.</a> On
+              another device? <a href="/app">Use the web app.</a> A Windows app
+              is planned.
             </p>
           </div>
         </section>
