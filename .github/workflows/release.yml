@@ -64,10 +64,65 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  android:
+    name: Build signed Android APK
+    needs: [version, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Restore Android signing key
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          CATDO_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          CATDO_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_RELEASE_KEYSTORE_BASE64"
+          test -n "$CATDO_ANDROID_STORE_PASSWORD"
+          test -n "$CATDO_ANDROID_KEY_PASSWORD"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/catdo-release.jks"
+          test -s "$RUNNER_TEMP/catdo-release.jks"
+          echo "CATDO_ANDROID_KEYSTORE=$RUNNER_TEMP/catdo-release.jks" >> "$GITHUB_ENV"
+      - name: Build release APK
+        working-directory: apps/android
+        env:
+          CATDO_ANDROID_VERSION_CODE: ${{ github.run_number }}
+          CATDO_ANDROID_VERSION_NAME: ${{ needs.version.outputs.version }}
+          CATDO_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          CATDO_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+      - name: Verify and package APK
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_CODE: ${{ github.run_number }}
+        run: |
+          apk=apps/android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -F "versionCode='$RELEASE_CODE' versionName='$RELEASE_VERSION'"
+          mkdir -p dist
+          cp "$apk" "dist/catdo-$RELEASE_VERSION-android.apk"
+          (cd dist && sha256sum "catdo-$RELEASE_VERSION-android.apk" > "catdo-$RELEASE_VERSION-android.apk.sha256")
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: catdo-android
+          path: |
+            dist/*.apk
+            dist/*.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
     name: Publish GitHub release
     if: github.event_name == 'push' && github.ref_type == 'tag'
-    needs: [version, build]
+    needs: [version, build, android]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -77,7 +132,11 @@ jobs:
         with:
           name: catdo-linux-x86_64
           path: dist
-      - name: Publish archive and checksum
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: catdo-android
+          path: dist
+      - name: Publish packages and checksums
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -90,6 +149,6 @@ jobs:
           if [[ "$PRERELEASE" == true ]]; then
             options+=(--prerelease --latest=false)
           fi
-          gh release create "$RELEASE_TAG" ./*.AppImage ./*.tar.gz ./*.sha256 \
+          gh release create "$RELEASE_TAG" ./*.AppImage ./*.tar.gz ./*.apk ./*.sha256 \
             --verify-tag --title "CatDo $RELEASE_TAG" --generate-notes \
             "${options[@]}"

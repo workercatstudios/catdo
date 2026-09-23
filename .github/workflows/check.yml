@@ -52,3 +52,20 @@ jobs:
         run: |
           bash -n scripts/*.sh
           python3 scripts/check-release.py
+
+  android:
+    name: Android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+        working-directory: apps/android

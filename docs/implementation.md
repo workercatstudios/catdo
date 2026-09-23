@@ -81,4 +81,4 @@ The development integration example performs real Clerk device authorization thr
 
 ## Remaining platform work
 
-Native Android is the next platform milestone. Windows follows Linux; macOS is out of scope. Before a broader public release, validate native Wayland and accessibility, account recovery/export/import, background reminders, and larger-data performance through daily use.
+Native Android source is now in [`apps/android`](../apps/android), with local tasks, the shared sync protocol, and build checks. Physical-device testing, reminders, and release signing remain. Windows follows Linux; macOS is out of scope. Before a broader public release, validate native Wayland and accessibility, account recovery/export/import, background reminders, and larger-data performance through daily use.

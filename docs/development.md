@@ -114,7 +114,7 @@ It checks native task upload, offline edit and database reopen, retry idempotenc
 
 Sync currently sends complete snapshots and caps an account's serialized task data at 900 KB. Conflicting edits to the same record require a choice; changes to different records merge automatically. Web Settings includes JSON export. See [implementation notes](implementation.md) for the protocol and limits.
 
-Reminders require the desktop app to be running and a working notification service; web push and background delivery are not implemented. Dates are date-only, while reminders have local times. Recurrence shows the current occurrence, rather than an infinite calendar preview. Task and subtask completion are independent. Browser caches and desktop data remain on the device after sign-out; avoid offline access on a shared computer. Native Android, production load testing, and a full accessibility pass remain outstanding.
+Reminders require the desktop app to be running and a working notification service; web push and background delivery are not implemented. Dates are date-only, while reminders have local times. Recurrence shows the current occurrence, rather than an infinite calendar preview. Task and subtask completion are independent. Browser caches and desktop data remain on the device after sign-out; avoid offline access on a shared computer. Broader Android device testing, production load testing, and a full accessibility pass remain outstanding. See the [Android app guide](../apps/android/README.md) for its build and current feature boundaries.
 
 ## CI and releases
 
@@ -124,8 +124,8 @@ Rust/GPUI tests, and release tooling. It needs no Clerk or Cloudflare credential
 
 **Release** runs when a `v*` tag is pushed. It validates the tag against
 `workspace.package.version` in `Cargo.toml`, runs the same checks, builds the
-Linux x86-64 desktop on Ubuntu 24.04, smoke-tests the packages, and publishes an
-AppImage, a `.tar.gz`, and SHA-256 checksums to GitHub Releases. Only the publish
+Linux x86-64 desktop and signed Android APK on Ubuntu 24.04, smoke-tests the packages, and publishes an
+AppImage, a `.tar.gz`, an `.apk`, and SHA-256 checksums to GitHub Releases. Android signing uses the repository secrets described in the [Android app guide](../apps/android/README.md). Only the publish
 job receives `contents: write`. No cloud deployment runs as part of a release.
 
 To release:

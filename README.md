@@ -87,7 +87,7 @@ _Screenshots show the current Linux desktop with sample tasks._
 | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Linux desktop** | Built and tested on Fedora. Local use needs no account; sign in to sync.                                         |
 | **Web**           | [Available now](https://catdo.workercat.com/app), with offline editing after the first online visit and sign-in. |
-| **Android**       | Planned as a native app.                                                                                         |
+| **Android**       | Native app source in [`apps/android`](apps/android). Builds locally; release testing and store distribution are ahead. |
 | **Windows**       | Planned after Linux.                                                                                             |
 | **macOS**         | Not planned.                                                                                                     |
 
@@ -159,6 +159,7 @@ Text fields keep their own undo history.
 | Desktop                      | Rust + GPUI Kit                             | [`apps/desktop`](apps/desktop)           |
 | Desktop domain and storage   | Rust + SQLite                               | [`crates/catdo-core`](crates/catdo-core) |
 | Website and web app          | TanStack Start + shadcn/ui + IndexedDB                    | [`apps/web`](apps/web)                   |
+| Android                      | Kotlin + Jetpack Compose + local atomic storage         | [`apps/android`](apps/android)           |
 | Web domain and sync contract | TypeScript                                  | [`packages/domain`](packages/domain)     |
 | API and account storage      | Cloudflare Workers + SQLite Durable Objects | [`apps/web/src/server`](apps/web/src/server)             |
 
