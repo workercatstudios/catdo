@@ -4,7 +4,7 @@ use chrono::{Datelike, Local, NaiveTime, TimeZone, Utc};
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::{
-    IconName, Sizable, StyledExt,
+    FocusTrapElement, IconName, Sizable, StyledExt,
     button::{Button, ButtonVariants},
     calendar::Date,
     date_picker::{DatePicker, DatePickerEvent, DatePickerState},
@@ -33,6 +33,7 @@ pub struct TaskEditor {
     pub original: Task,
     data: Data,
     is_new: bool,
+    focus: FocusHandle,
     title: Entity<InputState>,
     notes: Entity<TextareaState>,
     scheduled: Entity<DatePickerState>,
@@ -216,12 +217,14 @@ impl TaskEditor {
             cx.subscribe(&interval, |_, _, _: &InputEvent, cx| cx.notify()),
             cx.subscribe(&scheduled, |_, _, _: &DatePickerEvent, cx| cx.notify()),
             cx.subscribe(&due, |_, _, _: &DatePickerEvent, cx| cx.notify()),
+            cx.subscribe(&reminder_day, |_, _, _: &DatePickerEvent, cx| cx.notify()),
         ];
         let is_new = !data.tasks.iter().any(|t| t.id == task.id);
         Self {
             original: task,
             data: data.clone(),
             is_new,
+            focus: cx.focus_handle(),
             title,
             notes,
             scheduled,
@@ -381,43 +384,275 @@ impl Render for TaskEditor {
             .filter(|t| t.parent_id == Some(self.original.id))
             .cloned()
             .collect::<Vec<_>>();
-        div().v_flex().w(px(350.)).min_w(px(350.)).h_full().bg(p.background).border_l_1().border_color(p.border)
-            .child(div().h_flex().items_center().justify_between().px_5().h(px(62.)).border_b_1().border_color(p.border)
-                .child(div().font_weight(FontWeight::SEMIBOLD).child(if self.is_new { "New task" } else { "Task details" }))
-                .child(Button::new("discard").ghost().small().label("Discard").tooltip("Discard changes and close").on_click(cx.listener(|_, _, _, cx| cx.emit(EditorEvent::Discard)))))
-            .child(div().id("editor-scroll").v_flex().flex_1().min_h_0().overflow_y_scrollbar().p_5().gap_5()
-                .child(Input::new(&self.title))
-                .when(!self.is_new, |el| el.child(Button::new("complete-editor").ghost().small().icon(IconName::CircleCheck).label(if self.original.active() { "Complete task" } else { "Reopen task" }).on_click(cx.listener(|this, _, _, cx| cx.emit(EditorEvent::Complete(this.original.id))))))
-                .child(Textarea::new(&self.notes).h(px(100.)))
-                .child(self.field("Workspace", Select::new(&self.workspace), cx))
-                .child(self.field("Project", Select::new(&self.project), cx))
-                .child(self.field("Scheduled · when you'll work on it", DatePicker::new(&self.scheduled).placeholder("Choose a day").cleanable(true), cx))
-                .child(self.field("Due · when it must be finished", DatePicker::new(&self.due).placeholder("No deadline").cleanable(true), cx))
-                .child(self.field("Reminder", DatePicker::new(&self.reminder_day).placeholder("No reminder").cleanable(true), cx))
-                .child(self.field("Reminder time · your local time", Input::new(&self.reminder_time).w(px(100.)), cx))
-                .child(div().text_xs().text_color(p.muted_foreground).child("Desktop reminders work while CatDo is open."))
-                .child(self.field("Repeat", Select::new(&self.repeat), cx))
-                .when(repeat != 0 && repeat != 4, |el| el.child(self.field("Every", Input::new(&self.interval).w(px(80.)), cx)))
-                .when(repeat == 4, |el| el.child(div().h_flex().gap_1().children(["M", "T", "W", "T", "F", "S", "S"].into_iter().enumerate().map(|(i, label)| {
-                    Button::new(("weekday", i)).small().label(label).when(self.weekdays.contains(&(i as u32)), |b| b.primary()).on_click(cx.listener(move |this, _, _, cx| {
-                        if this.weekdays.contains(&(i as u32)) { this.weekdays.retain(|d| *d != i as u32); } else { this.weekdays.push(i as u32); this.weekdays.sort(); }
-                        cx.notify();
-                    }))
-                }))))
-                .when(repeat != 0, |el| el.child(div().text_xs().text_color(p.muted_foreground).child("Fixed schedules skip missed dates. Completing a task keeps its history and creates the next occurrence.")))
-                .when_some(next_occurrence, |el, day| el.child(div().text_xs().text_color(p.primary).child(format!("If completed today, next: {}", day.format("%b %-d, %Y")))))
-                .when(!self.is_new, |el| el.child(div().v_flex().gap_2().pt_3().border_t_1().border_color(p.border)
-                    .child(div().text_xs().text_color(p.muted_foreground).child("SUBTASKS"))
-                    .children(children.into_iter().map(|task| Button::new(SharedString::from(format!("child-{}", task.id))).ghost().label(format!("{} {}", if task.active() { "○" } else { "✓" }, task.title)).on_click(cx.listener(move |_, _, _, cx| cx.emit(EditorEvent::Open(task.id))))))
-                    .child(Button::new("subtask").ghost().small().icon(IconName::Plus).label("Add subtask").on_click(cx.listener(|this, _, _, cx| cx.emit(EditorEvent::AddSubtask(this.original.id)))))))
+        div()
+            .id("task-editor")
+            .role(gpui_kit::accesskit::Role::Dialog)
+            .aria_label(if self.is_new {
+                "New task"
+            } else {
+                "Task details"
+            })
+            .track_focus(&self.focus)
+            .v_flex()
+            .w(px(820.))
+            .max_w(relative(0.94))
+            .h(px(660.))
+            .max_h(relative(0.90))
+            .rounded(px(12.))
+            .overflow_hidden()
+            .bg(p.background)
+            .border_1()
+            .border_color(p.border)
+            .child(
+                div()
+                    .h_flex()
+                    .items_center()
+                    .justify_between()
+                    .px_6()
+                    .h(px(52.))
+                    .flex_shrink_0()
+                    .border_b_1()
+                    .border_color(p.border)
+                    .child(
+                        div()
+                            .text_sm()
+                            .text_color(p.muted_foreground)
+                            .child(if self.is_new {
+                                "New task"
+                            } else {
+                                "Task details"
+                            }),
+                    )
+                    .child(
+                        Button::new("discard")
+                            .ghost()
+                            .small()
+                            .icon(IconName::Close)
+                            .accessibility_label("Discard changes and close")
+                            .tooltip("Discard changes and close")
+                            .on_click(cx.listener(|_, _, _, cx| cx.emit(EditorEvent::Discard))),
+                    ),
             )
-            .child(div().h_flex().justify_between().p_4().border_t_1().border_color(p.border)
-                .child(Button::new("delete").ghost().label(if self.is_new { "Cancel" } else { "Delete task" }).on_click(cx.listener(|this, _, _, cx| {
-                    if this.is_new { cx.emit(EditorEvent::Discard) } else { cx.emit(EditorEvent::Delete(this.original.id)) }
-                })))
-                .child(Button::new("save").primary().label("Save task").on_click(cx.listener(|_, _, _, cx| {
-                    // The parent also validates and displays errors from the draft.
-                    cx.emit(EditorEvent::Save);
-                }))))
+            .child(
+                div()
+                    .h_flex()
+                    .flex_1()
+                    .min_h_0()
+                    .child(
+                        div()
+                            .id("editor-scroll")
+                            .v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .overflow_y_scrollbar()
+                            .p_6()
+                            .gap_5()
+                            .child(Input::new(&self.title).large().appearance(false).text_xl())
+                            .when(!self.is_new, |el| {
+                                el.child(
+                                    div().h_flex().child(
+                                        Button::new("complete-editor")
+                                            .ghost()
+                                            .small()
+                                            .icon(IconName::CircleCheck)
+                                            .label(if self.original.active() {
+                                                "Complete task"
+                                            } else {
+                                                "Reopen task"
+                                            })
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                cx.emit(EditorEvent::Complete(this.original.id))
+                                            })),
+                                    ),
+                                )
+                            })
+                            .child(self.field(
+                                "Notes",
+                                Textarea::new(&self.notes).h(px(160.)).appearance(false),
+                                cx,
+                            ))
+                            .when(!self.is_new, |el| {
+                                el.child(
+                                    div()
+                                        .v_flex()
+                                        .gap_3()
+                                        .pt_5()
+                                        .border_t_1()
+                                        .border_color(p.border)
+                                        .child(
+                                            div()
+                                                .text_xs()
+                                                .text_color(p.muted_foreground)
+                                                .child("Subtasks"),
+                                        )
+                                        .children(children.into_iter().map(|task| {
+                                            Button::new(SharedString::from(format!(
+                                                "child-{}",
+                                                task.id
+                                            )))
+                                            .ghost()
+                                            .label(format!(
+                                                "{} {}",
+                                                if task.active() { "○" } else { "✓" },
+                                                task.title
+                                            ))
+                                            .on_click(cx.listener(move |_, _, _, cx| {
+                                                cx.emit(EditorEvent::Open(task.id))
+                                            }))
+                                        }))
+                                        .child(
+                                            div().h_flex().child(
+                                                Button::new("subtask")
+                                                    .ghost()
+                                                    .small()
+                                                    .icon(IconName::Plus)
+                                                    .label("Add subtask")
+                                                    .on_click(cx.listener(|this, _, _, cx| {
+                                                        cx.emit(EditorEvent::AddSubtask(
+                                                            this.original.id,
+                                                        ))
+                                                    })),
+                                            ),
+                                        ),
+                                )
+                            }),
+                    )
+                    .child(
+                        div()
+                            .id("editor-properties")
+                            .v_flex()
+                            .w(px(252.))
+                            .flex_shrink_0()
+                            .min_h_0()
+                            .overflow_y_scrollbar()
+                            .p_5()
+                            .gap_4()
+                            .bg(p.muted)
+                            .border_l_1()
+                            .border_color(p.border)
+                            .child(self.field("Workspace", Select::new(&self.workspace), cx))
+                            .child(self.field("Project", Select::new(&self.project), cx))
+                            .child(
+                                self.field(
+                                    "Scheduled",
+                                    DatePicker::new(&self.scheduled)
+                                        .small()
+                                        .placeholder("Choose a day")
+                                        .cleanable(true),
+                                    cx,
+                                ),
+                            )
+                            .child(
+                                self.field(
+                                    "Due date",
+                                    DatePicker::new(&self.due)
+                                        .small()
+                                        .placeholder("No deadline")
+                                        .cleanable(true),
+                                    cx,
+                                ),
+                            )
+                            .child(self.field("Repeat", Select::new(&self.repeat), cx))
+                            .when(repeat != 0 && repeat != 4, |el| {
+                                el.child(self.field(
+                                    "Every",
+                                    Input::new(&self.interval).small().w(px(80.)),
+                                    cx,
+                                ))
+                            })
+                            .when(repeat == 4, |el| {
+                                el.child(
+                                    div().h_flex().gap_1().children(
+                                        ["M", "T", "W", "T", "F", "S", "S"]
+                                            .into_iter()
+                                            .enumerate()
+                                            .map(|(i, label)| {
+                                                Button::new(("weekday", i))
+                                                    .xsmall()
+                                                    .label(label)
+                                                    .when(
+                                                        self.weekdays.contains(&(i as u32)),
+                                                        |b| b.primary(),
+                                                    )
+                                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                                        if this.weekdays.contains(&(i as u32)) {
+                                                            this.weekdays
+                                                                .retain(|d| *d != i as u32);
+                                                        } else {
+                                                            this.weekdays.push(i as u32);
+                                                            this.weekdays.sort();
+                                                        }
+                                                        cx.notify();
+                                                    }))
+                                            }),
+                                    ),
+                                )
+                            })
+                            .when_some(next_occurrence, |el, day| {
+                                el.child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(p.primary)
+                                        .child(format!("Next: {}", day.format("%b %-d, %Y"))),
+                                )
+                            })
+                            .child(
+                                self.field(
+                                    "Reminder",
+                                    DatePicker::new(&self.reminder_day)
+                                        .small()
+                                        .placeholder("No reminder")
+                                        .cleanable(true),
+                                    cx,
+                                ),
+                            )
+                            .when(
+                                matches!(self.reminder_day.read(cx).date(), Date::Single(Some(_))),
+                                |el| {
+                                    el.child(self.field(
+                                        "Local time",
+                                        Input::new(&self.reminder_time).small().w(px(100.)),
+                                        cx,
+                                    ))
+                                },
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(p.muted_foreground)
+                                    .child("Desktop reminders run while CatDo is open."),
+                            ),
+                    ),
+            )
+            .child(
+                div()
+                    .h_flex()
+                    .items_center()
+                    .justify_between()
+                    .px_5()
+                    .py_4()
+                    .flex_shrink_0()
+                    .border_t_1()
+                    .border_color(p.border)
+                    .child(
+                        Button::new("delete")
+                            .ghost()
+                            .label(if self.is_new { "Cancel" } else { "Delete task" })
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                if this.is_new {
+                                    cx.emit(EditorEvent::Discard)
+                                } else {
+                                    cx.emit(EditorEvent::Delete(this.original.id))
+                                }
+                            })),
+                    )
+                    .child(
+                        Button::new("save")
+                            .primary()
+                            .label("Save task")
+                            .on_click(cx.listener(|_, _, _, cx| cx.emit(EditorEvent::Save))),
+                    ),
+            )
+            .focus_trap("task-editor-focus", &self.focus)
     }
 }

@@ -25,9 +25,8 @@ export function fixtureData() {
   );
   return data;
 }
-export async function seed(page: Page) {
+export async function seed(page: Page, data = fixtureData()) {
   await page.goto("/");
-  const data = fixtureData();
   await page.evaluate(
     async ({ data, owner }) => {
       localStorage.setItem("catdo:last-user", owner);
@@ -62,5 +61,7 @@ export async function openOffline(page: Page) {
   await page.context().setOffline(true);
   await page.goto("/app");
   await page.getByRole("button", { name: "Open saved tasks" }).click();
-  await page.getByRole("heading", { name: "Today", exact: true }).waitFor();
+  await page
+    .getByRole("heading", { name: "Today", exact: true, level: 1 })
+    .waitFor();
 }

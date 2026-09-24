@@ -262,6 +262,33 @@ export function App({
         });
     });
   };
+  const syncStatus = (
+    <footer className="status" aria-live="polite">
+      <span>{store.status}</span>
+      <button onClick={() => void store.sync()}>Sync now</button>
+      {undo.length > 0 && (
+        <button
+          onClick={() =>
+            act(async () => {
+              const last = undo.at(-1)!;
+              await store.change((d) => {
+                const result = merge(last.after, last.before, d);
+                if (result.conflicts.length)
+                  throw Error(
+                    "This change cannot be undone because it was edited again.",
+                  );
+                validateData(result.data);
+                Object.assign(d, result.data);
+              });
+              setUndo((u) => u.slice(0, -1));
+            })
+          }
+        >
+          Undo
+        </button>
+      )}
+    </footer>
+  );
   const sidebar = (
     <AppSidebar
       data={data}
@@ -274,6 +301,8 @@ export function App({
       navigate={navigate}
       naming={naming}
       account={account}
+      addTask={add}
+      syncStatus={syncStatus}
     />
   );
   return (
@@ -297,11 +326,7 @@ export function App({
           >
             <Icon name="menu" />
           </button>
-          <span>
-            {activeWorkspace.name}
-            <span className="slash">/</span>
-            {title}
-          </span>
+          <span className="breadcrumb">{activeWorkspace.name}</span>
           <Button onClick={add}>
             <Icon name="plus" />
             Add task
@@ -378,31 +403,42 @@ export function App({
           ) : (
             <>
               <div className="page-heading">
-                <p className="eyebrow">
-                  {view === "today"
-                    ? new Date().toLocaleDateString(undefined, {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : activeWorkspace.name}
-                </p>
-                <h1>{title}</h1>
-                <p className="muted">
-                  {view === "today"
-                    ? "A clear place to start."
-                    : view === "inbox"
-                      ? "Get it out of your head. Give it a home later."
-                      : view === "upcoming"
-                        ? "A little room to look ahead."
-                        : view === "completed"
-                          ? "The things you’ve taken care of."
-                          : `${visible.length} open ${visible.length === 1 ? "task" : "tasks"}`}
-                </p>
+                <div className="heading-title">
+                  <span className={`view-icon view-icon-${view}`}>
+                    <Icon name={search ? "search" : view} />
+                  </span>
+                  <h1>{title}</h1>
+                  <span
+                    className="task-count"
+                    aria-label={`${visible.length} tasks`}
+                  >
+                    {visible.length}
+                  </span>
+                </div>
+                {view === "today" && !search && (
+                  <p className="heading-date">
+                    {new Date().toLocaleDateString(undefined, {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                )}
+                {search && (
+                  <p className="heading-date">Results for “{search}”</p>
+                )}
               </div>
+              <TaskList
+                tasks={visible}
+                data={data}
+                today={today}
+                view={search ? "search" : view}
+                complete={(id) => act(() => change((d) => completeTask(d, id)))}
+                open={openEditor}
+              />
               {view !== "completed" && (
                 <form
-                  className="quick-add"
+                  className={`quick-add ${quick.trim() ? "has-value" : ""}`}
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!quick.trim()) return;
@@ -425,16 +461,16 @@ export function App({
                     value={quick}
                     onChange={(e) => setQuick(e.target.value)}
                   />
-                  <kbd>Enter ↵</kbd>
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="sm"
+                    disabled={!quick.trim()}
+                  >
+                    Add <span aria-hidden="true">↵</span>
+                  </Button>
                 </form>
               )}
-              <TaskList
-                tasks={visible}
-                data={data}
-                today={today}
-                complete={(id) => act(() => change((d) => completeTask(d, id)))}
-                open={openEditor}
-              />
               {visible.length === 0 && (
                 <div className="empty-state">
                   <img src="/cat.png" alt="" />
@@ -476,31 +512,7 @@ export function App({
             </>
           )}
         </div>
-        <footer className="status" aria-live="polite">
-          <span>{store.status}</span>
-          <button onClick={() => void store.sync()}>Sync now</button>
-          {undo.length > 0 && (
-            <button
-              onClick={() =>
-                act(async () => {
-                  const last = undo.at(-1)!;
-                  await store.change((d) => {
-                    const result = merge(last.after, last.before, d);
-                    if (result.conflicts.length)
-                      throw Error(
-                        "This change cannot be undone because it was edited again.",
-                      );
-                    validateData(result.data);
-                    Object.assign(d, result.data);
-                  });
-                  setUndo((u) => u.slice(0, -1));
-                })
-              }
-            >
-              Undo
-            </button>
-          )}
-        </footer>
+        <div className="mobile-status">{syncStatus}</div>
       </main>
       {editor && (
         <TaskEditor
