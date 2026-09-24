@@ -16,9 +16,6 @@ html[data-input="pointer"] .dialog-content {
     opacity: 0;
     transform: scale(0.97);
   }
-  html[data-input="pointer"] .editor {
-    transform: translateX(6%);
-  }
 }
 html[data-input="keyboard"] *,
 html[data-input="keyboard"] *::before,

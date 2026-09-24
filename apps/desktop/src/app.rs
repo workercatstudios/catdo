@@ -187,6 +187,7 @@ impl CatDo {
                 if matches!(event, InputEvent::PressEnter { .. }) {
                     this.quick_create(window, cx);
                 }
+                cx.notify();
             }),
             cx.subscribe_in(&self.name_input, window, |this, _, event, window, cx| {
                 if matches!(event, InputEvent::PressEnter { .. }) {
@@ -430,7 +431,7 @@ impl CatDo {
             View::Upcoming => "Upcoming".into(),
             View::Calendar => self.month.format("%B %Y").to_string(),
             View::Completed => "Completed".into(),
-            View::Manage => "Workspaces & projects".into(),
+            View::Manage => "Settings".into(),
             View::Project(id) => self
                 .data
                 .projects

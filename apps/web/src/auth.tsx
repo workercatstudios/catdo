@@ -144,7 +144,7 @@ export function AuthApp() {
       }}
       appearance={{
         variables: {
-          colorPrimary: "#36332f",
+          colorPrimary: "#3e624e",
           borderRadius: "8px",
           fontFamily: "Inter Variable, system-ui, sans-serif",
         },

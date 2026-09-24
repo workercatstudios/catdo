@@ -61,7 +61,7 @@ impl CatDo {
             .v_flex()
             .flex_1()
             .min_w_0()
-            .h(px(88.))
+            .h(px(100.))
             .p_2()
             .gap_1()
             .border_b_1()
@@ -69,7 +69,7 @@ impl CatDo {
             .border_color(p.border)
             .cursor_pointer()
             .bg(if date == self.selected_day {
-                p.muted
+                p.accent
             } else {
                 p.background
             })
@@ -122,21 +122,21 @@ impl CatDo {
                             })
                             .when(date == today, |el| {
                                 el.bg(p.primary)
-                                    .text_color(p.background)
+                                    .text_color(p.primary_foreground)
                                     .font_weight(FontWeight::BOLD)
                             })
                             .child(date.day().to_string()),
                     )
-                    .when(total > 2, |el| {
+                    .when(total > 3, |el| {
                         el.child(
                             div()
                                 .text_xs()
                                 .text_color(p.muted_foreground)
-                                .child(format!("+{}", total - 2)),
+                                .child(format!("+{}", total - 3)),
                         )
                     }),
             )
-            .children(tasks.into_iter().take(2).map(|task| {
+            .children(tasks.into_iter().take(3).map(|task| {
                 let id = task.id;
                 let due = task.due == Some(date);
                 let scheduled = task.scheduled == Some(date);
@@ -204,30 +204,18 @@ impl CatDo {
             .id("calendar-scroll")
             .size_full()
             .overflow_y_scrollbar()
-            .px_6()
-            .py_6()
+            .p_8()
             .child(
                 div()
                     .h_flex()
                     .items_center()
                     .justify_between()
-                    .mb_5()
+                    .mb_6()
                     .child(
                         div()
-                            .v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_2xl()
-                                    .font_weight(FontWeight::BOLD)
-                                    .child(self.title()),
-                            )
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(p.muted_foreground)
-                                    .child("Your plans, with room to move."),
-                            ),
+                            .text_3xl()
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .child(self.title()),
                     )
                     .child(
                         div()
@@ -245,6 +233,7 @@ impl CatDo {
                             )
                             .child(
                                 Button::new("current-month")
+                                    .ghost()
                                     .small()
                                     .label("Today")
                                     .on_click(cx.listener(|this, _, _, cx| {
@@ -266,73 +255,97 @@ impl CatDo {
                             ),
                     ),
             )
-            .child(div().h_flex().mb_2().children(
-                ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(|day| {
-                    div()
-                        .flex_1()
-                        .px_2()
-                        .text_xs()
-                        .text_color(p.muted_foreground)
-                        .child(day)
-                }),
-            ))
-            .child(
-                div()
-                    .v_flex()
-                    .border_t_1()
-                    .border_l_1()
-                    .border_color(p.border)
-                    .children((0..week_count).map(|week| {
-                        div().h_flex().children((0..7).map(|day| {
-                            self.calendar_day(
-                                start.checked_add_days(Days::new(week * 7 + day)).unwrap(),
-                                cx,
-                            )
-                        }))
-                    })),
-            )
             .child(
                 div()
                     .h_flex()
-                    .gap_4()
-                    .mt_3()
-                    .mb_6()
-                    .text_xs()
-                    .text_color(p.muted_foreground)
-                    .child("• Scheduled")
-                    .child(div().text_color(p.destructive).child("◆ Deadline"))
-                    .child("Drag scheduled tasks to move your plan."),
-            )
-            .child(
-                div()
-                    .text_lg()
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .mb_3()
-                    .child(self.selected_day.format("%A, %B %-d").to_string()),
-            )
-            .when(agenda.is_empty(), |el| {
-                el.child(
-                    div()
-                        .text_color(p.muted_foreground)
-                        .py_3()
-                        .child("Nothing planned for this day yet."),
-                )
-            })
-            .children(agenda.into_iter().map(|task| self.task_row(task, cx)))
-            .child(
-                div()
-                    .h_flex()
-                    .mt_3()
-                    .gap_2()
-                    .child(Input::new(&self.quick_add).appearance(false))
+                    .items_start()
+                    .gap_6()
                     .child(
-                        Button::new("calendar-add")
-                            .ghost()
-                            .small()
-                            .icon(IconName::Plus)
-                            .label("Add")
-                            .on_click(
-                                cx.listener(|this, _, window, cx| this.quick_create(window, cx)),
+                        div()
+                            .v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .child(div().h_flex().mb_2().children(
+                                ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(|day| {
+                                    div()
+                                        .flex_1()
+                                        .px_2()
+                                        .text_xs()
+                                        .text_color(p.muted_foreground)
+                                        .child(day)
+                                }),
+                            ))
+                            .child(
+                                div()
+                                    .v_flex()
+                                    .border_t_1()
+                                    .border_l_1()
+                                    .border_color(p.border)
+                                    .children((0..week_count).map(|week| {
+                                        div().h_flex().children((0..7).map(|day| {
+                                            self.calendar_day(
+                                                start
+                                                    .checked_add_days(Days::new(week * 7 + day))
+                                                    .unwrap(),
+                                                cx,
+                                            )
+                                        }))
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .h_flex()
+                                    .gap_4()
+                                    .mt_3()
+                                    .text_xs()
+                                    .text_color(p.muted_foreground)
+                                    .child("• Scheduled")
+                                    .child(div().text_color(p.destructive).child("◆ Deadline")),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .v_flex()
+                            .w(px(280.))
+                            .flex_shrink_0()
+                            .min_w_0()
+                            .pl_5()
+                            .border_l_1()
+                            .border_color(p.border)
+                            .child(
+                                div()
+                                    .text_base()
+                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .mb_4()
+                                    .child(self.selected_day.format("%a, %b %-d").to_string()),
+                            )
+                            .when(agenda.is_empty(), |el| {
+                                el.child(
+                                    div()
+                                        .text_sm()
+                                        .text_color(p.muted_foreground)
+                                        .py_3()
+                                        .child("Nothing planned."),
+                                )
+                            })
+                            .children(agenda.into_iter().map(|task| self.task_row(task, cx)))
+                            .child(
+                                div()
+                                    .h_flex()
+                                    .items_center()
+                                    .mt_3()
+                                    .gap_1()
+                                    .child(Input::new(&self.quick_add).appearance(false).small())
+                                    .child(
+                                        Button::new("calendar-add")
+                                            .ghost()
+                                            .small()
+                                            .icon(IconName::Plus)
+                                            .tooltip("Add task")
+                                            .on_click(cx.listener(|this, _, window, cx| {
+                                                this.quick_create(window, cx)
+                                            })),
+                                    ),
                             ),
                     ),
             )

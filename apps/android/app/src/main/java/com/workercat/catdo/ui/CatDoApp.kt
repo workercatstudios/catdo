@@ -5,8 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +25,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,7 +46,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 private val mainSections = listOf(Section.Today, Section.Inbox, Section.Upcoming, Section.Projects)
 
@@ -196,47 +199,54 @@ fun CatDoApp(vm: CatDoViewModel) {
     ModalNavigationDrawer(
         drawerState = drawer,
         drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.width(310.dp)) {
-                Spacer(Modifier.height(24.dp))
-                Text("CATDO", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 28.dp), fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
-                Text(workspace.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 28.dp))
-                Spacer(Modifier.height(16.dp))
-                listOf(Section.Today, Section.Inbox, Section.Upcoming, Section.Calendar, Section.Completed, Section.Search).forEach { section ->
-                    NavigationDrawerItem(
-                        label = { Text(section.name) }, icon = { Icon(section.icon(), null) },
-                        selected = vm.section == section,
-                        onClick = { vm.select(section); scope.launch { drawer.close() } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-                HorizontalDivider(Modifier.padding(20.dp))
-                Row(Modifier.fillMaxWidth().padding(start = 28.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("PROJECTS", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = { vm.nameDialog = "project"; scope.launch { drawer.close() } }) {
-                        Icon(Icons.Default.Add, "New project")
+            ModalDrawerSheet(modifier = Modifier.width(310.dp), drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("CatDo", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 28.dp), fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().clickable { vm.nameDialog = "switch" }.padding(horizontal = 28.dp).height(56.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(workspace.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Icon(Icons.Outlined.KeyboardArrowDown, "Switch workspace", Modifier.size(18.dp))
                     }
-                }
-                data.projects.filter { it.workspaceId == workspace.id && !it.archived }.forEach { project ->
+                    Spacer(Modifier.height(8.dp))
+                    listOf(Section.Today, Section.Inbox, Section.Upcoming, Section.Calendar, Section.Completed, Section.Search).forEach { section ->
+                        NavigationDrawerItem(
+                            label = { Text(section.name, style = MaterialTheme.typography.bodyMedium) }, icon = { Icon(section.icon(), null, Modifier.size(20.dp)) },
+                            selected = vm.section == section,
+                            onClick = { vm.select(section); scope.launch { drawer.close() } },
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 1.dp).height(48.dp),
+                        )
+                    }
+                    HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
+                    Row(Modifier.fillMaxWidth().padding(start = 28.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Projects", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = { vm.nameDialog = "project"; scope.launch { drawer.close() } }) {
+                            Icon(Icons.Default.Add, "New project")
+                        }
+                    }
+                    data.projects.filter { it.workspaceId == workspace.id && !it.archived }.forEach { project ->
+                        NavigationDrawerItem(
+                            label = { Text(project.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            icon = { Icon(Icons.Outlined.FolderOpen, null, Modifier.size(20.dp)) },
+                            selected = vm.section == Section.Projects && vm.projectId == project.id,
+                            onClick = { vm.select(Section.Projects, project.id); scope.launch { drawer.close() } },
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 1.dp).height(48.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
                     NavigationDrawerItem(
-                        label = { Text(project.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        icon = { Icon(Icons.Outlined.Folder, null) },
-                        selected = vm.section == Section.Projects && vm.projectId == project.id,
-                        onClick = { vm.select(Section.Projects, project.id); scope.launch { drawer.close() } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
+                        label = { Text("Settings") }, icon = { Icon(Icons.Outlined.Settings, null) },
+                        selected = vm.section == Section.Settings,
+                        onClick = { vm.select(Section.Settings); scope.launch { drawer.close() } },
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 1.dp).height(48.dp),
                     )
+                    Spacer(Modifier.height(20.dp))
                 }
-                Spacer(Modifier.weight(1f))
-                NavigationDrawerItem(
-                    label = { Text("Settings") }, icon = { Icon(Icons.Outlined.Settings, null) },
-                    selected = vm.section == Section.Settings,
-                    onClick = { vm.select(Section.Settings); scope.launch { drawer.close() } },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-                Spacer(Modifier.height(20.dp))
             }
         },
     ) {
@@ -244,6 +254,7 @@ fun CatDoApp(vm: CatDoViewModel) {
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
+                    expandedHeight = 48.dp,
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { vm.nameDialog = "switch" }) {
                             Text(workspace.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
@@ -254,13 +265,12 @@ fun CatDoApp(vm: CatDoViewModel) {
                     navigationIcon = { IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Outlined.Menu, "Open menu") } },
                     actions = {
                         IconButton(onClick = { vm.select(Section.Search) }) { Icon(Icons.Outlined.Search, "Search tasks") }
-                        IconButton(onClick = { vm.select(Section.Settings) }) { Icon(Icons.Outlined.MoreVert, "Settings") }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 )
             },
             bottomBar = {
-                if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, tonalElevation = 0.dp) {
                     mainSections.forEach { section ->
                         NavigationBarItem(
                             selected = vm.section == section && (section != Section.Projects || vm.projectId == null),
@@ -271,20 +281,10 @@ fun CatDoApp(vm: CatDoViewModel) {
                     }
                 }
             },
-            floatingActionButton = {
-                if (vm.section != Section.Settings) {
-                    ExtendedFloatingActionButton(
-                        onClick = { vm.newTask(if (vm.section == Section.Today) today() else null) },
-                        icon = { Icon(Icons.Default.Add, null) }, text = { Text("Add task") },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            },
             snackbarHost = { SnackbarHost(snackbar) },
         ) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
-                if (wide) NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+                if (wide) NavigationRail(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                     mainSections.forEach { section ->
                         NavigationRailItem(
                             selected = vm.section == section && (section != Section.Projects || vm.projectId == null),
@@ -297,7 +297,7 @@ fun CatDoApp(vm: CatDoViewModel) {
                 Column(Modifier.widthIn(max = 840.dp).fillMaxSize()) {
                 when (vm.section) {
                     Section.Projects -> if (vm.projectId == null) ProjectOverview(data, workspace, vm) else
-                        TaskSection(data, workspace, vm, selectedProject?.name ?: "Project", "Keep the next step moving.",
+                        TaskSection(data, vm, selectedProject?.name ?: "Project",
                             data.tasks.filter { it.workspaceId == workspace.id && it.projectId == vm.projectId && it.completedAt == null })
                     Section.Settings -> SettingsScreen(workspace, vm, notificationsEnabled, notificationBusy, toggleNotifications)
                     Section.Search -> SearchScreen(data, workspace, vm)
@@ -313,14 +313,7 @@ fun CatDoApp(vm: CatDoViewModel) {
                             else -> emptyList()
                         }
                         val title = vm.section.name
-                        val subtitle = when (vm.section) {
-                            Section.Today -> "A clear place to start."
-                            Section.Inbox -> "Catch it here. Sort it later."
-                            Section.Upcoming -> "A little room to look ahead."
-                            Section.Completed -> "The things you made time for."
-                            else -> ""
-                        }
-                        TaskSection(data, workspace, vm, title, subtitle, shown)
+                        TaskSection(data, vm, title, shown)
                     }
                 }
                 }
@@ -384,72 +377,102 @@ private fun NameDialog(title: String, onDismiss: () -> Unit, onCreate: (String) 
 }
 
 @Composable
-private fun SectionHeading(eyebrow: String, title: String, subtitle: String, count: Int) {
-    Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 16.dp)) {
-        Text(eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
-        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (count > 0) {
-            Spacer(Modifier.height(24.dp))
-            Text("$count ${if (count == 1) "task" else "tasks"}", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun SectionHeading(title: String, count: Int = 0, detail: String? = null, onAdd: (() -> Unit)? = null) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f, fill = false))
+                if (count > 0) Text(count.toString(), modifier = Modifier.padding(start = 10.dp),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (onAdd != null) Button(onClick = onAdd, shape = MaterialTheme.shapes.small,
+                contentPadding = PaddingValues(horizontal = 12.dp), modifier = Modifier.height(36.dp)) {
+                Icon(Icons.Outlined.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Add task", style = MaterialTheme.typography.labelMedium)
+            }
         }
+        if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
-private fun TaskSection(data: AppData, workspace: Workspace, vm: CatDoViewModel, title: String, subtitle: String, tasks: List<Task>) {
+private fun TaskSection(data: AppData, vm: CatDoViewModel, title: String, tasks: List<Task>) {
     val sorted = tasks.sortedWith(compareBy<Task> { it.scheduled ?: it.due ?: "9999-12-31" }.thenBy { it.createdAt })
-    LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
+    val isToday = vm.section == Section.Today
+    val overdue = if (isToday) sorted.filter { it.due != null && it.due < today() } else emptyList()
+    val remaining = sorted.filterNot { it in overdue }
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
-            val date = if (vm.section == Section.Today) LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)) else workspace.name
-            SectionHeading(date, title, subtitle, sorted.size)
+            SectionHeading(title, sorted.size,
+                detail = if (isToday) LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d")) else null,
+                onAdd = { vm.newTask(if (isToday) today() else null) })
         }
-        if (sorted.isEmpty()) item {
-            EmptyState(
-                if (vm.section == Section.Today) "A little breathing room." else "Nothing here yet.",
-                if (vm.section == Section.Today) "Add a task when you know what comes next." else "Your tasks will show up here as you go.",
-            )
+        if (sorted.isEmpty()) item { EmptyState(if (isToday) "You’re all caught up" else "No tasks yet", "") }
+        if (overdue.isNotEmpty()) {
+            item { TaskGroupHeading("Overdue", overdue.size, overdue = true) }
+            items(overdue, key = { it.id }) { task ->
+                TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = false)
+            }
+            if (remaining.isNotEmpty()) item { TaskGroupHeading("Today", remaining.size) }
         }
-        items(sorted, key = { it.id }) { task -> TaskRow(task, data, onOpen = { vm.edit(task) }, onComplete = { vm.complete(task.id) }) }
+        items(remaining, key = { it.id }) { task ->
+            TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = !isToday)
+        }
     }
 }
 
 @Composable
-fun TaskRow(task: Task, data: AppData, onOpen: () -> Unit, onComplete: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 22.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        IconButton(onClick = onComplete, modifier = Modifier.size(42.dp)) {
-            Icon(if (task.completedAt == null) Icons.Outlined.RadioButtonUnchecked else Icons.Outlined.CheckCircle,
-                if (task.completedAt == null) "Complete ${task.title}" else "Restore ${task.title}",
-                tint = if (task.completedAt == null) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary)
+private fun TaskGroupHeading(title: String, count: Int, overdue: Boolean = false) {
+    Column {
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium,
+                color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+            Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Column(Modifier.weight(1f).padding(start = 8.dp, top = 7.dp, bottom = 16.dp)) {
-            Text(task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            if (task.notes.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(task.notes, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HorizontalDivider(Modifier.padding(horizontal = 20.dp))
+    }
+}
+
+@Composable
+fun TaskRow(task: Task, data: AppData, onOpen: () -> Unit, onComplete: () -> Unit, showScheduled: Boolean = true) {
+    val completed = task.completedAt != null
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val overdue = task.due != null && task.due < today() && !completed
+    val metadata = buildAnnotatedString {
+        task.due?.let { due ->
+            withStyle(SpanStyle(color = if (overdue) MaterialTheme.colorScheme.error else muted)) { append("Due ${formatDay(due)}") }
+        }
+        val details = buildList {
+            if (showScheduled) task.scheduled?.let { add(formatDay(it)) }
+            task.projectId?.let { id -> data.projects.firstOrNull { it.id == id }?.name?.let { add(it) } }
+            task.recurrence?.let { add("Repeats") }
+            data.tasks.count { it.parentId == task.id }.takeIf { it > 0 }?.let { add("$it subtasks") }
+        }
+        if (details.isNotEmpty()) {
+            if (length > 0) append(" · ")
+            append(details.joinToString(" · "))
+        }
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onOpen).padding(start = 8.dp, end = 20.dp),
+            verticalAlignment = Alignment.Top) {
+            IconButton(onClick = onComplete, modifier = Modifier.size(48.dp).padding(top = 3.dp)) {
+                Icon(if (completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                    if (completed) "Restore ${task.title}" else "Complete ${task.title}", modifier = Modifier.size(20.dp),
+                    tint = if (completed) MaterialTheme.colorScheme.primary else muted.copy(alpha = 0.7f))
             }
-            val details = buildList {
-                task.scheduled?.let { add("Plan ${formatDay(it)}") }
-                task.due?.let { add("Due ${formatDay(it)}") }
-                task.projectId?.let { id -> data.projects.firstOrNull { it.id == id }?.name?.let { add(it) } }
-                task.recurrence?.let { add("Repeats") }
-                data.tasks.count { it.parentId == task.id }.takeIf { it > 0 }?.let { add("$it subtasks") }
+            Column(Modifier.weight(1f).padding(top = 13.dp, bottom = 12.dp)) {
+                Text(task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal,
+                    color = if (completed) muted else MaterialTheme.colorScheme.onSurface,
+                    textDecoration = if (completed) TextDecoration.LineThrough else TextDecoration.None)
+                if (task.notes.isNotBlank()) Text(task.notes, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall, color = muted, modifier = Modifier.padding(top = 2.dp))
+                if (metadata.isNotEmpty()) Text(metadata, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, color = muted, modifier = Modifier.padding(top = 3.dp))
             }
-            if (details.isNotEmpty()) {
-                Spacer(Modifier.height(7.dp))
-                Text(details.joinToString("  ·  "), style = MaterialTheme.typography.labelMedium,
-                    color = if (task.due != null && task.due < today() && task.completedAt == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.height(15.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = .5f))
         }
     }
 }
@@ -465,46 +488,32 @@ fun formatDay(day: String): String = try {
 
 @Composable
 private fun EmptyState(title: String, subtitle: String) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 70.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(76.dp)) {
-            Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.CheckCircleOutline, null,
-                Modifier.size(34.dp), tint = MaterialTheme.colorScheme.primary) }
-        }
-        Spacer(Modifier.height(22.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(6.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 32.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
 private fun ProjectOverview(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
     val projects = data.projects.filter { it.workspaceId == workspace.id && !it.archived }
-    LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
-        item { SectionHeading(workspace.name, "Projects", "A place for the bigger things.", projects.size) }
-        if (projects.isEmpty()) item { EmptyState("Start something good.", "Create a project to bring related tasks together.") }
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { SectionHeading("Projects", projects.size) }
+        if (projects.isEmpty()) item { EmptyState("No projects yet", "") }
         items(projects, key = { it.id }) { project ->
             val count = data.tasks.count { it.projectId == project.id && it.isActive(data) }
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp).clickable { vm.select(Section.Projects, project.id) },
-                shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .65f)),
-            ) {
-                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.FolderOpen, null, tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                        Text(project.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text("$count ${if (count == 1) "open task" else "open tasks"}", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(Icons.Outlined.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            Row(Modifier.fillMaxWidth().clickable { vm.select(Section.Projects, project.id) }
+                .padding(horizontal = 20.dp).heightIn(min = 60.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.FolderOpen, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(project.name, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Outlined.ChevronRight, null, Modifier.padding(start = 12.dp).size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            HorizontalDivider(Modifier.padding(horizontal = 20.dp))
         }
-        item { TextButton(onClick = { vm.nameDialog = "project" }, modifier = Modifier.padding(start = 24.dp, top = 12.dp)) {
-            Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("New project")
+        item { TextButton(onClick = { vm.nameDialog = "project" }, modifier = Modifier.padding(start = 12.dp, top = 8.dp)) {
+            Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("New project")
         } }
     }
 }
@@ -515,9 +524,9 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
     val tasks = data.tasks.filter { it.workspaceId == workspace.id && it.completedAt == null &&
         query.isNotEmpty() && (it.title.contains(query, true) || it.notes.contains(query, true)) }
     Column {
-        SectionHeading(workspace.name, "Search", "Find what you need.", tasks.size)
+        SectionHeading("Search", tasks.size)
         OutlinedTextField(vm.search, { vm.search = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            placeholder = { Text("Search tasks") }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, singleLine = true)
+            placeholder = { Text("Search tasks") }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, singleLine = true, shape = MaterialTheme.shapes.small)
         Spacer(Modifier.height(16.dp))
         LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
             items(tasks, key = { it.id }) { task -> TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }) }
@@ -528,38 +537,59 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
 
 @Composable
 private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, notificationBusy: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 100.dp)) {
-        SectionHeading(workspace.name, "Settings", "Make CatDo yours.", 0)
-        ListItem(headlineContent = { Text("Workspace") }, supportingContent = { Text(workspace.name) },
-            leadingContent = { Icon(Icons.Outlined.Workspaces, null) },
-            trailingContent = { Icon(Icons.Outlined.ChevronRight, null) },
-            modifier = Modifier.clickable { vm.nameDialog = "switch" })
-        ListItem(headlineContent = { Text("New workspace") }, supportingContent = { Text("Keep work and personal plans apart") },
-            leadingContent = { Icon(Icons.Outlined.AddCircleOutline, null) }, modifier = Modifier.clickable { vm.nameDialog = "workspace" })
-        HorizontalDivider(Modifier.padding(horizontal = 24.dp, vertical = 14.dp))
-        ListItem(headlineContent = { Text("Saved on this device") },
-            supportingContent = { Text("Your tasks stay available without a connection.") },
-            leadingContent = { Icon(Icons.Outlined.OfflinePin, null, tint = MaterialTheme.colorScheme.primary) })
-        ListItem(headlineContent = { Text("Notifications") },
-            supportingContent = { Text("Allow alerts sent to this device") },
-            leadingContent = { Icon(Icons.Outlined.NotificationsNone, null) },
-            trailingContent = { Switch(checked = notificationsEnabled, enabled = !notificationBusy, onCheckedChange = onNotificationsChanged) },
-            modifier = Modifier.clickable(enabled = !notificationBusy) { onNotificationsChanged(!notificationsEnabled) })
-        if (vm.signedIn) {
-            ListItem(headlineContent = { Text(if (vm.syncing) "Syncing…" else "Sync now") },
-                supportingContent = { Text(vm.syncStatus ?: "Keep this device up to date with your WorkerCat account") },
-                leadingContent = { Icon(Icons.Outlined.Sync, null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.clickable(enabled = !vm.syncing) { vm.sync() })
-            ListItem(headlineContent = { Text("Sign out") },
-                supportingContent = { Text("Tasks remain on this device") },
-                leadingContent = { Icon(Icons.AutoMirrored.Outlined.Logout, null) }, modifier = Modifier.clickable { vm.signOut() })
-        } else {
-            ListItem(headlineContent = { Text(if (vm.syncing) "Connecting…" else "Sign in to sync") },
-                supportingContent = { Text("Use your WorkerCat account across devices") },
-                leadingContent = { Icon(Icons.Outlined.CloudSync, null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.clickable(enabled = !vm.syncing) { vm.startLogin() })
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
+        SectionHeading("Settings")
+        SettingsGroup("Workspace") {
+            SettingsRow(workspace.name, "", Icons.Outlined.Workspaces,
+                onClick = { vm.nameDialog = "switch" })
+            HorizontalDivider(Modifier.padding(start = 56.dp, end = 16.dp))
+            SettingsRow("New workspace", "", Icons.Outlined.AddCircleOutline,
+                onClick = { vm.nameDialog = "workspace" })
         }
-        ListItem(headlineContent = { Text("About CatDo") }, supportingContent = { Text("A little more organized. A little more room to breathe.") },
-            leadingContent = { Icon(Icons.Outlined.Pets, null) })
+        SettingsGroup("This device") {
+            SettingsRow("Available offline", "", Icons.Outlined.OfflinePin)
+            HorizontalDivider(Modifier.padding(start = 56.dp, end = 16.dp))
+            SettingsRow("Notifications", "", Icons.Outlined.NotificationsNone,
+                trailing = {
+                    Switch(checked = notificationsEnabled, enabled = !notificationBusy, onCheckedChange = onNotificationsChanged)
+                })
+        }
+        SettingsGroup("Account & sync") {
+            if (vm.signedIn) {
+                SettingsRow(if (vm.syncing) "Syncing…" else "Sync now",
+                    vm.syncStatus ?: "Keep your WorkerCat devices up to date", Icons.Outlined.Sync,
+                    enabled = !vm.syncing, onClick = { vm.sync() })
+                HorizontalDivider(Modifier.padding(start = 56.dp, end = 16.dp))
+                SettingsRow("Sign out", "Tasks remain on this device", Icons.AutoMirrored.Outlined.Logout,
+                    onClick = { vm.signOut() })
+            } else {
+                SettingsRow(if (vm.syncing) "Connecting…" else "Sign in to sync",
+                    "Use your WorkerCat account across devices", Icons.Outlined.CloudSync,
+                    enabled = !vm.syncing, onClick = { vm.startLogin() })
+            }
+        }
+
     }
+}
+
+@Composable
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp))
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun SettingsRow(title: String, description: String, icon: ImageVector, enabled: Boolean = true,
+    onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
+    ListItem(
+        headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
+        supportingContent = if (description.isBlank()) null else { { Text(description, style = MaterialTheme.typography.bodySmall) } },
+        leadingContent = { Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailingContent = trailing ?: onClick?.let { { Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp)) } },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+        modifier = if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier,
+    )
 }

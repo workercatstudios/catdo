@@ -33,8 +33,12 @@
     right: 14px;
   }
   .topbar {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
     padding: 0 18px;
-    height: 62px;
+    height: 56px;
     gap: 9px;
   }
   .topbar > span {
@@ -42,37 +46,83 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 10px;
+    font-size: 12px;
   }
   .slash {
     margin: 0 6px;
   }
   .topbar .ui-button {
     padding: 7px 9px;
-    font-size: 11px;
+    font-size: 12px;
   }
   .content {
-    padding: 34px 24px;
+    padding: 28px 20px;
   }
   .content.wide {
     padding: 26px 16px;
   }
+  .mobile-status {
+    display: block;
+    border-top: 1px solid var(--border);
+  }
+  .mobile-status .status > span {
+    width: auto;
+    flex: 1;
+  }
+  .mobile-sidebar .sidebar-add {
+    display: none;
+  }
   .status {
     padding: 8px 18px;
     gap: 15px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .status button {
-    font-size: 10px;
+    font-size: 12px;
   }
   .page-heading h1 {
     font-size: 29px;
   }
+  .task-body {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .task-copy {
+    width: 100%;
+  }
+  .task-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+  }
   .project-name {
+    max-width: 140px;
+  }
+  .page-heading {
+    margin-bottom: 28px;
+  }
+  .heading-date {
+    padding-left: 0;
+  }
+  .view-icon {
     display: none;
   }
   .task-row {
     gap: 11px;
+    padding: 14px 0;
+  }
+  .check {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+  .check::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
   }
   .calendar-controls h1 {
     font-size: 20px;
@@ -85,22 +135,15 @@
     display: none;
   }
   .calendar-day {
-    min-height: 80px;
-    padding: 3px;
-  }
-  .calendar-task {
-    font-size: 8px;
+    min-height: 68px;
     padding: 3px;
   }
   .weekday {
-    font-size: 9px;
+    font-size: 11px;
     padding: 10px 0;
   }
   .manage-row {
     font-size: 12px;
-  }
-  .editor {
-    padding: 24px;
   }
   .two-fields {
     gap: 10px;
@@ -114,6 +157,46 @@
   }
   .brand small {
     display: none;
+  }
+
+  .settings-section {
+    padding: 0 0 24px;
+  }
+  .manage-row {
+    flex-wrap: wrap;
+  }
+  .manage-row > strong,
+  .manage-row > span {
+    flex-basis: 100%;
+  }
+
+  .calendar-entries {
+    display: none;
+  }
+  .calendar-count {
+    display: block;
+    padding: 0 6px;
+    margin: 0 auto;
+    min-width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--selected);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .day-number {
+    display: block;
+    margin: 0 auto 3px;
+    width: 30px;
+    height: 30px;
+  }
+  .calendar-key {
+    margin-bottom: 16px;
+  }
+  .agenda {
+    margin-top: 24px;
   }
 }
 @media (forced-colors: active) {

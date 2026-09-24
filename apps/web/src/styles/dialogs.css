@@ -27,7 +27,7 @@
   margin-bottom: 12px;
 }
 .dialog-content > p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin-bottom: 24px;
 }
@@ -51,73 +51,334 @@
   margin-top: 5px;
 }
 .editor {
-  left: auto;
-  right: 0;
-  top: 0;
-  translate: none;
-  width: min(440px, 100vw);
-  height: 100dvh;
-  max-height: none;
-  border-radius: 0;
-  border: 0;
-  border-left: 1px solid var(--border);
-  padding: 30px;
-  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  width: min(840px, calc(100vw - 48px));
+  height: min(680px, calc(100dvh - 64px));
+  max-height: calc(100dvh - 64px);
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 0;
 }
-.editor > h2 {
-  margin-bottom: 30px;
+.editor-header {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 58px;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--border);
+}
+.editor-header h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.editor .dialog-close {
+  top: 13px;
+  right: 17px;
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+}
+.editor .dialog-close:hover {
+  color: var(--foreground);
+  background: var(--surface);
+}
+.editor > form {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+.editor-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 258px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.editor-writing {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 32px 30px;
+  min-width: 0;
 }
 .editor label {
   font-size: 12px;
+  gap: 7px;
+}
+.editor .editor-title-input {
+  field-sizing: content;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.7px;
+  resize: none;
+}
+.editor .editor-title-input:focus-visible {
+  outline: none;
+  box-shadow: 0 1px 0 var(--primary);
+}
+.editor-title-input::placeholder {
+  color: var(--muted);
+}
+.editor-notes-field > span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.editor-notes-field textarea {
+  min-height: 112px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.75;
+  resize: vertical;
+}
+.editor-properties {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 24px 22px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+.editor-property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.editor-properties label {
+  color: var(--muted);
+}
+.editor-properties select,
+.editor-properties input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.editor-properties input[type="datetime-local"] {
+  padding-inline: 6px;
+  font-size: 11px;
 }
 .editor .field-help {
-  font-size: 10px;
   margin-top: -10px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.editor-subtasks {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+}
+.editor-section-heading {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 9px;
+}
+.editor .subtask-link {
+  justify-content: flex-start;
+  gap: 11px;
+  white-space: normal;
+  height: auto;
+  min-height: 38px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+}
+.editor .subtask-link > svg {
+  color: var(--muted);
+}
+.editor .subtask-link > span {
+  overflow-wrap: anywhere;
+}
+.editor .subtask-link:hover {
+  color: var(--primary);
+}
+.editor .editor-add-subtask {
+  align-self: flex-start;
+  height: 34px;
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.editor .editor-add-subtask:hover {
+  color: var(--primary);
+}
+.editor-writing > .text-button {
+  justify-content: flex-start;
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--primary);
+}
+.editor-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+.editor-submit-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.editor-actions .ui-button {
+  height: 36px;
+  font-size: 12px;
+}
+.editor-actions .editor-delete {
+  color: var(--muted);
+  padding-inline: 8px;
+}
+.editor-actions .editor-delete:hover {
+  color: var(--destructive);
+  background: var(--surface);
+}
+.editor form > .error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
 }
 .two-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.editor-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.editor-actions > .ui-button:first-child {
-  background: var(--surface);
-  color: var(--foreground);
-}
 .weekdays {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 .weekdays .ui-button {
+  flex: 1;
   padding: 0;
-  width: 32px;
-  height: 32px;
-  background: var(--surface);
+  min-width: 0;
+  height: 28px;
+  background: var(--background);
   color: var(--muted);
+  font-size: 11px;
 }
 .weekdays [aria-pressed="true"] {
   background: var(--primary);
   color: var(--primary-foreground);
 }
-.manage > .theme-control {
-  max-width: 300px;
-  margin-bottom: 40px;
+@media (max-width: 640px) {
+  .dialog-content.editor {
+    inset: 0;
+    translate: none;
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+  .editor-header {
+    height: 56px;
+    padding-inline: 22px;
+  }
+  .editor-fields {
+    display: block;
+  }
+  .editor-writing {
+    padding: 28px 22px;
+    gap: 24px;
+  }
+  .editor .editor-title-input {
+    font-size: 23px;
+  }
+  .editor-notes-field textarea {
+    min-height: 88px;
+  }
+  .editor-properties {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 24px 22px;
+  }
+  .editor-property-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .editor-properties select,
+  .editor-properties input {
+    height: 40px;
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .editor-properties input[type="datetime-local"] {
+    font-size: 13px;
+  }
+  .editor-actions {
+    padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+    gap: 4px;
+  }
+  .editor-actions .ui-button {
+    padding-inline: 12px;
+  }
+  .editor-actions .editor-delete {
+    gap: 6px;
+    padding-inline: 5px;
+  }
 }
-.manage > h2 {
-  font-size: 19px;
-  margin-bottom: 12px;
+.settings-section {
+  padding: 0 0 28px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
 }
-.manage > p {
-  font-size: 12px;
+.settings-section > h2 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.settings-section > p {
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+.settings-section > .theme-control {
+  max-width: 320px;
+  font-size: 13px;
+}
+.settings-section > .theme-control select {
+  min-width: 120px;
 }
 .manage-group {
+  padding: 8px 0;
+  margin-top: 14px;
+}
+.manage-group + .manage-group {
   border-top: 1px solid var(--border);
-  padding: 15px 0;
-  margin-top: 20px;
+  padding-top: 20px;
 }
 .manage-row {
   display: flex;
@@ -133,22 +394,14 @@
   min-width: 0;
 }
 .manage-row .ui-button {
-  background: var(--surface);
-  color: var(--foreground);
-  font-size: 10px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 12px;
   padding: 5px 8px;
   height: 30px;
 }
 .manage-row.indented {
   padding-left: 18px;
   color: var(--muted);
-}
-
-.editor-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  border: 0;
-  padding: 0;
-  min-width: 0;
 }
