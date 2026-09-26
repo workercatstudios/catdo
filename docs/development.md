@@ -73,6 +73,10 @@ Wrangler emulates a SQLite Durable Object per account locally. No production tas
 
 ## Deployment
 
+The [web product launch checklist](product-launch-checklist.md) covers privacy, terms, SEO, support, and public-facing readiness, including the canonical WorkerCat policies and remaining operator-specific facts.
+
+See the [web readiness checklist and recovery runbook](web-readiness.md) for HTTP smoke checks, remaining operational decisions, and rollback procedures. Manual deployments run the full Checks workflow; automatic and manual deployments both run read-only production smoke checks afterward.
+
 Production is a Cloudflare Worker named `catdo`, with TanStack Start server rendering, static assets, and SQLite-backed Durable Objects. Public configuration is in `apps/web/wrangler.jsonc`; the custom domain is managed in Cloudflare. Each account has independent task storage.
 
 For your own deployment, update the public Clerk configuration in `apps/web/wrangler.jsonc`, connect your domain in Cloudflare, authenticate the installed Wrangler CLI, and set your production Clerk secret through its hidden prompt:
@@ -164,7 +168,7 @@ throwaway directory, never the developer's task database.
 
 ## Web migration and browser checks
 
-The Worker name `catdo`, `ACCOUNTS` binding, exported `CatDoAccount` class, and `v1` SQLite migration are unchanged. Do not rename these or add a replacement migration for the web rewrite: existing production accounts must retain their storage. `/api/config`, `/api/me`, and `/api/sync` keep the native HTTP contract.
+The Worker name `catdo`, `ACCOUNTS` binding, exported `CatDoAccount` class, and `v1` SQLite migration are unchanged. Do not rename these or add a replacement migration for the web rewrite: existing production accounts must retain their storage. `/api/config`, `/api/me`, and `/api/sync` keep the native data contract. POST sync now returns HTTP 428 until the account explicitly accepts the current WorkerCat terms at `/app`; GET sync remains available for export. See [policy decisions](legal/decisions.md) for acceptance and privacy-request behavior.
 
 Public pages render on the server. The app authenticates on the client so the cached shell can open existing account-scoped IndexedDB data without an auth round trip. The service worker caches only the generic app shell and static assets, never API responses. A waiting worker asks for a reload and never reloads an open task automatically. Existing `catdo-shell-*` caches are retired when the new worker activates; the `catdo` IndexedDB database is not changed.
 

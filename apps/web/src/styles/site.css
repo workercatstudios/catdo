@@ -293,6 +293,32 @@
   line-height: 1.9;
   margin-top: 15px;
 }
+.document-date {
+  color: var(--muted);
+  font-size: 12px;
+  margin-block: -24px 32px;
+}
+.information-body section + section {
+  margin-top: 36px;
+}
+.information-body h2 {
+  font-size: 20px;
+  font-weight: 550;
+}
+.information-body ul {
+  padding-left: 22px;
+  list-style: disc;
+  margin-top: 16px;
+}
+.information-body li {
+  font-size: 15px;
+  line-height: 1.8;
+  margin-top: 12px;
+}
+.information-body a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 @media (max-width: 959px) {
   .site-header,
   .site-footer,

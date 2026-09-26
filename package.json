@@ -10,7 +10,8 @@
     "test": "vitest run",
     "api:dev": "pnpm dev",
     "deploy": "pnpm build && pnpm --filter @catdo/web run deploy",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:web": "node scripts/check-web.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

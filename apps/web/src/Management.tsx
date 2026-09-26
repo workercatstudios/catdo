@@ -1,3 +1,4 @@
+import { LegalLinks } from "./LegalAccess";
 import { Button } from "./components/ui/button";
 import { ThemeControl } from "./lib/theme";
 import type { Data } from "../../../packages/domain/src/model";
@@ -96,6 +97,14 @@ export function Management({
       <Button variant="outline" onClick={() => exportTasks()}>
         Export all tasks
       </Button>
+      <section className="settings-section">
+        <h2>Help & privacy</h2>
+        <p>
+          Signing out keeps saved tasks on this device. Export anything you need
+          before clearing browser data.
+        </p>
+        <LegalLinks />
+      </section>
     </section>
   );
 }

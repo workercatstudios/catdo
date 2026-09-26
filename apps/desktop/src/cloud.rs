@@ -63,6 +63,29 @@ struct Identity {
     user_id: String,
 }
 
+#[derive(Debug)]
+pub struct TermsRequired;
+
+impl std::fmt::Display for TermsRequired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Review WorkerCat terms and confirm you are 13+ in your browser using this CatDo account. Then retry sync. Your tasks are saved here.")
+    }
+}
+
+impl std::error::Error for TermsRequired {}
+
+fn check_sync_status(status: reqwest::StatusCode) -> Result<()> {
+    if status == reqwest::StatusCode::PRECONDITION_REQUIRED {
+        return Err(TermsRequired.into());
+    }
+    ensure!(
+        status.is_success() || status == reqwest::StatusCode::CONFLICT,
+        "Sync is unavailable ({}). Your changes are saved on this device.",
+        status.as_u16()
+    );
+    Ok(())
+}
+
 pub fn api_url() -> String {
     std::env::var("CATDO_API_URL")
         .unwrap_or_else(|_| "https://catdo.workercat.com".into())
@@ -273,13 +296,10 @@ pub fn sync(api: &str, owner: &str, pending: Option<Pending>) -> Result<(Snapsho
     };
     let response = request.bearer_auth(&credentials.access_token).send()?;
     let status = response.status();
-    ensure!(
-        status.is_success() || status.as_u16() == 409,
-        "Sync is unavailable ({}). Your changes are saved on this device.",
-        status.as_u16()
-    );
+    check_sync_status(status)?;
     Ok((response.json()?, status.as_u16() != 409))
 }
+
 pub fn sign_out(api: &str) -> Result<()> {
     // Local removal always works offline. Revocation is best effort, without keeping
     // credentials in the task database or blocking the UI.
@@ -300,5 +320,28 @@ pub fn sign_out(api: &str) -> Result<()> {
     match entry(api)?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(error) => Err(error.into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::StatusCode;
+
+    #[test]
+    fn terms_required_is_actionable_without_accepting_a_snapshot() {
+        let error = check_sync_status(StatusCode::PRECONDITION_REQUIRED).unwrap_err();
+        assert!(error.is::<TermsRequired>());
+        assert!(error.to_string().contains("this CatDo account"));
+        assert!(error.to_string().contains("Your tasks are saved here"));
+    }
+
+    #[test]
+    fn sync_success_and_conflicts_remain_readable_but_other_failures_do_not() {
+        assert!(check_sync_status(StatusCode::OK).is_ok());
+        assert!(check_sync_status(StatusCode::CONFLICT).is_ok());
+        let error = check_sync_status(StatusCode::UNAUTHORIZED).unwrap_err();
+        assert!(!error.is::<TermsRequired>());
+        assert!(check_sync_status(StatusCode::SERVICE_UNAVAILABLE).is_err());
     }
 }

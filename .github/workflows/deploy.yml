@@ -12,16 +12,23 @@ permissions:
 
 concurrency:
   group: site-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  verify-manual:
+    name: Check manual deployment
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/check.yml
+
   deploy:
     name: Deploy CatDo Worker
+    needs: verify-manual
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      always() && !cancelled() &&
+      ((github.event_name == 'workflow_dispatch' && needs.verify-manual.result == 'success') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
+       github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -65,3 +72,14 @@ jobs:
           version_tag="site-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           pnpm --filter @catdo/web exec wrangler versions upload --tag "$version_tag" --message "GitHub ${GITHUB_SHA}"
           pnpm --filter @catdo/web exec wrangler versions deploy --version-tag "$version_tag@100%" --yes
+      - name: Verify production HTTP behavior
+        if: steps.current.outputs.deploy == 'true'
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm check:web https://catdo.workercat.com; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then sleep 5; fi
+          done
+          echo 'Deployment smoke check failed. Follow docs/web-readiness.md before retrying or rolling back.'
+          exit 1

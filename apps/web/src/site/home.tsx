@@ -3,7 +3,7 @@ import { ArrowRight, Download } from "lucide-react";
 import { SiteLayout } from "./layout";
 import { ProductPreview } from "./product-preview";
 import { Button } from "../components/ui/button";
-import { release, repository } from "./content";
+import { release } from "./content";
 
 export function Home() {
   return (
@@ -11,7 +11,9 @@ export function Home() {
       <main id="main" className="home-page">
         <section className="home-hero" aria-labelledby="hero-title">
           <div className="hero-heading">
-            <p className="eyebrow">A personal task manager. Web + Linux.</p>
+            <p className="eyebrow">
+              A personal task manager. Web, Android & Linux.
+            </p>
             <h1 id="hero-title">
               A little more
               <br />
@@ -97,7 +99,7 @@ export function Home() {
           <div>
             <p className="eyebrow">A few things to know</p>
             <h2 id="questions-title">Keep it simple.</h2>
-            <a className="inline-link" href={`${repository}/issues`}>
+            <a className="inline-link" href="/support">
               Need a hand? <ArrowRight size={16} />
             </a>
           </div>
@@ -106,8 +108,9 @@ export function Home() {
               <summary>Is CatDo free?</summary>
               <p>
                 Yes. All current features are free to use. We may add an
-                optional supporter tier later. The source is available under the
-                PolyForm Noncommercial license.
+                optional supporter tier later. The hosted service can be used
+                for personal or workplace tasks. The source is available under
+                the PolyForm Noncommercial license.
               </p>
             </details>
             <details>

@@ -54,6 +54,21 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+  font-size: 13px;
+}
+.auth-links a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.settings-section .auth-links {
+  justify-content: flex-start;
+  margin-top: 16px;
+}
 .auth-page > .brand {
   margin-bottom: 16px;
 }
@@ -72,4 +87,56 @@
   align-items: center;
   gap: 15px;
   max-width: calc(100vw - 24px);
+}
+.legal-panel {
+  width: min(100%, 580px);
+  display: grid;
+  gap: 24px;
+  text-align: left;
+}
+.legal-panel h1 {
+  font-size: 28px;
+}
+.legal-panel form,
+.privacy-request-history {
+  display: grid;
+  gap: 20px;
+}
+.legal-panel p a,
+.legal-actions > a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-check {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.6;
+}
+.legal-check input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+.legal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.privacy-requests-page {
+  justify-content: flex-start;
+}
+.privacy-request {
+  display: grid;
+  gap: 8px;
+  padding-block: 20px;
+  border-top: 1px solid var(--border);
+}
+.request-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
