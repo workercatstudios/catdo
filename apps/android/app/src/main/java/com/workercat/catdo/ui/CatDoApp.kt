@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,14 +15,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +41,7 @@ import com.clerk.api.Clerk
 import com.clerk.ui.auth.AuthView
 import com.google.firebase.messaging.FirebaseMessaging
 import com.workercat.catdo.Diagnostics
+import com.workercat.catdo.sync.TERMS_REVIEW_URL
 import com.workercat.catdo.data.*
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
@@ -166,6 +171,40 @@ fun CatDoApp(vm: CatDoViewModel) {
             vm.undoPrompt = null
             if (snackbar.showSnackbar(prompt, actionLabel = "Undo", duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undo()
         }
+    }
+
+    if (vm.eligibilityOpen) {
+        var ageConfirmed by remember { mutableStateOf(false) }
+        val uriHandler = LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = vm::closeAuth,
+            title = { Text("Before you sign in") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().toggleable(value = ageConfirmed, role = Role.Checkbox,
+                            onValueChange = { ageConfirmed = it })) {
+                        Checkbox(checked = ageConfirmed, onCheckedChange = null)
+                        Text("I am 13 or older")
+                    }
+                    Text("By checking this, I also confirm I meet any higher local minimum age and have guardian permission where required.")
+                    Text("You will review and accept the WorkerCat terms before syncing. Local tasks remain available without an account.",
+                        modifier = Modifier.padding(top = 12.dp))
+                    Row {
+                        for ((label, path) in listOf("Terms" to "terms", "Privacy" to "privacy")) {
+                            TextButton(onClick = {
+                                runCatching { uriHandler.openUri("https://workercat.com/$path") }
+                                    .onFailure { vm.message = "Open https://workercat.com/$path in your browser." }
+                            }) { Text(label) }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = ageConfirmed, onClick = { vm.confirmEligibility(ageConfirmed) }) { Text("Continue to sign in") }
+            },
+            dismissButton = { TextButton(onClick = vm::closeAuth) { Text("Keep using locally") } },
+        )
     }
 
     if (vm.authOpen) {
@@ -537,6 +576,7 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
 
 @Composable
 private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, notificationBusy: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
+    val uriHandler = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
         SectionHeading("Settings")
         SettingsGroup("Workspace") {
@@ -556,6 +596,14 @@ private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificatio
         }
         SettingsGroup("Account & sync") {
             if (vm.signedIn) {
+                if (vm.syncTermsRequired) {
+                    SettingsRow("Review terms in browser", "Use the same CatDo account, then tap Sync now", Icons.AutoMirrored.Outlined.OpenInNew,
+                        onClick = {
+                            runCatching { uriHandler.openUri(TERMS_REVIEW_URL) }
+                                .onFailure { vm.message = "Open $TERMS_REVIEW_URL in your browser to review the terms." }
+                        })
+                    HorizontalDivider(Modifier.padding(start = 56.dp, end = 16.dp))
+                }
                 SettingsRow(if (vm.syncing) "Syncing…" else "Sync now",
                     vm.syncStatus ?: "Keep your WorkerCat devices up to date", Icons.Outlined.Sync,
                     enabled = !vm.syncing, onClick = { vm.sync() })

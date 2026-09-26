@@ -9,6 +9,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "../components/ui/dialog";
+import { termsUrl, privacyUrl } from "../lib/legal";
 import { repository } from "./content";
 export function Brand() {
   return (
@@ -78,14 +79,16 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <a href="https://workercat.com">WorkerCat ↗</a>
           <a href={repository}>Source code ↗</a>
           <a href={`${repository}/releases`}>Release notes ↗</a>
-          <Link to="/help/$slug" params={{ slug: "privacy" }}>
-            Your data
-          </Link>
+          <Link to="/support">Support</Link>
+          <Link to="/privacy">Privacy &amp; your data</Link>
+          <a href={privacyUrl}>Privacy policy</a>
+          <a href={termsUrl}>Terms</a>
           <a href={`${repository}/security/policy`}>Security</a>
           <a href={`${repository}/blob/main/LICENSE.md`}>License</a>
         </nav>
         <p className="license-note">
-          Free to use. Source available under PolyForm Noncommercial 1.0.0.
+          The hosted service is free for personal and workplace use. Source code
+          has a separate PolyForm Noncommercial 1.0.0 license.
         </p>
       </footer>
     </div>

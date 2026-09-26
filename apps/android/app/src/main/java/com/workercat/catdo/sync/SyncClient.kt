@@ -18,13 +18,19 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 private const val API = "https://catdo.workercat.com"
+const val TERMS_REVIEW_URL = "$API/app"
 
 private data class Response(val status: Int, val json: JSONObject)
 
 class SyncHttpException(val status: Int, val endpoint: String) : IllegalStateException(
-    if (status == 401) "Sign-in was rejected by CatDo. Your tasks are safe on this device."
-    else "Sync is unavailable ($status). Your tasks are safe on this device."
-)
+    when (status) {
+        401 -> "Sign-in was rejected by CatDo. Your tasks are safe on this device."
+        428 -> "Review WorkerCat terms and confirm you are 13+ in your browser using this CatDo account. Then retry sync. Your tasks are saved here."
+        else -> "Sync is unavailable ($status). Your tasks are safe on this device."
+    }
+) {
+    val requiresTerms: Boolean get() = status == 428
+}
 
 private fun request(method: String, address: String, bearer: String, body: String? = null): Response {
     val uri = URI(address)

@@ -40,7 +40,9 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
     var signedIn by mutableStateOf(false)
     var syncing by mutableStateOf(false)
     var syncStatus by mutableStateOf<String?>(null)
+    var syncTermsRequired by mutableStateOf(false)
     var authOpen by mutableStateOf(false)
+    var eligibilityOpen by mutableStateOf(false)
     val clerkReady = Clerk.isInitialized
     val clerkError = Clerk.initializationError
     private var syncJob: Job? = null
@@ -55,12 +57,19 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
                 if (signedIn != wasSignedIn) {
                     lastSyncFailure = null
                     syncStatus = null
+                    syncTermsRequired = false
                 }
             }
         }
     }
 
     fun startLogin() {
+        eligibilityOpen = true
+    }
+
+    fun confirmEligibility(ageConfirmed: Boolean) {
+        if (!eligibilityOpen || !ageConfirmed) return
+        eligibilityOpen = false
         authOpen = true
     }
 
@@ -76,6 +85,7 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
         else error.message ?: fallback
 
     fun closeAuth() {
+        eligibilityOpen = false
         authOpen = false
     }
 
@@ -87,9 +97,11 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
             syncing = true
             runCatching { syncClient.sync() }.onSuccess {
                 syncStatus = null
+                syncTermsRequired = false
                 lastSyncFailure = null
                 Diagnostics.event("sync_success")
             }.onFailure { error ->
+                if (error is SyncHttpException && error.requiresTerms) syncTermsRequired = true
                 val kind = when (error) {
                     is SyncHttpException -> "http_${error.endpoint}_${error.status}"
                     is UnknownHostException -> "network_dns"
@@ -98,7 +110,7 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
                 syncStatus = readableError(error, "Could not sync. Your tasks are saved here.")
                 if (kind != lastSyncFailure) {
                     Diagnostics.event("sync_failed_$kind")
-                    if (error is SyncHttpException) Diagnostics.failure("sync_failed_$kind", error)
+                    if (error is SyncHttpException && !error.requiresTerms) Diagnostics.failure("sync_failed_$kind", error)
                     message = syncStatus
                     lastSyncFailure = kind
                 }

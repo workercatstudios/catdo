@@ -14,13 +14,17 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PrivacyRequestsRouteImport } from './routes/privacy-requests'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppSplatRouteImport } from './routes/app.$'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
 import { Route as HelpSlugRouteImport } from './routes/help.$slug'
+import { Route as HelpPrivacyRouteImport } from './routes/help.privacy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,6 +51,16 @@ const FeaturesRoute = FeaturesRouteImport.update({
   path: '/features',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRequestsRoute = PrivacyRequestsRouteImport.update({
+  id: '/privacy-requests',
+  path: '/privacy-requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
@@ -55,6 +69,11 @@ const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -82,6 +101,11 @@ const HelpSlugRoute = HelpSlugRouteImport.update({
   path: '/help/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpPrivacyRoute = HelpPrivacyRouteImport.update({
+  id: '/help/privacy',
+  path: '/help/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,11 +113,15 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof ChangelogRoute
   '/download': typeof DownloadRoute
   '/features': typeof FeaturesRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-requests': typeof PrivacyRequestsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/api/$': typeof ApiSplatRoute
   '/app/$': typeof AppSplatRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/app/': typeof AppIndexRoute
   '/help/': typeof HelpIndexRoute
 }
@@ -102,11 +130,15 @@ export interface FileRoutesByTo {
   '/changelog': typeof ChangelogRoute
   '/download': typeof DownloadRoute
   '/features': typeof FeaturesRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-requests': typeof PrivacyRequestsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/api/$': typeof ApiSplatRoute
   '/app/$': typeof AppSplatRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/app': typeof AppIndexRoute
   '/help': typeof HelpIndexRoute
 }
@@ -117,11 +149,15 @@ export interface FileRoutesById {
   '/changelog': typeof ChangelogRoute
   '/download': typeof DownloadRoute
   '/features': typeof FeaturesRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-requests': typeof PrivacyRequestsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/api/$': typeof ApiSplatRoute
   '/app/$': typeof AppSplatRoute
   '/help/$slug': typeof HelpSlugRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/app/': typeof AppIndexRoute
   '/help/': typeof HelpIndexRoute
 }
@@ -133,11 +169,15 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/download'
     | '/features'
+    | '/privacy'
+    | '/privacy-requests'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/support'
     | '/api/$'
     | '/app/$'
     | '/help/$slug'
+    | '/help/privacy'
     | '/app/'
     | '/help/'
   fileRoutesByTo: FileRoutesByTo
@@ -146,11 +186,15 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/download'
     | '/features'
+    | '/privacy'
+    | '/privacy-requests'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/support'
     | '/api/$'
     | '/app/$'
     | '/help/$slug'
+    | '/help/privacy'
     | '/app'
     | '/help'
   id:
@@ -160,11 +204,15 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/download'
     | '/features'
+    | '/privacy'
+    | '/privacy-requests'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/support'
     | '/api/$'
     | '/app/$'
     | '/help/$slug'
+    | '/help/privacy'
     | '/app/'
     | '/help/'
   fileRoutesById: FileRoutesById
@@ -175,10 +223,14 @@ export interface RootRouteChildren {
   ChangelogRoute: typeof ChangelogRoute
   DownloadRoute: typeof DownloadRoute
   FeaturesRoute: typeof FeaturesRoute
+  PrivacyRoute: typeof PrivacyRoute
+  PrivacyRequestsRoute: typeof PrivacyRequestsRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SupportRoute: typeof SupportRoute
   ApiSplatRoute: typeof ApiSplatRoute
   HelpSlugRoute: typeof HelpSlugRoute
+  HelpPrivacyRoute: typeof HelpPrivacyRoute
   HelpIndexRoute: typeof HelpIndexRoute
 }
 
@@ -219,6 +271,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-requests': {
+      id: '/privacy-requests'
+      path: '/privacy-requests'
+      fullPath: '/privacy-requests'
+      preLoaderRoute: typeof PrivacyRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/robots.txt': {
       id: '/robots.txt'
       path: '/robots.txt'
@@ -231,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -268,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help/privacy': {
+      id: '/help/privacy'
+      path: '/help/privacy'
+      fullPath: '/help/privacy'
+      preLoaderRoute: typeof HelpPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -289,10 +369,14 @@ const rootRouteChildren: RootRouteChildren = {
   ChangelogRoute: ChangelogRoute,
   DownloadRoute: DownloadRoute,
   FeaturesRoute: FeaturesRoute,
+  PrivacyRoute: PrivacyRoute,
+  PrivacyRequestsRoute: PrivacyRequestsRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SupportRoute: SupportRoute,
   ApiSplatRoute: ApiSplatRoute,
   HelpSlugRoute: HelpSlugRoute,
+  HelpPrivacyRoute: HelpPrivacyRoute,
   HelpIndexRoute: HelpIndexRoute,
 }
 export const routeTree = rootRouteImport

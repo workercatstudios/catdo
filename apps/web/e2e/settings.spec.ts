@@ -69,6 +69,12 @@ test("workspace and project management, undo, keyboard navigation and dirty hist
   await expect(
     page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Privacy & your data", exact: true }),
+  ).toHaveAttribute("href", "/privacy");
+  await expect(
+    page.getByRole("link", { name: "Help & support", exact: true }),
+  ).toHaveAttribute("href", "/support");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export all tasks" }).click();
   expect((await download).suggestedFilename()).toBe("catdo-tasks.json");

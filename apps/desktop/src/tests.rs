@@ -5,6 +5,26 @@ use gpui_kit::TestAppContext;
 use crate::app::{CatDo, CreateKind, View};
 
 #[gpui_kit::test]
+fn initial_sign_in_requires_age_confirmation_without_changing_local_data(cx: &mut TestAppContext) {
+    let temp = tempfile::tempdir().unwrap();
+    let mut store = Store::open(&temp.path().join("test.sqlite3")).unwrap();
+    let data = store.load().unwrap();
+    let original = data.clone();
+    cx.update(gpui_kit::init);
+    let window = cx.add_window(|window, cx| CatDo::new(store, data, window, cx));
+    window
+        .update(cx, |app, _, cx| {
+            assert!(!app.sign_in_age_confirmed);
+            app.sign_in(cx);
+            assert!(!app.sync_busy);
+            assert!(!app.sync_enabled);
+            assert!(app.login_url.is_none());
+            assert_eq!(app.data, original);
+        })
+        .unwrap();
+}
+
+#[gpui_kit::test]
 fn capture_switch_complete_undo_and_restart(cx: &mut TestAppContext) {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("test.sqlite3");

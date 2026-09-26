@@ -8,11 +8,13 @@ import {
   saveTask,
 } from "../../../../packages/domain/src/model";
 import type { Pending } from "../../../../packages/domain/src/sync";
-function account() {
+function account(failReceipts = false) {
   const db = new DatabaseSync(":memory:");
   const storage: AccountStorage = {
     sql: {
       exec(query, ...values) {
+        if (failReceipts && query.startsWith("INSERT INTO receipts"))
+          throw new Error("Simulated storage failure");
         return db
           .prepare(query)
           .all(...(values as (string | number | null)[])) as Record<
@@ -54,6 +56,41 @@ it("atomically accepts a change and recognizes a lost-response retry after furth
   expect(retry.status).toBe(200);
   expect(store.snapshot().revision).toBe(2);
   expect(store.snapshot().data.tasks[0].title).toBe("Another device");
+});
+
+it("rejects invalid record relationships without changing storage or consuming the operation ID", () => {
+  const store = account();
+  const valid = initial();
+  const invalid = structuredClone(valid);
+  invalid.data.tasks[0].workspace_id = crypto.randomUUID();
+  expect(store.push(invalid)).toEqual({
+    status: 400,
+    body: { error: "Invalid task data." },
+  });
+  expect(store.snapshot()).toEqual({ revision: 0, data: emptyData() });
+  expect(store.push(valid).status).toBe(200);
+});
+
+it("rolls back the snapshot if saving its retry receipt fails", () => {
+  const store = account(true);
+  expect(() => store.push(initial())).toThrow("Simulated storage failure");
+  expect(store.snapshot()).toEqual({ revision: 0, data: emptyData() });
+});
+
+it("enforces the account byte limit without losing the previous snapshot", () => {
+  const store = account();
+  const first = initial();
+  store.push(first);
+  const data = structuredClone(first.data);
+  for (let i = 0; i < 16; i++) {
+    const task = newTask(data.workspaces[0].id, `Task ${i}`);
+    task.notes = "猫".repeat(20_000);
+    data.tasks.push(task);
+  }
+  expect(
+    store.push({ id: crypto.randomUUID(), base: first.data, data }).status,
+  ).toBe(413);
+  expect(store.snapshot()).toEqual({ revision: 1, data: first.data });
 });
 it("isolates account data and receipts", () => {
   const a = account(),
@@ -125,9 +162,7 @@ it("joins a new device's Personal workspace to the existing account", () => {
     desktop.data.workspaces[0].id,
     desktop.data.workspaces[0].id,
   ]);
-  expect(synced.projects[0].workspace_id).toBe(
-    desktop.data.workspaces[0].id,
-  );
+  expect(synced.projects[0].workspace_id).toBe(desktop.data.workspaces[0].id);
   expect(store.push(phone).status).toBe(200);
   expect(store.snapshot().data.tasks).toHaveLength(2);
 });

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/help/$slug")({
   },
   head: ({ loaderData: g }) =>
     g
-      ? seo("/help/" + g.slug, g.title + " · CatDo help", g.description)
+      ? seo("/help/" + g.slug, g.searchTitle + " · CatDo help", g.description)
       : { meta: [{ name: "robots", content: "noindex" }] },
   component: Article,
 });

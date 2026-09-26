@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { ClerkProvider, SignIn, useClerk, useAuth } from "@clerk/react";
 import { App } from "./App";
+import { AgeEligibility, LegalAccess, LegalLinks } from "./LegalAccess";
+import { PrivacyRequests } from "./PrivacyRequests";
 const offlineToken = async () => null;
-function SignedApp() {
+function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
+  const [local, setLocal] = useState(false);
   const { signOut } = useClerk();
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const token = useCallback(() => getToken(), [getToken]);
@@ -12,7 +15,15 @@ function SignedApp() {
     else if (isLoaded && !isSignedIn && navigator.onLine)
       localStorage.removeItem("catdo:last-user");
   }, [isLoaded, isSignedIn, userId]);
-  if (!isLoaded) return <OfflineGate />;
+  if (!isLoaded)
+    return privacyRequests ? (
+      <main className="loading">
+        <h1>Opening your account…</h1>
+        <a href="/app">Back to tasks</a>
+      </main>
+    ) : (
+      <OfflineGate />
+    );
   if (!isSignedIn)
     return (
       <div className="auth-page">
@@ -24,30 +35,63 @@ function SignedApp() {
           routing="hash"
           forceRedirectUrl={location.pathname + location.search}
           signUpForceRedirectUrl={location.pathname + location.search}
+          {...(privacyRequests ? { signUpUrl: "/app", withSignUp: false } : {})}
         />
+        <LegalLinks />
       </div>
     );
-  return (
+  const signOutButton = (
+    <button
+      className="text-button"
+      onClick={() => {
+        localStorage.removeItem("catdo:last-user");
+        sessionStorage.removeItem("catdo:age-confirmed");
+        void signOut({ redirectUrl: "/" });
+      }}
+    >
+      Sign out
+    </button>
+  );
+  if (privacyRequests)
+    return (
+      <PrivacyRequests key={userId} getToken={token} signOut={signOutButton} />
+    );
+  const app = (
     <App
       key={userId}
       owner={userId!}
-      getToken={token}
+      getToken={local ? offlineToken : token}
       account={
-        <button
-          className="text-button"
-          onClick={() => {
-            localStorage.removeItem("catdo:last-user");
-            void signOut({ redirectUrl: "/" });
-          }}
-        >
-          Sign out
-        </button>
+        local ? (
+          <button onClick={() => setLocal(false)}>Review terms to sync</button>
+        ) : (
+          signOutButton
+        )
       }
     />
   );
+  return local ? (
+    app
+  ) : (
+    <LegalAccess
+      key={userId}
+      getToken={token}
+      onLocal={() => setLocal(true)}
+      signOut={signOutButton}
+    >
+      {app}
+    </LegalAccess>
+  );
 }
-function OfflineGate({ unavailable = false }: { unavailable?: boolean }) {
-  const [open, setOpen] = useState(false),
+
+function OfflineGate({
+  unavailable = false,
+  openInitially = false,
+}: {
+  unavailable?: boolean;
+  openInitially?: boolean;
+}) {
+  const [open, setOpen] = useState(openInitially),
     [offline, setOffline] = useState(!navigator.onLine);
   const owner = localStorage.getItem("catdo:last-user");
   useEffect(() => {
@@ -99,10 +143,19 @@ function OfflineGate({ unavailable = false }: { unavailable?: boolean }) {
   );
 }
 
-export function AuthApp() {
+export function AuthApp({
+  privacyRequests = false,
+}: {
+  privacyRequests?: boolean;
+}) {
+  const [ageConfirmed, setAgeConfirmed] = useState(
+    () => sessionStorage.getItem("catdo:age-confirmed") === "yes",
+  );
+  const [local, setLocal] = useState(false);
   const [config, setConfig] = useState<{ publishableKey: string } | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
+    if ((!ageConfirmed && !privacyRequests) || local) return;
     if (!navigator.onLine) {
       setUnavailable(true);
       return;
@@ -122,8 +175,37 @@ export function AuthApp() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, []);
-  if (!config) return <OfflineGate unavailable={unavailable} />;
+  }, [ageConfirmed, privacyRequests, local]);
+  if (local) return <OfflineGate openInitially />;
+  if (!privacyRequests && !ageConfirmed && navigator.onLine)
+    return (
+      <AgeEligibility
+        onContinue={() => {
+          sessionStorage.setItem("catdo:age-confirmed", "yes");
+          setAgeConfirmed(true);
+        }}
+        onSavedTasks={
+          localStorage.getItem("catdo:last-user")
+            ? () => setLocal(true)
+            : undefined
+        }
+      />
+    );
+  if (!config)
+    return privacyRequests ? (
+      <main className="loading">
+        <h1>
+          {unavailable ? "Connection unavailable." : "Opening your account…"}
+        </h1>
+        <p>Connect to sign in and manage your private requests.</p>
+        {unavailable && (
+          <button onClick={() => location.reload()}>Try again</button>
+        )}
+        <a href="/app">Back to tasks</a>
+      </main>
+    ) : (
+      <OfflineGate unavailable={unavailable} />
+    );
   return (
     <ClerkProvider
       publishableKey={config.publishableKey}
@@ -132,12 +214,12 @@ export function AuthApp() {
         signIn: {
           start: {
             title: "Sign in to CatDo",
-            subtitle: "Use your WorkerCat account",
+            subtitle: "Use your CatDo account",
           },
         },
         signUp: {
           start: {
-            title: "Create your WorkerCat account",
+            title: "Create your CatDo account",
             subtitle: "Continue to CatDo",
           },
         },
@@ -150,7 +232,7 @@ export function AuthApp() {
         },
       }}
     >
-      <SignedApp />
+      <SignedApp privacyRequests={privacyRequests} />
     </ClerkProvider>
   );
 }

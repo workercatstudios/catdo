@@ -24,9 +24,7 @@ export function androidAssetUrl(release: unknown): string | undefined {
     if (
       url.protocol === "https:" &&
       url.hostname === "github.com" &&
-      url.pathname.startsWith(
-        "/workercatstudios/catdo/releases/download/",
-      ) &&
+      url.pathname.startsWith("/workercatstudios/catdo/releases/download/") &&
       url.pathname.endsWith(`/${asset.name}`)
     )
       return url.href;
@@ -42,6 +40,7 @@ export async function androidDownload(request: Request): Promise<Response> {
     });
   try {
     const response = await fetch(releaseUrl, {
+      signal: AbortSignal.timeout(5000),
       headers: {
         Accept: "application/vnd.github+json",
         "User-Agent": "CatDo-download",
@@ -59,10 +58,18 @@ export async function androidDownload(request: Request): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error("Android download unavailable", error);
-    return new Response("Android download temporarily unavailable", {
-      status: 503,
-      headers: { "Cache-Control": "no-store" },
-    });
+    console.error(
+      "Android download unavailable",
+      error instanceof Error ? error.name : "UnknownError",
+    );
+    return new Response(
+      request.method === "HEAD"
+        ? null
+        : "Android download temporarily unavailable",
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "30" },
+      },
+    );
   }
 }

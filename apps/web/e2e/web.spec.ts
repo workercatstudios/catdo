@@ -12,7 +12,8 @@ test("public HTML, metadata, links, status codes and mobile layout", async ({
     "/help/dates-and-repeats",
     "/help/sync-and-offline",
     "/help/keyboard-shortcuts",
-    "/help/privacy",
+    "/privacy",
+    "/support",
   ];
   const titles = new Set<string>();
   for (const route of routes) {
@@ -22,6 +23,9 @@ test("public HTML, metadata, links, status codes and mobile layout", async ({
     expect(html).toContain("<h1");
     expect(html).toContain('rel="canonical"');
     expect(html).toContain('property="og:image"');
+    expect(html).toContain(`href="https://catdo.workercat.com${route}"`);
+    expect(html).toContain('name="twitter:title"');
+    expect(html).toContain('name="twitter:image"');
     const title = html.match(/<title>(.*?)<\/title>/)?.[1];
     expect(title).toBeTruthy();
     expect(titles.has(title!)).toBe(false);
@@ -32,6 +36,7 @@ test("public HTML, metadata, links, status codes and mobile layout", async ({
     ["/download", "/#download"],
     ["/help", "/#help"],
     ["/changelog", "https://github.com/workercatstudios/catdo/releases"],
+    ["/help/privacy", "/privacy"],
   ]) {
     const response = await request.get(route, { maxRedirects: 0 });
     expect(response.status()).toBe(301);
@@ -49,13 +54,15 @@ test("public HTML, metadata, links, status codes and mobile layout", async ({
   expect([401, 503]).toContain((await request.get("/api/sync")).status());
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).not.toContain("/app");
-  expect(sitemap).toContain("/help/privacy");
+  expect(sitemap).toContain("/privacy");
+  expect(sitemap).toContain("/support");
+  expect(sitemap).not.toContain("/help/privacy");
   expect(sitemap).not.toContain("/features");
-  expect(sitemap.match(/<loc>/g)).toHaveLength(6);
+  expect(sitemap.match(/<loc>/g)).toHaveLength(7);
   expect((await request.get("/social.png")).status()).toBe(200);
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const route of ["/", "/help/privacy"]) {
+    for (const route of ["/", "/privacy", "/support"]) {
       await page.goto(route);
       expect(
         await page.evaluate(
@@ -120,6 +127,75 @@ test("public HTML, metadata, links, status codes and mobile layout", async ({
   await expect(page).toHaveURL(/#download$/);
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations).toEqual([]);
+});
+
+test("privacy and support are discoverable, readable and accessible", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  const footer = page.getByRole("navigation", { name: "Footer", exact: true });
+  await expect(
+    footer.getByRole("link", { name: "Privacy & your data", exact: true }),
+  ).toHaveAttribute("href", "/privacy");
+  await expect(
+    footer.getByRole("link", { name: "Support", exact: true }),
+  ).toHaveAttribute("href", "/support");
+  await expect(
+    footer.getByRole("link", { name: "Terms", exact: true }),
+  ).toHaveAttribute("href", "https://workercat.com/legal/2026-09-26/terms");
+  await expect(
+    footer.getByRole("link", { name: "Privacy policy", exact: true }),
+  ).toHaveAttribute("href", "https://workercat.com/legal/2026-09-26/privacy");
+  const requests = await request.get("/privacy-requests");
+  expect(requests.headers()["cache-control"]).toBe("no-store");
+  expect(requests.headers()["x-robots-tag"]).toContain("noindex");
+  expect(await requests.text()).toContain("noindex");
+  const data = await page
+    .locator('script[type="application/ld+json"]')
+    .first()
+    .textContent();
+  const graph = JSON.parse(data!)["@graph"];
+  expect(
+    graph.find((item: { "@type": string }) => item["@type"] === "WebSite"),
+  ).toMatchObject({ name: "CatDo", url: "https://catdo.workercat.com/" });
+  expect(
+    graph.find(
+      (item: { "@type": string }) => item["@type"] === "SoftwareApplication",
+    ),
+  ).toMatchObject({ offers: { price: "0" } });
+
+  for (const path of ["/privacy", "/support"]) {
+    await page.goto(path);
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator("main h2").first()).toBeVisible();
+    expect(await page.locator("main details").count()).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  }
+  await page.goto("/privacy");
+  await expect(
+    page.getByRole("heading", { name: "Cookies and storage on your device" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Crash reporting is separate from that notification setting.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  for (const location of sitemap.matchAll(/<loc>(.*?)<\/loc>/g)) {
+    const path = new URL(location[1]).pathname;
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()["x-robots-tag"] ?? "", path).not.toContain(
+      "noindex",
+    );
+  }
+  const robots = await (await request.get("/robots.txt")).text();
+  expect(robots).toContain("Sitemap: https://catdo.workercat.com/sitemap.xml");
+  // Let crawlers see the app's noindex; robots exclusion is not access control.
+  expect(robots).not.toContain("Disallow: /app");
 });
 
 test("offline tasks, recurrence, subtasks, history, URLs, reload, theme and account separation", async ({

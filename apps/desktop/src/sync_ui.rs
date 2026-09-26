@@ -7,6 +7,7 @@ use gpui_kit::component::ActiveTheme;
 use gpui_kit::component::{
     Disableable, Sizable, StyledExt,
     button::{Button, ButtonVariants},
+    checkbox::Checkbox,
 };
 use gpui_kit::{prelude::*, *};
 use std::time::Duration;
@@ -26,10 +27,11 @@ impl CatDo {
         .detach();
     }
     pub fn sign_in(&mut self, cx: &mut Context<Self>) {
-        if self.sync_busy {
+        if self.sync_busy || (!self.sync_enabled && !self.sign_in_age_confirmed) {
             return;
         }
         self.sync_busy = true;
+        self.sync_terms_required = false;
         self.sync_status = "Opening sign-in…".into();
         cx.notify();
         let api = cloud::api_url();
@@ -122,6 +124,7 @@ impl CatDo {
                 }
                 match result {
                     Ok((remote, accepted)) => {
+                        this.sync_terms_required = false;
                         match this.store.accept_sync(&this.data, remote, sent && accepted) {
                             Ok(Some(data)) => {
                                 let changed = this.data != data;
@@ -151,7 +154,12 @@ impl CatDo {
                             Err(e) => this.sync_status = e.to_string(),
                         }
                     }
-                    Err(e) => this.sync_status = e.to_string(),
+                    Err(e) => {
+                        if e.is::<cloud::TermsRequired>() {
+                            this.sync_terms_required = true;
+                        }
+                        this.sync_status = e.to_string();
+                    }
                 }
                 cx.notify();
             });
@@ -223,6 +231,45 @@ impl CatDo {
             .text_xs()
             .text_color(p.muted_foreground)
             .child(self.sync_status.clone())
+            .when(!self.sync_enabled, |el| {
+                el.child(
+                    Checkbox::new("sign-in-age")
+                        .label("I am 13 or older")
+                        .checked(self.sign_in_age_confirmed)
+                        .disabled(self.sync_busy)
+                        .on_click(cx.listener(|this, checked, _, cx| {
+                            this.sign_in_age_confirmed = *checked;
+                            cx.notify();
+                        })),
+                )
+                .child("By checking this, I also confirm I meet any higher local minimum age and have guardian permission where required.")
+            })
+            .child(
+                div()
+                    .h_flex()
+                    .gap_2()
+                    .child(Button::new("account-terms").small().ghost().label("Terms")
+                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/terms")))
+                    .child(Button::new("account-privacy").small().ghost().label("Privacy")
+                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/privacy"))),
+            )
+            .when(self.sync_terms_required, |el| {
+                el.child(
+                    Button::new("review-terms")
+                        .small()
+                        .ghost()
+                        .label("Review terms in browser")
+                        .on_click(|_, _, cx| cx.open_url(&format!("{}/app", cloud::api_url()))),
+                )
+                .child(
+                    Button::new("retry-sync")
+                        .small()
+                        .ghost()
+                        .disabled(self.sync_busy)
+                        .label("Retry sync")
+                        .on_click(cx.listener(|this, _, _, cx| this.sync_now(cx))),
+                )
+            })
             .when_some(self.login_url.clone(), |el, url| {
                 el.child(
                     Button::new("open-login")
@@ -264,7 +311,7 @@ impl CatDo {
                         Button::new("sign-in")
                             .small()
                             .ghost()
-                            .disabled(self.sync_busy)
+                            .disabled(self.sync_busy || (!self.sync_enabled && !self.sign_in_age_confirmed))
                             .label(if self.sync_enabled {
                                 "Sign in again"
                             } else {
@@ -281,6 +328,8 @@ impl CatDo {
                                 .label("Sign out")
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.sync_enabled = false;
+                                    this.sign_in_age_confirmed = false;
+                                    this.sync_terms_required = false;
                                     let _ = this.store.set_preference("sync_enabled", &false);
                                     this.sync_status =
                                         "Signed out · tasks remain on this device".into();

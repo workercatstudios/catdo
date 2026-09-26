@@ -8,12 +8,13 @@ export const release = {
 export const guides = [
   {
     slug: "getting-started",
+    searchTitle: "Getting started with CatDo",
     title: "Your first little plan",
     description: "Start with an inbox, then give your tasks a home.",
     sections: [
       [
         "Start with what’s on your mind",
-        "Open CatDo and sign in with your WorkerCat account. Your account works across the web, Android, and Linux apps. Add a task in Inbox: a title is enough. You can add notes, dates, and subtasks whenever you need them.",
+        "Open CatDo and sign in with your CatDo account. Your account works across the web, Android, and Linux apps. Add a task in Inbox: a title is enough. You can add notes, dates, and subtasks whenever you need them.",
       ],
       [
         "Make room for different parts of life",
@@ -31,6 +32,7 @@ export const guides = [
   },
   {
     slug: "dates-and-repeats",
+    searchTitle: "Scheduled dates, deadlines & recurring tasks",
     title: "A day to do it. A date it’s due.",
     description: "Plan with scheduled dates, deadlines, and repeating tasks.",
     sections: [
@@ -54,6 +56,7 @@ export const guides = [
   },
   {
     slug: "sync-and-offline",
+    searchTitle: "Sync, offline access & missing tasks",
     title: "Keep going. Catch up later.",
     description: "How saved tasks, sync, and offline use work.",
     sections: [
@@ -67,7 +70,7 @@ export const guides = [
       ],
       [
         "Let your devices catch up",
-        "While CatDo is open, it checks for changes regularly. Sync now requests a check immediately. Use the same WorkerCat account on each device. Changes are saved locally before being sent. Closing the browser does not continue syncing in the background.",
+        "While CatDo is open, it checks for changes regularly. Sync now requests a check immediately. Use the same CatDo account on each device. Changes are saved locally before being sent. Closing the browser does not continue syncing in the background.",
       ],
       [
         "Resolve changes made in two places",
@@ -81,6 +84,7 @@ export const guides = [
   },
   {
     slug: "keyboard-shortcuts",
+    searchTitle: "Keyboard shortcuts for the CatDo web app",
     title: "Less reaching for the mouse.",
     description: "A few useful shortcuts, without a system to memorize.",
     sections: [
@@ -95,33 +99,6 @@ export const guides = [
       [
         "Move through controls",
         "Tab and Shift+Tab move between controls. Enter or Space activates a focused button. Escape closes a dialog; CatDo asks before discarding an edited task. Browser Back and Forward return to previous workspace views.",
-      ],
-    ],
-  },
-  {
-    slug: "privacy",
-    title: "Where your tasks live.",
-    description: "A straightforward explanation of CatDo’s data flow.",
-    sections: [
-      [
-        "On your devices",
-        "The web app saves your tasks in IndexedDB and caches the app files for offline use. It remembers the last account and your appearance preference in local storage. The Linux and Android apps save tasks on the device. Signing out does not erase saved task data.",
-      ],
-      [
-        "With your account",
-        "Clerk handles sign-in through your shared WorkerCat account. CatDo uses your verified account identifier to keep your task data separate from other accounts.",
-      ],
-      [
-        "In sync storage",
-        "Task data is sent over HTTPS to CatDo on Cloudflare and stored in an account-specific Durable Object. This supports syncing across devices. CatDo does not claim end-to-end encryption: the service processes task data to store and sync it.",
-      ],
-      [
-        "Crash and sync diagnostics",
-        "The Android app sends crash reports and limited failure events to Firebase Crashlytics. Reports can include device and app details and error stack traces. CatDo does not add task content, account IDs, or sign-in tokens to these reports. Cloudflare keeps short-lived request metadata and the sync server's authentication rejection reason codes to help diagnose failures; CatDo does not add tokens or task data to those logs.",
-      ],
-      [
-        "Backups and questions",
-        "Settings includes a JSON export of your tasks. Keep backups somewhere private. For security concerns, use the private vulnerability report linked in the footer.",
       ],
     ],
   },
