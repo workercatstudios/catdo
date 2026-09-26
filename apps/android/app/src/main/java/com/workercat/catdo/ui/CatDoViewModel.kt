@@ -119,6 +119,8 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
         } while (syncRequested && signedIn)
     }
 
+    suspend fun watchRevisions() = syncClient.watchRevisions { sync() }
+
     fun signOut() = viewModelScope.launch {
         syncJob?.cancel()
         syncRequested = false

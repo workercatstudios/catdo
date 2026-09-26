@@ -10,6 +10,10 @@ vi.mock("./account", () => ({ CatDoAccount: class {} }));
 import worker, { type Env } from "./index";
 const account = {
   push: vi.fn(async () => ({ status: 200, body: { revision: 1 } })),
+  issueEventTicket: vi.fn(async () => ({
+    ticket: "12345678-1234-1234-1234-123456789abc",
+  })),
+  fetch: vi.fn(async () => new Response("connected")),
   snapshot: vi.fn(async () => ({
     revision: 0,
     data: { workspaces: [], projects: [], tasks: [], history: [] },
@@ -46,6 +50,36 @@ it("rejects anonymous and cookie-only calls without touching storage", async () 
     (await worker.fetch(request({ cookie: "session=fixture" }), env)).status,
   ).toBe(401);
   expect(getByName).not.toHaveBeenCalled();
+});
+it("connects sync events only with a signed ticket for that account", async () => {
+  const issued = await worker.fetch(
+    new Request("https://catdo.workercat.com/api/sync/events-ticket", {
+      method: "POST",
+      headers: { authorization: "Bearer fixture" },
+    }),
+    env,
+  );
+  expect(issued.status).toBe(200);
+  const { ticket, signature } = (await issued.json()) as {
+    ticket: string;
+    signature: string;
+  };
+  const events = (owner: string, signed: string) =>
+    new Request(
+      `https://catdo.workercat.com/api/sync/events?owner=${owner}&ticket=${ticket}&signature=${signed}`,
+      { headers: { Upgrade: "websocket" } },
+    );
+  expect((await worker.fetch(events("user_a", signature), env)).status).toBe(
+    200,
+  );
+  expect(account.fetch).toHaveBeenCalledTimes(1);
+  expect((await worker.fetch(events("user_b", signature), env)).status).toBe(
+    400,
+  );
+  expect(
+    (await worker.fetch(events("user_a", "0".repeat(64)), env)).status,
+  ).toBe(400);
+  expect(account.fetch).toHaveBeenCalledTimes(1);
 });
 it("uses the verified Clerk identity rather than any client-supplied account ID", async () => {
   const result = await worker.fetch(

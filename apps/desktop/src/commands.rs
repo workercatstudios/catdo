@@ -57,12 +57,14 @@ impl CatDo {
                     EditorEvent::Save => {
                         if this.commit_editor(cx) {
                             this.editor = None;
+                            this.resume_sync(cx);
                             this.focus.focus(window, cx);
                             cx.notify();
                         }
                     }
                     EditorEvent::Discard => {
                         this.editor = None;
+                        this.resume_sync(cx);
                         this.focus.focus(window, cx);
                         cx.notify();
                     }
@@ -76,6 +78,7 @@ impl CatDo {
                             cx,
                         ) {
                             this.editor = None;
+                            this.resume_sync(cx);
                         }
                     }
                     EditorEvent::Open(id) => this.open_task(*id, window, cx),
@@ -109,6 +112,7 @@ impl CatDo {
             Ok(task) => {
                 if self.change("Task saved", |data| data.save_task(task), cx) {
                     self.editor = None;
+                    self.resume_sync(cx);
                     true
                 } else {
                     false
@@ -126,6 +130,7 @@ impl CatDo {
             return;
         }
         self.editor = None;
+        self.resume_sync(cx);
         let completed = self
             .data
             .tasks
@@ -169,6 +174,7 @@ impl CatDo {
                 self.data = previous;
                 self.undo.pop();
                 self.editor = None;
+                self.resume_sync(cx);
                 if !self
                     .data
                     .workspaces
@@ -185,6 +191,7 @@ impl CatDo {
                 }
                 self.refresh_workspace_select(window, cx);
                 self.message = Some((format!("Undone: {}", label.to_lowercase()), false));
+                self.sync_now(cx);
                 cx.notify();
             }
             Err(error) => self.error(error.to_string(), cx),

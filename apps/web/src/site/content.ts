@@ -70,7 +70,7 @@ export const guides = [
       ],
       [
         "Let your devices catch up",
-        "While CatDo is open, it checks for changes regularly. Sync now requests a check immediately. Use the same CatDo account on each device. Changes are saved locally before being sent. Closing the browser does not continue syncing in the background.",
+        "While CatDo is open, your account sends a notice when another device changes your tasks. Sync now requests a check immediately. Use the same CatDo account on each device. Changes are saved locally before being sent. Closing the browser does not continue syncing in the background.",
       ],
       [
         "Resolve changes made in two places",

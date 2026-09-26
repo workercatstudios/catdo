@@ -15,7 +15,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.currentCoroutineContext
 import org.json.JSONObject
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response as SocketResponse
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 
 private const val API = "https://catdo.workercat.com"
 const val TERMS_REVIEW_URL = "$API/app"
@@ -57,6 +66,10 @@ private fun request(method: String, address: String, bearer: String, body: Strin
 
 class SyncClient(private val repository: CatDoRepository) {
     private val mutex = Mutex()
+    private val socketClient = OkHttpClient.Builder()
+        .followRedirects(false)
+        .pingInterval(25, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
 
     suspend fun awaitClerk() {
         val (ready, error) = combine(Clerk.isInitialized, Clerk.initializationError) { initialized, failure ->
@@ -106,6 +119,52 @@ class SyncClient(private val repository: CatDoRepository) {
                 if (updated.data == updated.base.data) return@withContext true
             }
             true
+        }
+    }
+
+    suspend fun watchRevisions(onRevision: (Long) -> Unit) {
+        var delayMs = 1_000L
+        while (currentCoroutineContext().isActive) {
+            val revisions = Channel<Long>(Channel.BUFFERED)
+            var socket: WebSocket? = null
+            try {
+                val access = token()
+                val owner = withContext(Dispatchers.IO) { identity(access) }
+                val ticket = withContext(Dispatchers.IO) {
+                    val response = request("POST", "$API/api/sync/events-ticket", access)
+                    if (response.status !in 200..299) throw SyncHttpException(response.status, "events")
+                    response.json
+                }
+                val address = okhttp3.HttpUrl.Builder()
+                    .scheme("https").host(URI(API).host)
+                    .addPathSegments("api/sync/events")
+                    .addQueryParameter("owner", owner)
+                    .addQueryParameter("ticket", ticket.getString("ticket"))
+                    .addQueryParameter("signature", ticket.getString("signature"))
+                    .build()
+                socket = socketClient.newWebSocket(Request.Builder().url(address).build(), object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: SocketResponse) { revisions.trySend(-1) }
+                    override fun onMessage(webSocket: WebSocket, text: String) {
+                        runCatching { JSONObject(text).getLong("revision") }
+                            .onSuccess { revisions.trySend(it) }
+                    }
+                    override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { revisions.close() }
+                    override fun onFailure(webSocket: WebSocket, t: Throwable, response: SocketResponse?) { revisions.close() }
+                })
+                for (revision in revisions) {
+                    delayMs = 1_000L
+                    if (revision < 0 || repository.state.value.base.revision != revision) onRevision(revision)
+                }
+            } catch (cancel: kotlinx.coroutines.CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                // A reconnect obtains a fresh Clerk token and a fresh one-use ticket.
+            } finally {
+                socket?.close(1000, "Stopped")
+                revisions.close()
+            }
+            delay(delayMs)
+            delayMs = (delayMs * 2).coerceAtMost(30_000L)
         }
     }
 

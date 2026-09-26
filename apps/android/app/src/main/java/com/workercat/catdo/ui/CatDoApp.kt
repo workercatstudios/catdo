@@ -45,8 +45,6 @@ import com.workercat.catdo.sync.TERMS_REVIEW_URL
 import com.workercat.catdo.data.*
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -156,11 +154,11 @@ fun CatDoApp(vm: CatDoViewModel) {
     }
 
     LifecycleStartEffect(vm.signedIn) {
-        val poll = if (vm.signedIn) scope.launch {
+        val updates = if (vm.signedIn) scope.launch {
             vm.sync()
-            while (isActive) { delay(30_000); vm.sync() }
+            vm.watchRevisions()
         } else null
-        onStopOrDispose { poll?.cancel() }
+        onStopOrDispose { updates?.cancel() }
     }
 
     LaunchedEffect(vm.message) {

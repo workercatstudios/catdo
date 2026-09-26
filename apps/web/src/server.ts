@@ -1,9 +1,14 @@
 import handler from "@tanstack/react-start/server-entry";
 import { androidDownload } from "./server/download";
+import api, { type Env } from "./server/index";
+import { env } from "cloudflare:workers";
 export { CatDoAccount } from "./server/account";
 export default {
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
+    // A 101 response cannot be reconstructed as an ordinary Response below.
+    if (path === "/api/sync/events")
+      return api.fetch(request, env as unknown as Env);
     let response: Response;
     try {
       response =

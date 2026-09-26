@@ -5,6 +5,7 @@ import { readSyncJson, RequestBodyError } from "./request-body";
 import { acceptanceSchema, termsRequired } from "./legal";
 import { privacyInboxName, privacyRequestSchema } from "./privacy";
 import { privacyAdmin } from "./privacy-admin";
+import { signEventTicket, verifyEventTicket } from "./event-ticket";
 export interface Env {
   ACCOUNTS: DurableObjectNamespace<CatDoAccount>;
   CLERK_SECRET_KEY: string;
@@ -38,6 +39,8 @@ export default {
       ["/api/config", ["GET"]],
       ["/api/me", ["GET"]],
       ["/api/sync", ["GET", "POST"]],
+      ["/api/sync/events-ticket", ["POST"]],
+      ["/api/sync/events", ["GET"]],
       ["/api/legal", ["GET", "POST"]],
       ["/api/privacy-requests", ["GET", "POST"]],
       ["/api/admin/privacy-requests", ["GET", "POST"]],
@@ -79,8 +82,13 @@ export default {
     }
     if (!env.CLERK_SECRET_KEY || !env.CLERK_PUBLISHABLE_KEY)
       return json({ error: "Sign-in is being configured." }, 503);
-    // API auth is bearer-only. A cross-site form/cookie cannot mutate task data.
-    if (!request.headers.get("authorization")?.startsWith("Bearer "))
+    // The browser cannot set an Authorization header on a WebSocket upgrade.
+    // Its short-lived, one-use ticket is issued through the authenticated API.
+    const eventUpgrade = url.pathname === "/api/sync/events";
+    if (
+      !eventUpgrade &&
+      !request.headers.get("authorization")?.startsWith("Bearer ")
+    )
       return json({ error: "Sign in to sync." }, 401);
     const origin = request.headers.get("origin");
     let appOrigin: URL;
@@ -103,6 +111,27 @@ export default {
     ];
     if (origin && !allowed.includes(origin)) {
       return json({ error: "Origin is not allowed." }, 403);
+    }
+    if (eventUpgrade) {
+      const owner = url.searchParams.get("owner");
+      const ticket = url.searchParams.get("ticket");
+      const signature = url.searchParams.get("signature");
+      if (
+        request.headers.get("Upgrade")?.toLowerCase() !== "websocket" ||
+        !owner ||
+        !/^[a-zA-Z0-9_-]{1,128}$/.test(owner) ||
+        !ticket ||
+        !/^[0-9a-f-]{36}$/.test(ticket) ||
+        !signature ||
+        !(await verifyEventTicket(
+          env.CLERK_SECRET_KEY,
+          owner,
+          ticket,
+          signature,
+        ))
+      )
+        return json({ error: "Invalid event connection." }, 400);
+      return env.ACCOUNTS.getByName(owner).fetch(request);
     }
     try {
       const clerk = createClerkClient({
@@ -158,6 +187,14 @@ export default {
         return json({ error: "This client cannot sync CatDo." }, 403);
       const user = auth.userId;
       if (url.pathname === "/api/me") return json({ userId: user });
+      if (url.pathname === "/api/sync/events-ticket") {
+        const { ticket } =
+          await env.ACCOUNTS.getByName(user).issueEventTicket();
+        return json({
+          ticket,
+          signature: await signEventTicket(env.CLERK_SECRET_KEY, user, ticket),
+        });
+      }
       if (url.pathname === "/api/legal") {
         if (request.method === "GET")
           return json(await env.ACCOUNTS.getByName(user).legal());

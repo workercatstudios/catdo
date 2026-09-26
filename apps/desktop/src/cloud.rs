@@ -4,7 +4,9 @@ use anyhow::{Context, Result, bail, ensure};
 use catdo_core::sync::{Pending, Snapshot};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tungstenite::stream::MaybeTlsStream;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -298,6 +300,68 @@ pub fn sync(api: &str, owner: &str, pending: Option<Pending>) -> Result<(Snapsho
     let status = response.status();
     check_sync_status(status)?;
     Ok((response.json()?, status.as_u16() != 409))
+}
+
+#[derive(Deserialize)]
+struct EventTicket {
+    ticket: String,
+    signature: String,
+}
+
+/// Listen for revision notices. The snapshot still comes through the normal
+/// authenticated sync request, so notifications never carry task data.
+pub fn listen_events(
+    api: &str,
+    owner: &str,
+    stop: &AtomicBool,
+    notices: &async_channel::Sender<u64>,
+) -> Result<()> {
+    safe_url(api, true)?;
+    let (client, credentials) = authorized(api)?;
+    let response = client
+        .post(format!("{api}/api/sync/events-ticket"))
+        .bearer_auth(&credentials.access_token)
+        .send()?;
+    check_sync_status(response.status())?;
+    let ticket: EventTicket = response.json()?;
+    let mut url = reqwest::Url::parse(api)?;
+    url.set_scheme(if url.scheme() == "https" { "wss" } else { "ws" })
+        .map_err(|_| anyhow::anyhow!("Invalid sync event URL"))?;
+    url.set_path("/api/sync/events");
+    url.query_pairs_mut()
+        .append_pair("owner", owner)
+        .append_pair("ticket", &ticket.ticket)
+        .append_pair("signature", &ticket.signature);
+    let (mut socket, _) = tungstenite::client::connect_with_config(url.as_str(), None, 0)?;
+    let _ = notices.try_send(u64::MAX);
+    match socket.get_mut() {
+        MaybeTlsStream::Plain(stream) => stream.set_read_timeout(Some(Duration::from_secs(2)))?,
+        MaybeTlsStream::Rustls(stream) => {
+            stream.sock.set_read_timeout(Some(Duration::from_secs(2)))?
+        }
+        _ => {}
+    }
+    while !stop.load(Ordering::Relaxed) {
+        match socket.read() {
+            Ok(tungstenite::Message::Text(message)) => {
+                if let Ok(value) = serde_json::from_str::<serde_json::Value>(&message)
+                    && let Some(revision) = value.get("revision").and_then(|v| v.as_u64())
+                {
+                    let _ = notices.try_send(revision);
+                }
+            }
+            Ok(tungstenite::Message::Close(_)) => break,
+            Ok(_) => {}
+            Err(tungstenite::Error::Io(error))
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let _ = socket.close(None);
+    Ok(())
 }
 
 pub fn sign_out(api: &str) -> Result<()> {

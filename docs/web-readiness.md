@@ -86,7 +86,7 @@ Record the backup destination, retention period, spending limit, and launch traf
 
 - Validate a strict script CSP with TanStack hydration, the inline theme script, Clerk, and its verification flows in staging. The baseline policy is not a complete XSS defense.
 - Exercise Clerk/storage failures with a disposable hosted account. Set dependency deadlines and retry/backoff from observed latency; web/native clients do not yet uniformly honor `Retry-After`.
-- Load test realistic snapshot sizes and polling patterns once the launch traffic target is known; tune rate limits and alerts from results.
+- Load test realistic snapshot sizes and concurrent WebSocket connections once the launch traffic target is known; tune rate limits and alerts from results.
 - Define a safe receipt-retention protocol before pruning receipts; arbitrary deletion would weaken long-offline retry guarantees.
 - Rehearse restoration, add a supported import/recovery path, and align deletion with backup retention.
 - Review production TLS/HSTS, Cloudflare request-log retention, secret rotation, and account access settings. No external settings were changed or audited here.

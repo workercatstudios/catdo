@@ -810,7 +810,7 @@ dependencies = [
 
 [[package]]
 name = "catdo-core"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "anyhow",
  "chrono",
@@ -824,9 +824,10 @@ dependencies = [
 
 [[package]]
 name = "catdo-desktop"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "anyhow",
+ "async-channel",
  "catdo-core",
  "chrono",
  "directories",
@@ -842,6 +843,7 @@ dependencies = [
  "sha2 0.10.9",
  "tar",
  "tempfile",
+ "tungstenite",
  "uuid",
 ]
 
@@ -1389,6 +1391,12 @@ dependencies = [
  "link-section",
  "linktime-proc-macro",
 ]
+
+[[package]]
+name = "data-encoding"
+version = "2.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 
 [[package]]
 name = "data-url"
@@ -3240,7 +3248,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -5868,7 +5876,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -7457,6 +7465,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "tungstenite"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8628dcc84e5a09eb3d8423d6cb682965dea9133204e8fb3efee74c2a0c259442"
+dependencies = [
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.9.5",
+ "rustls",
+ "rustls-pki-types",
+ "sha1",
+ "thiserror 2.0.20",
+ "utf-8",
+ "webpki-roots 0.26.11",
+]
+
+[[package]]
 name = "typeid"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7991,6 +8019,15 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
+dependencies = [
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]

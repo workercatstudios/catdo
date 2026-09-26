@@ -51,7 +51,11 @@ export class TaskStore {
   private channel: BroadcastChannel;
   private stopped = false;
   private syncing = false;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private syncRequested = false;
+  private events: WebSocket | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectDelay = 1000;
+  private connectingEvents = false;
   constructor(
     readonly owner: string,
     private token: () => Promise<string | null>,
@@ -60,7 +64,16 @@ export class TaskStore {
     this.channel.onmessage = () => {
       void this.reload();
     };
+    window.addEventListener("online", this.onOnline);
   }
+  private onOnline = () => {
+    void this.sync();
+    if (!this.events) {
+      if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+      void this.connectEvents();
+    }
+  };
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => {
@@ -110,10 +123,8 @@ export class TaskStore {
       this.status = "Saved on this device";
       this.updateConflicts();
       this.emit();
-      this.timer = setInterval(() => {
-        void this.sync();
-      }, 10000);
       void this.sync();
+      void this.connectEvents();
     } catch (e) {
       this.status = `Could not open local storage: ${message(e)}`;
       this.emit();
@@ -121,8 +132,64 @@ export class TaskStore {
   }
   stop() {
     this.stopped = true;
-    if (this.timer) clearInterval(this.timer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.events?.close();
+    window.removeEventListener("online", this.onOnline);
     this.channel.close();
+  }
+  private async connectEvents() {
+    if (this.stopped || this.connectingEvents || this.events) return;
+    this.connectingEvents = true;
+    try {
+      const token = await this.token();
+      if (!token) throw Error("Sign in to sync.");
+      const response = await fetch("/api/sync/events-ticket", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw Error("Could not connect to sync events.");
+      const { ticket, signature } = (await response.json()) as {
+        ticket: string;
+        signature: string;
+      };
+      if (this.stopped) return;
+      const url = new URL("/api/sync/events", location.href);
+      url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      url.searchParams.set("owner", this.owner);
+      url.searchParams.set("ticket", ticket);
+      url.searchParams.set("signature", signature);
+      const socket = new WebSocket(url);
+      this.events = socket;
+      socket.onopen = () => {
+        this.reconnectDelay = 1000;
+        void this.sync();
+      };
+      socket.onmessage = (event) => {
+        try {
+          const { revision } = JSON.parse(event.data) as { revision: number };
+          if (revision !== this.state?.base.revision) void this.sync();
+        } catch {
+          /* A malformed notification will be caught by the next reconnect. */
+        }
+      };
+      socket.onclose = () => {
+        if (this.events === socket) this.events = null;
+        this.reconnectEvents();
+      };
+      socket.onerror = () => socket.close();
+    } catch {
+      this.reconnectEvents();
+    } finally {
+      this.connectingEvents = false;
+    }
+  }
+  private reconnectEvents() {
+    if (this.stopped || this.reconnectTimer) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      void this.connectEvents();
+    }, this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30_000);
   }
   async change(fn: (data: Data) => void) {
     await this.lock(async () => {
@@ -159,7 +226,11 @@ export class TaskStore {
     return body as Snapshot & { conflict?: boolean };
   }
   async sync() {
-    if (this.syncing || this.stopped) return;
+    if (this.stopped) return;
+    if (this.syncing) {
+      this.syncRequested = true;
+      return;
+    }
     this.syncing = true;
     try {
       await navigator.locks.request(
@@ -236,6 +307,10 @@ export class TaskStore {
       this.emit();
     } finally {
       this.syncing = false;
+      if (this.syncRequested && !this.stopped) {
+        this.syncRequested = false;
+        void this.sync();
+      }
     }
   }
   get structuralConflict() {
