@@ -4,7 +4,7 @@ use crate::{
 };
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{
-    Disableable, Sizable,
+    Sizable,
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{Context, IntoElement, Styled};
@@ -36,7 +36,9 @@ impl CatDo {
                     .update(cx, |this, cx| {
                         if matches!(
                             this.update_state,
-                            UpdateState::Idle | UpdateState::Failed { retry: None, .. }
+                            UpdateState::Idle
+                                | UpdateState::Available(_)
+                                | UpdateState::Failed { retry: None, .. }
                         ) {
                             this.check_updates(cx);
                         }
@@ -163,7 +165,6 @@ impl CatDo {
             .accessibility_label(tooltip.clone())
             .tooltip(tooltip)
             .loading(busy)
-            .disabled(busy)
             .on_click(cx.listener(|this, _, _, cx| this.click_update(cx)))
     }
 }
