@@ -8,6 +8,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::*;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, atomic::AtomicBool};
 use uuid::Uuid;
 
 use crate::editor::{TaskEditor, input};
@@ -60,6 +61,8 @@ pub struct CatDo {
     pub(crate) sync_status: String,
     pub(crate) sync_enabled: bool,
     pub(crate) sync_busy: bool,
+    pub(crate) sync_requested: bool,
+    pub(crate) events_stop: Option<Arc<AtomicBool>>,
     pub(crate) sync_terms_required: bool,
     pub(crate) sign_in_age_confirmed: bool,
     pub(crate) login_url: Option<String>,
@@ -111,7 +114,6 @@ impl CatDo {
         let focus = cx.focus_handle();
         focus.focus(window, cx);
         Self::start_reminders(cx);
-        Self::start_sync(cx);
         let sync_enabled = store
             .preference::<bool>("sync_enabled")
             .ok()
@@ -125,6 +127,8 @@ impl CatDo {
             sync_status: "Saved on this device".into(),
             sync_enabled,
             sync_busy: false,
+            sync_requested: false,
+            events_stop: None,
             sync_terms_required: false,
             sign_in_age_confirmed: false,
             login_url: None,
@@ -176,6 +180,8 @@ impl CatDo {
             }
         }
         app.bind_window(window, cx);
+        app.start_sync(cx);
+        app.sync_now(cx);
         app
     }
 
@@ -266,6 +272,7 @@ impl CatDo {
         }
         self.editor = None;
         self.editor_subscription = None;
+        self.resume_sync(cx);
         true
     }
 
@@ -285,6 +292,7 @@ impl CatDo {
                 }
                 self.data = next;
                 self.message = Some((label.into(), false));
+                self.sync_now(cx);
                 cx.notify();
                 true
             }
@@ -305,6 +313,7 @@ impl CatDo {
             return;
         }
         self.editor = None;
+        self.resume_sync(cx);
         self.view = view;
         self.search.update(cx, |s, cx| s.set_value("", window, cx));
         cx.notify();
@@ -330,6 +339,7 @@ impl CatDo {
             today,
         ));
         self.editor = None;
+        self.resume_sync(cx);
         self.search.update(cx, |s, cx| s.set_value("", window, cx));
         self.quick_add
             .update(cx, |s, cx| s.set_value("", window, cx));
@@ -363,6 +373,7 @@ impl CatDo {
             return;
         }
         self.editor = None;
+        self.resume_sync(cx);
         self.create_kind = Some(kind);
         let initial = match kind {
             CreateKind::Rename(id) => self

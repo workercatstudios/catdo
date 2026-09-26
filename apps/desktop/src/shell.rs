@@ -39,6 +39,7 @@ impl Render for CatDo {
             .on_action(cx.listener(|this, _: &SaveTask, window, cx| {
                 if this.commit_editor(cx) {
                     this.editor = None;
+                    this.resume_sync(cx);
                     this.focus.focus(window, cx);
                     cx.notify();
                 }
@@ -46,6 +47,7 @@ impl Render for CatDo {
             .on_action(cx.listener(|this, _: &CloseEditor, window, cx| {
                 if this.commit_editor(cx) {
                     this.editor = None;
+                    this.resume_sync(cx);
                     this.create_kind = None;
                     this.focus.focus(window, cx);
                     cx.notify();

@@ -27,6 +27,8 @@ tempfile = "3"
 flate2 = "1"
 tar = "0.4"
 image = { version = "0.25", default-features = false, features = ["png"] }
+async-channel = "2"
+tungstenite = { version = "0.28", default-features = false, features = ["handshake", "rustls-tls-webpki-roots"] }
 
 [dev-dependencies]
 gpui-kit = { version = "=0.6.6", features = ["test-support"] }

@@ -10,19 +10,60 @@ use gpui_kit::component::{
     checkbox::Checkbox,
 };
 use gpui_kit::{prelude::*, *};
-use std::time::Duration;
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 impl CatDo {
-    pub fn start_sync(cx: &mut Context<Self>) {
+    pub fn start_sync(&mut self, cx: &mut Context<Self>) {
+        if !self.sync_enabled || self.events_stop.is_some() {
+            return;
+        }
+        let Ok(Some(state)) = self.store.sync_state() else {
+            return;
+        };
+        let stop = Arc::new(AtomicBool::new(false));
+        self.events_stop = Some(stop.clone());
+        let api = cloud::api_url();
+        let owner = state.owner;
+        let (sender, receiver) = async_channel::bounded(1);
+        let listener = cx.background_executor().spawn(async move {
+            let mut delay = 1;
+            while !stop.load(Ordering::Relaxed) {
+                let _ = cloud::listen_events(&api, &owner, &stop, &sender);
+                if stop.load(Ordering::Relaxed) {
+                    break;
+                }
+                std::thread::sleep(Duration::from_secs(delay));
+                delay = (delay * 2).min(30);
+            }
+            sender.close();
+        });
         cx.spawn(async move |entity, cx| {
-            loop {
-                cx.background_executor()
-                    .timer(Duration::from_secs(10))
-                    .await;
-                if entity.update(cx, |this, cx| this.sync_now(cx)).is_err() {
+            while let Ok(revision) = receiver.recv().await {
+                if entity
+                    .update(cx, |this, cx| {
+                        if revision == u64::MAX
+                            || this
+                                .store
+                                .sync_state()
+                                .ok()
+                                .flatten()
+                                .is_some_and(|state| state.base.revision != revision)
+                        {
+                            this.sync_now(cx);
+                        }
+                    })
+                    .is_err()
+                {
                     break;
                 }
             }
+            let _ = listener.await;
         })
         .detach();
     }
@@ -66,6 +107,7 @@ impl CatDo {
                                     this.sync_enabled = true;
                                     let _ = this.store.set_preference("sync_enabled", &true);
                                     this.sync_status = "Signed in · ready to sync".into();
+                                    this.start_sync(cx);
                                     this.sync_now(cx);
                                 }
                                 Err(e) => this.sync_status = e.to_string(),
@@ -85,9 +127,14 @@ impl CatDo {
         .detach();
     }
     pub fn sync_now(&mut self, cx: &mut Context<Self>) {
-        if self.sync_busy || !self.sync_enabled || self.editor.is_some() {
+        if !self.sync_enabled {
             return;
         }
+        if self.sync_busy || self.editor.is_some() {
+            self.sync_requested = true;
+            return;
+        }
+        self.sync_requested = false;
         let state = match self.store.sync_state() {
             Ok(Some(state)) => state,
             _ => return,
@@ -119,6 +166,7 @@ impl CatDo {
                 this.sync_busy = false;
                 if this.editor.is_some() {
                     this.sync_status = "Sync resumes when task details close".into();
+                    this.sync_now(cx);
                     cx.notify();
                     return;
                 }
@@ -162,9 +210,17 @@ impl CatDo {
                     }
                 }
                 cx.notify();
+                if this.sync_requested && this.editor.is_none() {
+                    this.sync_now(cx);
+                }
             });
         })
         .detach();
+    }
+    pub(crate) fn resume_sync(&mut self, cx: &mut Context<Self>) {
+        if self.sync_requested && self.editor.is_none() {
+            self.sync_now(cx);
+        }
     }
     pub(crate) fn repair_sync_navigation(&mut self) {
         if !self
@@ -328,6 +384,9 @@ impl CatDo {
                                 .label("Sign out")
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.sync_enabled = false;
+                                    if let Some(stop) = this.events_stop.take() {
+                                        stop.store(true, Ordering::Relaxed);
+                                    }
                                     this.sign_in_age_confirmed = false;
                                     this.sync_terms_required = false;
                                     let _ = this.store.set_preference("sync_enabled", &false);

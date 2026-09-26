@@ -1,15 +1,28 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ fetch: vi.fn(), download: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  fetch: vi.fn(),
+  download: vi.fn(),
+  api: vi.fn(),
+}));
 vi.mock("@tanstack/react-start/server-entry", () => ({
   default: { fetch: mocks.fetch },
 }));
 vi.mock("./server/account", () => ({ CatDoAccount: class {} }));
 vi.mock("./server/download", () => ({ androidDownload: mocks.download }));
+vi.mock("cloudflare:workers", () => ({ env: {} }));
+vi.mock("./server/index", () => ({ default: { fetch: mocks.api } }));
 import worker from "./server";
 
 beforeEach(() => vi.resetAllMocks());
 const request = (path = "/", headers = {}, method = "GET") =>
   new Request(`https://catdo.example${path}`, { headers, method });
+
+it("passes WebSocket upgrades directly to the API", async () => {
+  const upgrade = new Response("upgrade passthrough");
+  mocks.api.mockResolvedValue(upgrade);
+  expect(await worker.fetch(request("/api/sync/events"))).toBe(upgrade);
+  expect(mocks.fetch).not.toHaveBeenCalled();
+});
 
 it.each([
   "/app",

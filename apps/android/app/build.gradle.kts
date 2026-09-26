@@ -14,7 +14,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 11
-        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.8"
+        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.9"
     }
 
     signingConfigs {
@@ -58,6 +58,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("com.clerk:clerk-android-ui:1.1.8")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-crashlytics")

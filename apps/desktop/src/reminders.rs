@@ -77,7 +77,7 @@ impl CatDo {
                             if current.reminder == task.reminder {
                                 if let Some(reminder) = &mut current.reminder { reminder.delivered = true; }
                                 if let Err(error) = this.store.save(&next) { this.error(error.to_string(), cx); }
-                                else { this.data = next; }
+                                else { this.data = next; this.sync_now(cx); }
                             }
                         }
                     } else {
