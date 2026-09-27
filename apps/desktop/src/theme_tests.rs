@@ -39,6 +39,8 @@ fn theme_control_switches_modes_and_restores_saved_choice(cx: &mut TestAppContex
         window.render_frame(cx);
     })
     .unwrap();
+    cx.update_window(root.into(), |_, window, cx| window.click("settings", cx))
+        .unwrap();
     cx.update_window(root.into(), |_, window, cx| window.click("Dark", cx))
         .unwrap();
     cx.update(|cx| {

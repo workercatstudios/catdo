@@ -222,16 +222,6 @@ impl CatDo {
                             ),
                     )
                     .child(
-                        Button::new("new-task")
-                            .primary()
-                            .w_full()
-                            .h(px(36.))
-                            .icon(IconName::Plus)
-                            .label("Add task")
-                            .tooltip("Ctrl+N")
-                            .on_click(cx.listener(|this, _, window, cx| this.new_task(window, cx))),
-                    )
-                    .child(
                         Input::new(&self.search)
                             .appearance(false)
                             .small()
@@ -281,18 +271,29 @@ impl CatDo {
                                 this.navigate(View::Manage, window, cx)
                             })),
                     )
-                    .child(self.render_sync(cx))
-                    .child(
-                        div()
-                            .h_flex()
-                            .items_center()
-                            .justify_between()
-                            .mt_2()
-                            .border_t_1()
-                            .border_color(cx.theme().border)
-                            .child(self.render_theme_control(cx))
-                            .child(self.render_update(cx)),
-                    ),
+                    .when(!self.sync_status.is_empty(), |el| {
+                        el.child(
+                            Button::new("sync-status")
+                                .ghost()
+                                .w_full()
+                                .accessibility_label(format!(
+                                    "Sync status: {}. Open Settings",
+                                    self.sync_status
+                                ))
+                                .tooltip(self.sync_status.clone())
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .truncate()
+                                        .text_xs()
+                                        .text_color(cx.theme().muted_foreground)
+                                        .child(self.sync_status.clone()),
+                                )
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.navigate(View::Manage, window, cx)
+                                })),
+                        )
+                    }),
             )
     }
 }

@@ -191,7 +191,7 @@ impl CatDo {
                                 {
                                     "All changes synced"
                                 } else {
-                                    "Saved on this device · waiting to sync"
+                                    "Waiting to sync"
                                 }
                                 .into();
                             }
@@ -282,33 +282,26 @@ impl CatDo {
             });
         div()
             .v_flex()
-            .gap_2()
-            .px_2()
-            .text_xs()
-            .text_color(p.muted_foreground)
-            .child(self.sync_status.clone())
+            .gap_4()
+            .text_sm()
+            .when(!self.sync_status.is_empty(), |el| {
+                el.child(div().font_medium().child(self.sync_status.clone()))
+            })
             .when(!self.sync_enabled, |el| {
                 el.child(
-                    Checkbox::new("sign-in-age")
-                        .label("I am 13 or older")
-                        .checked(self.sign_in_age_confirmed)
-                        .disabled(self.sync_busy)
-                        .on_click(cx.listener(|this, checked, _, cx| {
-                            this.sign_in_age_confirmed = *checked;
-                            cx.notify();
-                        })),
+                    div().v_flex().gap_3().p_4().rounded(px(6.)).bg(p.muted)
+                        .child(Checkbox::new("sign-in-age")
+                            .label("I am 13 or older")
+                            .checked(self.sign_in_age_confirmed)
+                            .disabled(self.sync_busy)
+                            .on_click(cx.listener(|this, checked, _, cx| {
+                                this.sign_in_age_confirmed = *checked;
+                                cx.notify();
+                            })))
+                        .child(div().text_sm().text_color(p.muted_foreground)
+                            .child("By checking this, I also confirm I meet any higher local minimum age and have guardian permission where required.")),
                 )
-                .child("By checking this, I also confirm I meet any higher local minimum age and have guardian permission where required.")
             })
-            .child(
-                div()
-                    .h_flex()
-                    .gap_2()
-                    .child(Button::new("account-terms").small().ghost().label("Terms")
-                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/terms")))
-                    .child(Button::new("account-privacy").small().ghost().label("Privacy")
-                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/privacy"))),
-            )
             .when(self.sync_terms_required, |el| {
                 el.child(
                     Button::new("review-terms")
@@ -365,8 +358,8 @@ impl CatDo {
                     .gap_2()
                     .child(
                         Button::new("sign-in")
-                            .small()
-                            .ghost()
+                            .when(!self.sync_enabled, |button| button.primary())
+                            .when(self.sync_enabled, |button| button.ghost())
                             .disabled(self.sync_busy || (!self.sync_enabled && !self.sign_in_age_confirmed))
                             .label(if self.sync_enabled {
                                 "Sign in again"
@@ -411,7 +404,12 @@ impl CatDo {
                                     cx.notify();
                                 })),
                         )
-                    }),
+                    })
+                    .child(div().flex_1())
+                    .child(Button::new("account-terms").small().ghost().label("Terms")
+                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/terms")))
+                    .child(Button::new("account-privacy").small().ghost().label("Privacy")
+                        .on_click(|_, _, cx| cx.open_url("https://workercat.com/privacy"))),
             )
     }
 }

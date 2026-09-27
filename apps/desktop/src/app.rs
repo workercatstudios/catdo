@@ -124,7 +124,7 @@ impl CatDo {
             update_state: Default::default(),
             workspace_id: data.workspaces.iter().find(|w| !w.archived).unwrap().id,
             data,
-            sync_status: "Saved on this device".into(),
+            sync_status: String::new(),
             sync_enabled,
             sync_busy: false,
             sync_requested: false,
