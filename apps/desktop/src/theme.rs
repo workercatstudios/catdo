@@ -1,5 +1,5 @@
 use gpui_kit::component::{
-    Selectable, Sizable, StyledExt, Theme, ThemeMode,
+    Selectable, StyledExt, Theme, ThemeMode,
     button::{Button, ButtonGroup},
 };
 use gpui_kit::{App, Context, IntoElement, ParentElement, Styled, Window, WindowAppearance, div};
@@ -56,7 +56,7 @@ fn apply_palette(cx: &mut App) {
     let border = color(0xE8EAE5, 0x333B34);
     let primary = color(0x3E624E, 0xACCCB1);
     let primary_foreground = color(0xFFFFFF, 0x1C201D);
-    let selected = color(0xE9EFE9, 0x2C3E30);
+    let selected = color(0xE9EBE7, 0x343A35);
     theme.background = canvas;
     theme.foreground = foreground;
     theme.muted = surface;
@@ -71,7 +71,7 @@ fn apply_palette(cx: &mut App) {
     theme.primary_hover = color(0x3D5949, 0xBBD5C3);
     theme.primary_active = color(0x344C3E, 0x96B8A1);
     theme.accent = selected;
-    theme.accent_foreground = primary;
+    theme.accent_foreground = foreground;
     theme.secondary = surface;
     theme.secondary_foreground = foreground;
     theme.secondary_hover = selected;
@@ -86,7 +86,7 @@ fn apply_palette(cx: &mut App) {
     theme.sidebar_foreground = foreground;
     theme.sidebar_border = border;
     theme.sidebar_accent = selected;
-    theme.sidebar_accent_foreground = primary;
+    theme.sidebar_accent_foreground = foreground;
     theme.sidebar_primary = primary;
     theme.sidebar_primary_foreground = primary_foreground;
     theme.colors.list = canvas;
@@ -141,8 +141,6 @@ impl CatDo {
     pub(crate) fn render_theme_control(&self, cx: &Context<Self>) -> impl IntoElement {
         div().h_flex().py_2().child(
             ButtonGroup::new("appearance")
-                .small()
-                .compact()
                 .children(Appearance::ALL.map(|appearance| {
                     Button::new(appearance.label())
                         .label(appearance.label())

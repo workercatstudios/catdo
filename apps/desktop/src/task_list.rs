@@ -103,8 +103,12 @@ impl CatDo {
             .id(SharedString::from(format!("task-{id}")))
             .h_flex()
             .items_start()
-            .gap_2()
-            .min_h(px(52.))
+            .gap_3()
+            .px_3()
+            .py_2()
+            .border_b_1()
+            .border_color(p.border)
+            .min_h(px(76.))
             .child(
                 Checkbox::new(SharedString::from(format!("complete-{id}")))
                     .large()
@@ -129,7 +133,7 @@ impl CatDo {
                     .rounded(px(6.))
                     .py_2p5()
                     .px_1()
-                    .text_size(px(15.))
+                    .text_size(px(17.))
                     .flex_1()
                     .min_w_0()
                     .cursor_pointer()
@@ -157,6 +161,7 @@ impl CatDo {
                                             } else {
                                                 p.muted_foreground
                                             })
+                                            .font_medium()
                                             .child(task.title.clone()),
                                     )
                                     .when(!notes.is_empty() || project.is_some(), |el| {
@@ -213,8 +218,9 @@ impl CatDo {
                                     .items_end()
                                     .when(agenda, |el| el.items_start())
                                     .gap_1()
-                                    .max_w(px(155.))
-                                    .text_xs()
+                                    .max_w(px(220.))
+                                    .flex_shrink_0()
+                                    .text_sm()
                                     .text_color(p.muted_foreground)
                                     .when_some(task.due, |el, due| {
                                         el.child(
@@ -228,7 +234,15 @@ impl CatDo {
                                                     p.muted_foreground
                                                 })
                                                 .child(Icon::new(IconName::Calendar).size_3())
-                                                .child(friendly_date(due, today)),
+                                                .font_medium()
+                                                .child(if task.overdue(today) {
+                                                    format!(
+                                                        "Overdue · {}",
+                                                        friendly_date(due, today)
+                                                    )
+                                                } else {
+                                                    format!("Due {}", friendly_date(due, today))
+                                                }),
                                         )
                                     })
                                     .when_some(scheduled, |el, date| {
@@ -238,7 +252,10 @@ impl CatDo {
                                                 .gap_1()
                                                 .items_center()
                                                 .child(Icon::new(IconName::Calendar).size_3())
-                                                .child(friendly_date(date, today)),
+                                                .child(format!(
+                                                    "Planned {}",
+                                                    friendly_date(date, today)
+                                                )),
                                         )
                                     }),
                             ),
@@ -282,13 +299,14 @@ impl CatDo {
             .id("task-list-scroll")
             .size_full()
             .overflow_y_scrollbar()
-            .px_10()
-            .py_10()
+            .p_8()
             .child(
                 div()
                     .v_flex()
-                    .max_w(px(800.))
+                    .w_full()
+                    .max_w(px(1120.))
                     .mx_auto()
+                    .py_4()
                     .child(
                         div()
                             .h_flex()
@@ -304,9 +322,13 @@ impl CatDo {
                             .child(div().text_3xl().font_semibold().child(title))
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_sm()
                                     .text_color(p.muted_foreground)
-                                    .child(tasks.len().to_string()),
+                                    .child(format!(
+                                        "{} {}",
+                                        tasks.len(),
+                                        if tasks.len() == 1 { "task" } else { "tasks" }
+                                    )),
                             ),
                     )
                     .when(self.view == View::Today && !searching, |el| {
@@ -386,21 +408,32 @@ impl CatDo {
                                 .h_flex()
                                 .items_center()
                                 .gap_2()
-                                .mt_3()
-                                .child(Input::new(&self.quick_add).appearance(false).prefix(
-                                    Icon::new(IconName::Plus).size_4().text_color(p.primary),
-                                ))
-                                .when(!self.quick_add.read(cx).value().trim().is_empty(), |el| {
-                                    el.child(
-                                        Button::new("quick-add")
-                                            .ghost()
-                                            .small()
-                                            .label("Add")
-                                            .on_click(cx.listener(|this, _, window, cx| {
-                                                this.quick_create(window, cx)
-                                            })),
-                                    )
-                                }),
+                                .mt_6()
+                                .p_3()
+                                .rounded(px(8.))
+                                .bg(p.muted)
+                                .border_1()
+                                .border_color(p.border)
+                                .child(
+                                    Input::new(&self.quick_add).appearance(false).prefix(
+                                        Icon::new(IconName::Plus)
+                                            .size_4()
+                                            .text_color(p.muted_foreground),
+                                    ),
+                                )
+                                .child(
+                                    Button::new("quick-add")
+                                        .primary()
+                                        .label("Add task")
+                                        .tooltip("Enter to add · Ctrl+N for task details")
+                                        .on_click(cx.listener(|this, _, window, cx| {
+                                            if this.quick_add.read(cx).value().trim().is_empty() {
+                                                this.new_task(window, cx);
+                                            } else {
+                                                this.quick_create(window, cx);
+                                            }
+                                        })),
+                                ),
                         )
                     })
                     .when(tasks.is_empty() && self.view != View::Completed, |el| {

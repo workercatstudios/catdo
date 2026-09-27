@@ -7,7 +7,7 @@ use gpui_kit::component::{
     Sizable,
     button::{Button, ButtonVariants},
 };
-use gpui_kit::{Context, IntoElement, Styled};
+use gpui_kit::{Context, IntoElement};
 use std::time::Duration;
 
 #[derive(Default)]
@@ -160,7 +160,14 @@ impl CatDo {
         Button::new("app-update")
             .ghost()
             .small()
-            .rounded_full()
+            .label(match &self.update_state {
+                UpdateState::Idle => "Check for updates",
+                UpdateState::Checking => "Checking…",
+                UpdateState::Available(_) => "Download update",
+                UpdateState::Downloading => "Downloading…",
+                UpdateState::Ready(_) => "Restart to update",
+                UpdateState::Failed { .. } => "Retry update",
+            })
             .icon(icon)
             .accessibility_label(tooltip.clone())
             .tooltip(tooltip)

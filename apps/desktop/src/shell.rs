@@ -114,24 +114,17 @@ impl Render for CatDo {
                                         .border_color(p.border)
                                         .text_xs()
                                         .text_color(p.muted_foreground)
-                                        .child(
-                                            div()
-                                                .flex_1()
-                                                .when_some(
-                                                    self.message.clone(),
-                                                    |el, (message, error)| {
-                                                        el.text_color(if error {
-                                                            p.destructive
-                                                        } else {
-                                                            p.muted_foreground
-                                                        })
-                                                        .child(message)
-                                                    },
-                                                )
-                                                .when(self.message.is_none(), |el| {
-                                                    el.child("Saved on this device")
-                                                }),
-                                        )
+                                        .child(div().flex_1().when_some(
+                                            self.message.clone(),
+                                            |el, (message, error)| {
+                                                el.text_color(if error {
+                                                    p.destructive
+                                                } else {
+                                                    p.muted_foreground
+                                                })
+                                                .child(message)
+                                            },
+                                        ))
                                         .when(!self.undo.is_empty(), |el| {
                                             el.child(
                                                 Button::new("undo")
