@@ -1,4 +1,5 @@
-//! Clerk public-client device authorization. Credentials stay in Secret Service;
+//! Clerk public-client device authorization. Credentials stay in the system
+//! keyring (Secret Service or Windows Credential Manager);
 //! task storage contains only the Clerk user ID and durable sync state.
 use anyhow::{Context, Result, bail, ensure};
 use catdo_core::sync::{Pending, Snapshot};
@@ -124,6 +125,9 @@ fn safe_url(value: &str, local: bool) -> Result<()> {
 fn entry(api: &str) -> Result<keyring::Entry> {
     Ok(keyring::Entry::new("com.workercat.catdo", api)?)
 }
+// Windows Credential Manager stores passwords as UTF-16 within 2560 bytes; UTF-8
+// leaves room for longer access tokens.
+#[cfg(not(windows))]
 fn store(api: &str, credentials: &Credentials) -> Result<()> {
     entry(api)?
         .set_password(&serde_json::to_string(credentials)?)
@@ -131,11 +135,20 @@ fn store(api: &str, credentials: &Credentials) -> Result<()> {
             "Could not save sign-in to your desktop keyring. Unlock Secret Service and try again.",
         )
 }
+#[cfg(windows)]
+fn store(api: &str, credentials: &Credentials) -> Result<()> {
+    entry(api)?
+        .set_secret(&serde_json::to_vec(credentials)?)
+        .context("Could not save sign-in to Windows Credential Manager.")
+}
 fn load(api: &str) -> Result<Credentials> {
-    let secret = entry(api)?
-        .get_password()
-        .context("Sign in to sync. Your tasks are saved on this device.")?;
-    Ok(serde_json::from_str(&secret)?)
+    let entry = entry(api)?;
+    #[cfg(not(windows))]
+    let secret = entry.get_password().map(String::into_bytes);
+    #[cfg(windows)]
+    let secret = entry.get_secret();
+    let secret = secret.context("Sign in to sync. Your tasks are saved on this device.")?;
+    Ok(serde_json::from_slice(&secret)?)
 }
 fn identity(client: &Client, api: &str, token: &str) -> Result<String> {
     safe_url(api, true)?;
@@ -391,6 +404,29 @@ pub fn sign_out(api: &str) -> Result<()> {
 mod tests {
     use super::*;
     use reqwest::StatusCode;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_credential_manager_keeps_long_tokens() {
+        let api = format!("https://catdo-test.invalid/{}", uuid::Uuid::new_v4());
+        let credentials = Credentials {
+            // Longer than Credential Manager allows for a UTF-16 password.
+            access_token: "a".repeat(1500),
+            refresh_token: "r".repeat(100),
+            expires_at: 1,
+            config: ConfigSaved {
+                client_id: "client".into(),
+            },
+            discovery: DiscoverySaved {
+                token_endpoint: "https://catdo-test.invalid/token".into(),
+                revocation_endpoint: None,
+            },
+        };
+        store(&api, &credentials).unwrap();
+        let loaded = load(&api);
+        entry(&api).unwrap().delete_credential().unwrap();
+        assert_eq!(loaded.unwrap().access_token, credentials.access_token);
+    }
 
     #[test]
     fn terms_required_is_actionable_without_accepting_a_snapshot() {

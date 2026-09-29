@@ -81,4 +81,4 @@ The development integration example performs real Clerk device authorization thr
 
 ## Remaining platform work
 
-Native Android source is now in [`apps/android`](../apps/android), with local tasks, the shared sync protocol, and signed APKs on GitHub Releases. Physical-device testing, reminders, and Play Store distribution remain. Windows follows Linux; macOS is out of scope. Before a broader public release, validate native Wayland and accessibility, account recovery/export/import, background reminders, and larger-data performance through daily use.
+Native Android source is now in [`apps/android`](../apps/android), with local tasks, the shared sync protocol, and signed APKs on GitHub Releases. Physical-device testing, reminders, and Play Store distribution remain. A portable Windows x86-64 build ships alongside Linux; code signing and an installer remain. macOS is out of scope. Before a broader public release, validate native Wayland and accessibility, account recovery/export/import, background reminders, and larger-data performance through daily use.

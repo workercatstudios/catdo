@@ -46,6 +46,24 @@ cargo run -p catdo-core --example demo -- /tmp/catdo-demo
 cargo run -p catdo-desktop -- --data-dir /tmp/catdo-demo
 ```
 
+## Windows desktop
+
+Install Rust with rustup and the Visual Studio 2022 C++ build tools (the "Desktop development with C++" workload, which includes the Windows SDK). The pinned toolchain in `rust-toolchain.toml` installs automatically. Then, from the repository root:
+
+```powershell
+cargo run -p catdo-desktop -- --data-dir $env:TEMP\catdo-dev
+```
+
+Without `--data-dir`, tasks are stored in `%LOCALAPPDATA%\workercat\catdo\data\catdo.sqlite3`. Sign-in is kept in Windows Credential Manager. `apps/desktop/build.rs` embeds the icon (generated from `assets/com.workercat.catdo.png`) and version details in `catdo.exe`. Release builds have no console window; `--help`, `--version`, and errors still print to the terminal that started CatDo.
+
+Platform differences are small and kept behind `cfg(windows)`: a loopback UDP port recorded beside `catdo.lock` replaces the Unix socket that reveals the running instance, `src/tray/windows.rs` provides the notification-area icon, reminders use GPUI's Windows notifications instead of `notify-send`, and updates replace the running executable by renaming it to `catdo.exe.previous` before starting the new version.
+
+Build the release packages after `cargo build --locked --release -p catdo-desktop`:
+
+```powershell
+python scripts/package-windows.py
+```
+
 ## Web and API development
 
 Use the Node version in `.node-version`, pnpm from `package.json`, and Rust from `rust-toolchain.toml`. Both dependency lockfiles are checked in.
@@ -126,15 +144,17 @@ Reminders require the desktop app to be running and a working notification servi
 
 **Checks** runs on pull requests, pushes to `main`, and manual dispatch. It checks
 TypeScript, domain/API tests, the production web build, Rust formatting, clippy,
-Rust/GPUI tests, and release tooling. It needs no Clerk or Cloudflare credentials.
+Rust/GPUI tests on Linux and Windows, and release tooling. It needs no Clerk or
+Cloudflare credentials.
 
 **Release** runs when a `v*` tag is pushed. It validates the tag against
 `workspace.package.version` in `Cargo.toml`, runs the same checks, builds the
-Linux x86-64 desktop and signed Android APK on Ubuntu 24.04, smoke-tests the packages, and publishes an
-AppImage, a `.tar.gz`, an `.apk`, and SHA-256 checksums to GitHub Releases. Android signing uses the repository secrets described in the [Android app guide](../apps/android/README.md). Only the publish
+Linux x86-64 desktop and signed Android APK on Ubuntu 24.04 and the Windows x86-64 desktop on
+Windows Server 2025, smoke-tests the packages, and publishes an AppImage, a `.tar.gz`, a Windows
+`.exe` and `.zip`, an `.apk`, and SHA-256 checksums to GitHub Releases. Android signing uses the repository secrets described in the [Android app guide](../apps/android/README.md). Only the publish
 job receives `contents: write`. No cloud deployment runs as part of a release.
 
-Linux packages have both versioned filenames for existing desktop updaters and stable filenames for the homepage's latest-release links. Both names refer to identical package bytes, but their checksum files name their respective assets. The Android APK has one versioned filename, `catdo-<version>-android.apk`. The homepage's `/download/android` route resolves it from the latest GitHub release.
+Linux packages and the Windows `.exe` have both versioned filenames for existing desktop updaters and stable filenames for latest-release links. Both names refer to identical package bytes, but their checksum files name their respective assets. The Android APK has one versioned filename, `catdo-<version>-android.apk`. The homepage's `/download/android` route resolves it from the latest GitHub release.
 
 To release:
 

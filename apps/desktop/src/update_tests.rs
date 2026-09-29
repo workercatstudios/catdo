@@ -128,6 +128,7 @@ fn failed_restart_restores_previous_executable() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn restart_exec_child() {
     let Some(directory) = std::env::var_os("CATDO_RESTART_TEST_DIRECTORY") else {
@@ -145,6 +146,7 @@ fn restart_exec_child() {
     panic!("exec must replace this process");
 }
 
+#[cfg(unix)]
 #[test]
 fn successful_restart_executes_the_installed_file() {
     let directory = tempfile::tempdir().unwrap();
@@ -163,6 +165,39 @@ fn successful_restart_executes_the_installed_file() {
         String::from_utf8_lossy(&result.stderr)
     );
     assert!(String::from_utf8_lossy(&result.stdout).contains("CatDo restarted successfully"));
+}
+
+#[cfg(windows)]
+#[test]
+fn successful_restart_starts_the_installed_file_and_keeps_a_rollback() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut ready = ready(directory.path());
+    let system = std::env::var_os("SystemRoot").unwrap();
+    let program = fs::read(Path::new(&system).join(r"System32\whoami.exe")).unwrap();
+    fs::write(&ready.staged, &program).unwrap();
+    ready.digest = digest(&ready.staged).unwrap();
+    ready.install_and_restart().unwrap();
+    let target = &ready.update.installation.path;
+    assert_eq!(fs::read(target).unwrap(), program);
+    let backup = target.with_file_name("CatDo with spaces.AppImage.previous");
+    assert_eq!(fs::read(backup).unwrap(), b"old program");
+}
+
+#[test]
+fn each_package_downloads_its_own_asset() {
+    let version = Version::parse("0.3.0").unwrap();
+    assert_eq!(
+        Package::AppImage.asset(&version),
+        "catdo-0.3.0-linux-x86_64.AppImage"
+    );
+    assert_eq!(
+        Package::Binary.asset(&version),
+        "catdo-0.3.0-linux-x86_64.tar.gz"
+    );
+    assert_eq!(
+        Package::Exe.asset(&version),
+        "catdo-0.3.0-windows-x86_64.exe"
+    );
 }
 
 #[gpui_kit::test]
@@ -232,9 +267,16 @@ fn archive_extracts_only_the_expected_regular_binary() {
 #[test]
 #[ignore = "downloads the latest official release from GitHub"]
 fn official_release_download_install_and_version() {
-    for package in [Package::Binary, Package::AppImage] {
+    let packages = if cfg!(windows) {
+        vec![Package::Exe]
+    } else {
+        vec![Package::Binary, Package::AppImage]
+    };
+    for package in packages {
         let directory = tempfile::tempdir().unwrap();
-        let target = directory.path().join("CatDo with spaces");
+        let target = directory
+            .path()
+            .join(format!("CatDo with spaces{}", std::env::consts::EXE_SUFFIX));
         fs::write(&target, b"previous program").unwrap();
         let release = client()
             .unwrap()

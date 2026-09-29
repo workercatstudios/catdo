@@ -1,5 +1,12 @@
-use ksni::{MenuItem, Tray, menu::StandardItem};
+#[cfg(not(windows))]
+use ksni::{MenuItem, Tray, TrayMethods, menu::StandardItem};
+#[cfg(not(windows))]
 use std::sync::mpsc::Sender;
+
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+pub use windows::{remove, spawn};
 
 pub enum Event {
     Show,
@@ -8,8 +15,15 @@ pub enum Event {
     Online,
 }
 
+#[cfg(not(windows))]
+pub async fn spawn(sender: Sender<Event>) -> Result<ksni::Handle<CatTray>, ksni::Error> {
+    CatTray(sender).spawn().await
+}
+
+#[cfg(not(windows))]
 pub struct CatTray(pub Sender<Event>);
 
+#[cfg(not(windows))]
 impl Tray for CatTray {
     fn id(&self) -> String {
         "com.workercat.catdo".into()
