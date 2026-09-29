@@ -1,4 +1,6 @@
-use std::{process::Command, time::Duration};
+#[cfg(not(windows))]
+use std::process::Command;
+use std::time::Duration;
 
 use chrono::Utc;
 use gpui_kit::*;
@@ -52,6 +54,7 @@ impl CatDo {
                 .iter()
                 .find(|w| w.id == task.workspace_id)
                 .map_or("CatDo".into(), |w| w.name.clone());
+            #[cfg(not(windows))]
             let delivery = cx.background_executor().spawn(async move {
                 Command::new("notify-send")
                     .args([
@@ -66,6 +69,17 @@ impl CatDo {
                     .status()
                     .map(|s| s.success())
             });
+            // GPUI posts a Windows toast and only logs delivery failures.
+            #[cfg(windows)]
+            let delivery = {
+                cx.show_system_notification(SystemNotification {
+                    tag: format!("reminder-{}", task.id).into(),
+                    title: title.into(),
+                    body: workspace.into(),
+                    actions: Vec::new(),
+                });
+                Task::ready(std::io::Result::Ok(true))
+            };
             cx.spawn(async move |entity, cx| {
                 let result = delivery.await;
                 let _ = entity.update(cx, |this, cx| {

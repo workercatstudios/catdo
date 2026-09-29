@@ -7,10 +7,11 @@ import subprocess
 import sys
 
 destination = Path(sys.argv[1])
+target = sys.argv[2] if len(sys.argv) > 2 else "x86_64-unknown-linux-gnu"
 destination.mkdir(parents=True, exist_ok=True)
 metadata = json.loads(subprocess.check_output([
     "cargo", "metadata", "--locked", "--format-version", "1",
-    "--filter-platform", "x86_64-unknown-linux-gnu",
+    "--filter-platform", target,
 ]))
 lines = ["# Third-party Rust dependencies", "",
          "Dependencies retain their own licenses. This inventory includes build and test dependencies.",

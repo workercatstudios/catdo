@@ -3,14 +3,13 @@
 use crate::{
     app::CatDo,
     instance::Instance,
-    tray::{CatTray, Event},
+    tray::{self, Event},
 };
 use gpui_kit::{
     App, AppContext, Bounds, Entity, Global, TitlebarOptions, WindowBounds, WindowOptions,
     component::{Root, TitleBar},
     px, size,
 };
-use ksni::TrayMethods;
 use std::{sync::mpsc, time::Duration};
 
 struct Desktop {
@@ -51,10 +50,17 @@ pub fn start(view: Entity<CatDo>, instance: Instance, cx: &mut App) {
         }
     })
     .detach();
+    #[cfg(windows)]
+    {
+        cx.on_app_quit(|_| {
+            tray::remove();
+            async {}
+        })
+        .detach();
+        cx.on_system_notification_response(|_, cx| show(cx));
+    }
     let (sender, receiver) = mpsc::channel();
-    let tray = cx
-        .background_executor()
-        .spawn(async move { CatTray(sender).spawn().await });
+    let tray = cx.background_executor().spawn(tray::spawn(sender));
     cx.spawn(async move |cx| {
         let _handle = match tray.await {
             Ok(handle) => {

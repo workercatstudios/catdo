@@ -58,8 +58,9 @@ impl Render for CatDo {
                     this.navigate(View::Today, window, cx)
                 }),
             )
+            // Windows hides its native caption for the transparent title bar.
             .when(
-                matches!(window.window_decorations(), Decorations::Client { .. }),
+                cfg!(windows) || matches!(window.window_decorations(), Decorations::Client { .. }),
                 |el| {
                     el.child(
                         TitleBar::new()

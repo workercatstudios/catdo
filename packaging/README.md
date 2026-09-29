@@ -4,7 +4,8 @@ A calm personal task manager from WorkerCat.
 
 The `.tar.gz` archive contains the Linux x86-64 desktop app. CI builds it on Ubuntu 24.04
 (glibc 2.39); use a desktop Linux distribution with glibc 2.39 or newer, such as
-current Fedora. ARM and Windows binaries are not included.
+current Fedora. ARM binaries are not included; Windows has its own download,
+described in `README-windows.md` in the source repository.
 
 ## AppImage
 

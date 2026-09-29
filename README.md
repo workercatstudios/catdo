@@ -88,7 +88,7 @@ _Screenshots show the current Linux desktop with sample tasks._
 | **Linux desktop** | Built and tested on Fedora. Local use needs no account; sign in to sync.                                         |
 | **Web**           | [Available now](https://catdo.workercat.com/app), with offline editing after the first online visit and sign-in. |
 | **Android**       | [Signed APK on GitHub Releases](https://github.com/workercatstudios/catdo/releases/latest). Native source is in [`apps/android`](apps/android); Play Store distribution is ahead. |
-| **Windows**       | Planned after Linux.                                                                                             |
+| **Windows**       | Portable x86-64 app on [GitHub Releases](https://github.com/workercatstudios/catdo/releases/latest), tested on Windows 11. Not yet code-signed. |
 | **macOS**         | Not planned.                                                                                                     |
 
 CatDo is in active development, built first for daily personal use. Native Wayland validation, accessibility, and broader release testing are still ahead. Desktop screenshots and visual checks currently use Fedora through XWayland.
@@ -105,6 +105,12 @@ chmod +x CatDo.AppImage
 Replace `CatDo.AppImage` with the downloaded filename. A `.tar.gz` with a user-level installer and SHA-256 checksums is also provided. Release builds target glibc 2.39 or newer; graphics drivers and a desktop session are still required. See the [Linux package notes](packaging/README.md) for installation and AppImage troubleshooting.
 
 The sidebar update button downloads a new release on the first click and installs it on the second. Closing the window keeps sync and reminders running in the tray; reopen it from the tray or your launcher. **Ctrl+Q** exits completely. See [updates and tray support](packaging/README.md#updates-and-the-system-tray) for details.
+
+## Run it on Windows
+
+Download `catdo-<version>-windows-x86_64.exe` from [GitHub Releases](https://github.com/workercatstudios/catdo/releases), move it to a folder you own (for example `%LOCALAPPDATA%\Programs\CatDo`), and run it. No installer or administrator rights are needed. The build is not yet code-signed, so SmartScreen may ask you to confirm the first launch. A `.zip` with license notices and SHA-256 checksums is also provided.
+
+Updates, closing to the notification area, and **Ctrl+Q** work as on Linux. Reminders arrive as Windows notifications, and sign-in is kept in Windows Credential Manager. See the [Windows package notes](packaging/README-windows.md) for details.
 
 ### Build from source
 
@@ -136,7 +142,7 @@ cargo run --locked -p catdo-core --example demo -- /tmp/catdo-demo
 cargo run --locked -p catdo-desktop -- --data-dir /tmp/catdo-demo
 ```
 
-The demo generator refuses to overwrite an existing database. See the [developer guide](docs/development.md#fedora-desktop) for graphics troubleshooting, storage details, and local development.
+The demo generator refuses to overwrite an existing database. See the [developer guide](docs/development.md#fedora-desktop) for graphics troubleshooting, storage details, and local development. On Windows, `cargo run --locked -p catdo-desktop` works the same way with the Visual Studio C++ build tools installed; see [Windows desktop](docs/development.md#windows-desktop).
 
 ### Keep your hands on the keyboard
 

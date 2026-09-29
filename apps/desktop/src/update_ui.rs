@@ -116,13 +116,17 @@ impl CatDo {
                 }
                 if let UpdateState::Ready(ready) = &self.update_state {
                     let update = ready.update.clone();
-                    if let Err(error) = ready.install_and_restart() {
-                        let message = format!("Could not install the update: {error:#}");
-                        self.error(message.clone(), cx);
-                        self.update_state = UpdateState::Failed {
-                            retry: Some(update),
-                            message,
-                        };
+                    match ready.install_and_restart() {
+                        // Windows starts the new version beside this one.
+                        Ok(()) => cx.quit(),
+                        Err(error) => {
+                            let message = format!("Could not install the update: {error:#}");
+                            self.error(message.clone(), cx);
+                            self.update_state = UpdateState::Failed {
+                                retry: Some(update),
+                                message,
+                            };
+                        }
                     }
                 }
             }

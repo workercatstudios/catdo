@@ -1,4 +1,4 @@
-//! GitHub release discovery and verified, atomic Linux updates.
+//! GitHub release discovery and verified Linux and Windows updates.
 use anyhow::{Context, Result, bail, ensure};
 use reqwest::blocking::Client;
 use semver::Version;
@@ -7,12 +7,14 @@ use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
     io::{Read, Write},
-    os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
     process::Command,
     time::Duration,
 };
 use tempfile::TempPath;
+
+#[cfg(unix)]
+use std::os::unix::{fs::PermissionsExt, process::CommandExt};
 
 const REPOSITORY: &str = "https://github.com/workercatstudios/catdo/releases/download/";
 const MAX_DOWNLOAD: u64 = 256 * 1024 * 1024;
@@ -21,7 +23,22 @@ const MAX_DOWNLOAD: u64 = 256 * 1024 * 1024;
 pub enum Package {
     AppImage,
     Binary,
+    Exe,
 }
+
+impl Package {
+    fn asset(self, version: &Version) -> String {
+        match self {
+            Package::AppImage => format!("catdo-{version}-linux-x86_64.AppImage"),
+            Package::Binary => format!("catdo-{version}-linux-x86_64.tar.gz"),
+            Package::Exe => format!("catdo-{version}-windows-x86_64.exe"),
+        }
+    }
+}
+
+/// Marks the process started by a Windows update, which may begin before the
+/// previous version has exited.
+pub const RESTARTED: &str = "CATDO_RESTARTED";
 
 #[derive(Clone, Debug)]
 pub struct Installation {
@@ -31,13 +48,17 @@ pub struct Installation {
 
 impl Installation {
     pub fn detect() -> Result<Self> {
-        ensure!(
-            cfg!(all(target_os = "linux", target_arch = "x86_64")),
-            "Updates currently support Linux x86-64"
-        );
-        let (path, package) = match std::env::var_os("APPIMAGE") {
-            Some(path) => (PathBuf::from(path), Package::AppImage),
-            None => (std::env::current_exe()?, Package::Binary),
+        let (path, package) = if cfg!(all(windows, target_arch = "x86_64")) {
+            (std::env::current_exe()?, Package::Exe)
+        } else {
+            ensure!(
+                cfg!(all(target_os = "linux", target_arch = "x86_64")),
+                "Updates currently support Linux and Windows x86-64"
+            );
+            match std::env::var_os("APPIMAGE") {
+                Some(path) => (PathBuf::from(path), Package::AppImage),
+                None => (std::env::current_exe()?, Package::Binary),
+            }
         };
         Ok(Self {
             path: path.canonicalize()?,
@@ -116,11 +137,7 @@ fn select(
     if release.draft || release.prerelease || !version.pre.is_empty() || version <= *current {
         return Ok(None);
     }
-    let extension = match installation.package {
-        Package::AppImage => "AppImage",
-        Package::Binary => "tar.gz",
-    };
-    let name = format!("catdo-{version}-linux-x86_64.{extension}");
+    let name = installation.package.asset(&version);
     let asset = |name: &str| -> Result<Asset> {
         let asset = release
             .assets
@@ -200,7 +217,7 @@ pub fn download(update: Update) -> Result<ReadyUpdate> {
         "Update checksum did not match. Please download again"
     );
     let mut staged = match update.installation.package {
-        Package::AppImage => archive,
+        Package::AppImage | Package::Exe => archive,
         Package::Binary => {
             let mut staged = tempfile::Builder::new()
                 .prefix(".catdo-update-")
@@ -210,6 +227,7 @@ pub fn download(update: Update) -> Result<ReadyUpdate> {
         }
     };
     staged.as_file_mut().flush()?;
+    #[cfg(unix)]
     staged
         .as_file()
         .set_permissions(fs::Permissions::from_mode(0o755))?;
@@ -257,17 +275,34 @@ impl ReadyUpdate {
         if backup.exists() {
             fs::remove_file(&backup)?;
         }
-        fs::hard_link(target, &backup).context("Could not keep a rollback copy of CatDo")?;
-        fs::rename(&self.staged, target).context("Could not replace CatDo")?;
-        File::open(target.parent().context("No installation directory")?)?.sync_all()?;
+        #[cfg(unix)]
+        {
+            fs::hard_link(target, &backup).context("Could not keep a rollback copy of CatDo")?;
+            fs::rename(&self.staged, target).context("Could not replace CatDo")?;
+            File::open(target.parent().context("No installation directory")?)?.sync_all()?;
+        }
+        // A running executable cannot be replaced on Windows, but it can be renamed.
+        #[cfg(windows)]
+        {
+            fs::rename(target, &backup).context("Could not keep a rollback copy of CatDo")?;
+            if let Err(error) = fs::rename(&self.staged, target) {
+                fs::rename(&backup, target)
+                    .context("Update failed, and CatDo could not restore the previous version")?;
+                return Err(error).context("Could not replace CatDo");
+            }
+        }
         Ok(backup)
     }
 
+    /// Replaces the program and starts it. On Windows, the caller must then
+    /// quit; elsewhere, success replaces the current process.
     pub fn install_and_restart(&self) -> Result<()> {
         let backup = self.install()?;
         let target = &self.update.installation.path;
         let mut command = Command::new(target);
-        command.args(std::env::args_os().skip(1));
+        command
+            .args(std::env::args_os().skip(1))
+            .env(RESTARTED, "1");
         if self.update.installation.package == Package::AppImage {
             // Extraction also works on systems without FUSE. Runtime flags have
             // already been consumed before CatDo receives its arguments.
@@ -284,7 +319,12 @@ impl ReadyUpdate {
                 command.env_remove(key);
             }
         }
+        #[cfg(unix)]
         let error = command.exec();
+        #[cfg(windows)]
+        let Err(error) = command.spawn().map(drop) else {
+            return Ok(());
+        };
         fs::rename(&backup, target)
             .context("Restart failed, and CatDo could not restore the previous version")?;
         Err(error).context("Could not restart CatDo; the previous version was restored")

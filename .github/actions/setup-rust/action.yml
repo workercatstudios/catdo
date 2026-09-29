@@ -1,9 +1,10 @@
-name: Set up Rust on Linux
-description: Install CatDo's native build dependencies and pinned Rust toolchain.
+name: Set up Rust
+description: Install CatDo's native build dependencies and pinned Rust toolchain on Linux or Windows.
 runs:
   using: composite
   steps:
     - name: Install native dependencies
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update

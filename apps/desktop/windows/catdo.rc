@@ -1,0 +1,30 @@
+#include <winver.h>
+
+// GPUI loads the window icon from resource 1; the tray uses it as well.
+1 ICON CATDO_ICON
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION CATDO_VERSION_NUMERIC
+PRODUCTVERSION CATDO_VERSION_NUMERIC
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "WorkerCat"
+            VALUE "FileDescription", "CatDo"
+            VALUE "FileVersion", CATDO_VERSION
+            VALUE "InternalName", "catdo"
+            VALUE "LegalCopyright", "Copyright 2026 WorkerCat"
+            VALUE "OriginalFilename", "catdo.exe"
+            VALUE "ProductName", "CatDo"
+            VALUE "ProductVersion", CATDO_VERSION
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END
