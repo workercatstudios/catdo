@@ -33,6 +33,7 @@ import { TaskEditor } from "./TaskEditor";
 import { TaskList } from "./TaskList";
 import { Management } from "./Management";
 import { Calendar } from "./Calendar";
+import { projectColorIndex } from "./lib/colors";
 type Undo = { before: Data; after: Data };
 export function App({
   owner,
@@ -372,145 +373,154 @@ export function App({
               </button>
             </div>
           )}
-          {view === "settings" && !search ? (
-            <Management
-              data={data}
-              naming={naming}
-              act={act}
-              change={change}
-              error={error}
-              exportTasks={() => act(() => store.export())}
-            />
-          ) : view === "calendar" && !search ? (
-            <Calendar
-              tasks={tasks}
-              open={openEditor}
-              move={(id, date) =>
-                act(() =>
-                  change((d) => {
-                    const t = d.tasks.find((t) => t.id === id)!;
-                    saveTask(d, {
-                      ...t,
-                      scheduled: date,
-                      recurrence: t.recurrence
-                        ? { ...t.recurrence, month_day: Number(date.slice(8)) }
-                        : null,
-                    });
-                  }),
-                )
-              }
-            />
-          ) : (
-            <>
-              <div className="page-heading">
-                <div className="heading-title">
-                  <span className={`view-icon view-icon-${view}`}>
-                    <Icon name={search ? "search" : view} />
-                  </span>
-                  <h1>{title}</h1>
-                  <span
-                    className="task-count"
-                    aria-label={`${visible.length} tasks`}
-                  >
-                    {visible.length}
-                  </span>
-                </div>
-                {view === "today" && !search && (
-                  <p className="heading-date">
-                    {new Date().toLocaleDateString(undefined, {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                )}
-                {search && (
-                  <p className="heading-date">Results for “{search}”</p>
-                )}
-              </div>
-              <TaskList
-                tasks={visible}
+          <div className="view" key={search ? "search" : view}>
+            {view === "settings" && !search ? (
+              <Management
                 data={data}
-                today={today}
-                view={search ? "search" : view}
-                complete={(id) => act(() => change((d) => completeTask(d, id)))}
-                open={openEditor}
+                naming={naming}
+                act={act}
+                change={change}
+                error={error}
+                exportTasks={() => act(() => store.export())}
               />
-              {view !== "completed" && (
-                <form
-                  className={`quick-add ${quick.trim() ? "has-value" : ""}`}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!quick.trim()) return;
-                    const task = newTask(
-                      workspaceId,
-                      quick,
-                      view.startsWith("project:") ? view.slice(8) : null,
-                      view === "today" ? today : null,
-                    );
-                    act(async () => {
-                      await change((d) => saveTask(d, task));
-                      setQuick((current) => (current === quick ? "" : current));
-                    });
-                  }}
-                >
-                  <Icon name="plus" />
-                  <input
-                    aria-label="Quick add task"
-                    placeholder="Add a task…"
-                    value={quick}
-                    onChange={(e) => setQuick(e.target.value)}
-                  />
-                  <Button
-                    type="submit"
-                    variant="ghost"
-                    size="sm"
-                    disabled={!quick.trim()}
-                  >
-                    Add <span aria-hidden="true">↵</span>
-                  </Button>
-                </form>
-              )}
-              {visible.length === 0 && (
-                <div className="empty-state">
-                  <img src="/cat.png" alt="" />
-                  <h2>
-                    {search
-                      ? "No matching tasks"
-                      : view === "completed"
-                        ? "Small steps add up."
-                        : "A little breathing room."}
-                  </h2>
-                  <p>
-                    {search
-                      ? "Try another word, or switch workspaces."
-                      : view === "completed"
-                        ? "Completed tasks will show up here."
-                        : "Add something to do, or enjoy the clear space."}
-                  </p>
+            ) : view === "calendar" && !search ? (
+              <Calendar
+                tasks={tasks}
+                open={openEditor}
+                move={(id, date) =>
+                  act(() =>
+                    change((d) => {
+                      const t = d.tasks.find((t) => t.id === id)!;
+                      saveTask(d, {
+                        ...t,
+                        scheduled: date,
+                        recurrence: t.recurrence
+                          ? {
+                              ...t.recurrence,
+                              month_day: Number(date.slice(8)),
+                            }
+                          : null,
+                      });
+                    }),
+                  )
+                }
+              />
+            ) : (
+              <>
+                <div className="page-heading">
+                  <div className="heading-title">
+                    <span className={`view-icon view-icon-${view}`}>
+                      <Icon name={search ? "search" : view} />
+                    </span>
+                    <h1>{title}</h1>
+                    <span
+                      className="task-count"
+                      aria-label={`${visible.length} tasks`}
+                    >
+                      {visible.length}
+                    </span>
+                  </div>
+                  {view === "today" && !search && (
+                    <p className="heading-date">
+                      {new Date().toLocaleDateString(undefined, {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  )}
+                  {search && (
+                    <p className="heading-date">Results for “{search}”</p>
+                  )}
                 </div>
-              )}
-              {view === "completed" &&
-                data.history.some(
-                  (h) => h.task.workspace_id === workspaceId,
-                ) && (
-                  <div className="history">
-                    <h2>Completion history</h2>
-                    {data.history
-                      .filter((h) => h.task.workspace_id === workspaceId)
-                      .toReversed()
-                      .map((h) => (
-                        <div key={h.id}>
-                          <span>{h.task.title}</span>
-                          <time>
-                            {new Date(h.completed_at).toLocaleString()}
-                          </time>
-                        </div>
-                      ))}
+                <TaskList
+                  tasks={visible}
+                  data={data}
+                  today={today}
+                  view={search ? "search" : view}
+                  complete={(id) =>
+                    act(() => change((d) => completeTask(d, id)))
+                  }
+                  open={openEditor}
+                />
+                {view !== "completed" && (
+                  <form
+                    className={`quick-add ${quick.trim() ? "has-value" : ""}`}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!quick.trim()) return;
+                      const task = newTask(
+                        workspaceId,
+                        quick,
+                        view.startsWith("project:") ? view.slice(8) : null,
+                        view === "today" ? today : null,
+                      );
+                      act(async () => {
+                        await change((d) => saveTask(d, task));
+                        setQuick((current) =>
+                          current === quick ? "" : current,
+                        );
+                      });
+                    }}
+                  >
+                    <Icon name="plus" />
+                    <input
+                      aria-label="Quick add task"
+                      placeholder="Add a task…"
+                      value={quick}
+                      onChange={(e) => setQuick(e.target.value)}
+                    />
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!quick.trim()}
+                    >
+                      Add <span aria-hidden="true">↵</span>
+                    </Button>
+                  </form>
+                )}
+                {visible.length === 0 && (
+                  <div className="empty-state">
+                    <img src="/cat.png" alt="" />
+                    <h2>
+                      {search
+                        ? "No matching tasks"
+                        : view === "completed"
+                          ? "Small steps add up."
+                          : "A little breathing room."}
+                    </h2>
+                    <p>
+                      {search
+                        ? "Try another word, or switch workspaces."
+                        : view === "completed"
+                          ? "Completed tasks will show up here."
+                          : "Add something to do, or enjoy the clear space."}
+                    </p>
                   </div>
                 )}
-            </>
-          )}
+                {view === "completed" &&
+                  data.history.some(
+                    (h) => h.task.workspace_id === workspaceId,
+                  ) && (
+                    <div className="history">
+                      <h2>Completion history</h2>
+                      {data.history
+                        .filter((h) => h.task.workspace_id === workspaceId)
+                        .toReversed()
+                        .map((h) => (
+                          <div key={h.id}>
+                            <span>{h.task.title}</span>
+                            <time>
+                              {new Date(h.completed_at).toLocaleString()}
+                            </time>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+              </>
+            )}
+          </div>
         </div>
         <div className="mobile-status">{syncStatus}</div>
       </main>

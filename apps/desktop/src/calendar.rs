@@ -10,6 +10,7 @@ use gpui_kit::{prelude::*, *};
 use uuid::Uuid;
 
 use crate::app::CatDo;
+use crate::theme::{Accent, accent};
 
 #[derive(Clone)]
 struct DragTask {
@@ -28,6 +29,7 @@ impl Render for DragTask {
             .border_1()
             .border_color(p.border)
             .rounded_md()
+            .shadow_md()
             .child(self.title.clone())
     }
 }
@@ -70,10 +72,13 @@ impl CatDo {
             .cursor_pointer()
             .bg(if date == self.selected_day {
                 p.accent
+            } else if date.month() != self.month.month() {
+                p.muted
             } else {
                 p.background
             })
-            .drag_over::<DragTask>(move |el, _, _, _| el.bg(p.accent))
+            .when(date != self.selected_day, |el| el.hover(|s| s.bg(p.muted)))
+            .drag_over::<DragTask>(move |el, _, _, _| el.bg(p.primary.opacity(0.14)))
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.selected_day = date;
                 cx.notify();
@@ -121,8 +126,12 @@ impl CatDo {
                                 p.foreground
                             })
                             .when(date == today, |el| {
-                                el.bg(p.primary)
-                                    .text_color(p.primary_foreground)
+                                el.bg(accent(Accent::Today, cx))
+                                    .text_color(if cx.theme().is_dark() {
+                                        p.background
+                                    } else {
+                                        gpui_kit::white()
+                                    })
                                     .font_weight(FontWeight::BOLD)
                             })
                             .child(date.day().to_string()),
@@ -140,22 +149,36 @@ impl CatDo {
                 let id = task.id;
                 let due = task.due == Some(date);
                 let scheduled = task.scheduled == Some(date);
-                let label = if due && scheduled {
-                    format!("• ◆ {}", task.title)
-                } else if due {
-                    format!("◆ {}", task.title)
-                } else {
-                    task.title.clone()
-                };
+                let title = task.title.clone();
                 div()
                     .id(SharedString::from(format!("calendar-{date}-{id}")))
+                    .h_flex()
+                    .items_center()
+                    .gap_1p5()
                     .px_1p5()
                     .py_0p5()
-                    .rounded_sm()
+                    .rounded(px(6.))
                     .text_xs()
-                    .truncate()
-                    .text_color(if due { p.destructive } else { p.primary })
+                    .text_color(p.foreground)
                     .bg(p.muted)
+                    .hover(|s| s.bg(p.primary.opacity(0.14)))
+                    .child(
+                        div()
+                            .size(px(6.))
+                            .flex_shrink_0()
+                            .rounded_full()
+                            .bg(if due { p.destructive } else { p.primary }),
+                    )
+                    .child(div().flex_1().min_w_0().truncate().child(title))
+                    .when(due && scheduled, |el| {
+                        el.child(
+                            div()
+                                .size(px(6.))
+                                .flex_shrink_0()
+                                .rounded_full()
+                                .bg(p.primary),
+                        )
+                    })
                     .on_click(cx.listener(move |this, _, window, cx| {
                         cx.stop_propagation();
                         this.open_task(id, window, cx);
@@ -169,7 +192,6 @@ impl CatDo {
                             |drag, _, _, cx| cx.new(|_| drag.clone()),
                         )
                     })
-                    .child(label)
             }))
     }
 
@@ -299,8 +321,29 @@ impl CatDo {
                                     .mt_3()
                                     .text_xs()
                                     .text_color(p.muted_foreground)
-                                    .child("• Scheduled")
-                                    .child(div().text_color(p.destructive).child("◆ Deadline")),
+                                    .child(
+                                        div()
+                                            .h_flex()
+                                            .items_center()
+                                            .gap_1p5()
+                                            .child(
+                                                div()
+                                                    .size(px(6.))
+                                                    .rounded_full()
+                                                    .bg(accent(Accent::Scheduled, cx)),
+                                            )
+                                            .child("Scheduled"),
+                                    )
+                                    .child(
+                                        div()
+                                            .h_flex()
+                                            .items_center()
+                                            .gap_1p5()
+                                            .child(
+                                                div().size(px(6.)).rounded_full().bg(p.destructive),
+                                            )
+                                            .child("Deadline"),
+                                    ),
                             ),
                     )
                     .child(

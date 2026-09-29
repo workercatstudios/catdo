@@ -5,8 +5,33 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.delay
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,9 +54,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +73,17 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val mainSections = listOf(Section.Today, Section.Inbox, Section.Upcoming, Section.Projects)
+
+/// Each view carries its own hue so icons read at a glance.
+@Composable
+private fun Section.tint(): Color = when (this) {
+    Section.Today -> Accents.today()
+    Section.Inbox -> Accents.inbox()
+    Section.Upcoming -> Accents.upcoming()
+    Section.Calendar -> Accents.calendar()
+    Section.Completed -> Accents.done()
+    else -> MaterialTheme.colorScheme.primary
+}
 
 private fun Section.icon(): ImageVector = when (this) {
     Section.Today -> Icons.Outlined.WbSunny
@@ -247,9 +280,12 @@ fun CatDoApp(vm: CatDoViewModel) {
                         Icon(Icons.Outlined.KeyboardArrowDown, "Switch workspace", Modifier.size(18.dp))
                     }
                     Spacer(Modifier.height(8.dp))
+                    val todayCount = data.tasks.count { it.workspaceId == workspace.id && it.isActive(data) && it.isToday(today()) }
                     listOf(Section.Today, Section.Inbox, Section.Upcoming, Section.Calendar, Section.Completed, Section.Search).forEach { section ->
                         NavigationDrawerItem(
-                            label = { Text(section.name, style = MaterialTheme.typography.bodyMedium) }, icon = { Icon(section.icon(), null, Modifier.size(20.dp)) },
+                            label = { Text(section.name, style = MaterialTheme.typography.bodyMedium) },
+                            icon = { Icon(section.icon(), null, Modifier.size(20.dp), tint = section.tint()) },
+                            badge = if (section == Section.Today && todayCount > 0) ({ CountPill(todayCount, selected = vm.section == section) }) else null,
                             selected = vm.section == section,
                             onClick = { vm.select(section); scope.launch { drawer.close() } },
                             shape = MaterialTheme.shapes.small,
@@ -267,7 +303,7 @@ fun CatDoApp(vm: CatDoViewModel) {
                     data.projects.filter { it.workspaceId == workspace.id && !it.archived }.forEach { project ->
                         NavigationDrawerItem(
                             label = { Text(project.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            icon = { Icon(Icons.Outlined.FolderOpen, null, Modifier.size(20.dp)) },
+                            icon = { Icon(Icons.Outlined.FolderOpen, null, Modifier.size(20.dp), tint = Accents.project(project.id)) },
                             selected = vm.section == Section.Projects && vm.projectId == project.id,
                             onClick = { vm.select(Section.Projects, project.id); scope.launch { drawer.close() } },
                             shape = MaterialTheme.shapes.small,
@@ -314,11 +350,33 @@ fun CatDoApp(vm: CatDoViewModel) {
                             onClick = { vm.select(section) },
                             icon = { Icon(section.icon(), null) }, label = { Text(section.name) },
                             alwaysShowLabel = true,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = section.tint(),
+                                indicatorColor = section.tint().copy(alpha = 0.14f),
+                            ),
                         )
                     }
                 }
             },
             snackbarHost = { SnackbarHost(snackbar) },
+            floatingActionButton = {
+                val showAdd = when (vm.section) {
+                    Section.Today, Section.Inbox, Section.Upcoming -> true
+                    Section.Projects -> vm.projectId != null
+                    else -> false
+                }
+                AnimatedVisibility(showAdd, enter = scaleIn(spring(Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                    exit = scaleOut() + fadeOut()) {
+                    ExtendedFloatingActionButton(
+                        onClick = { vm.newTask(if (vm.section == Section.Today) today() else null) },
+                        icon = { Icon(Icons.Outlined.Add, null) },
+                        text = { Text("Add task") },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+            },
         ) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (wide) NavigationRail(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -327,31 +385,44 @@ fun CatDoApp(vm: CatDoViewModel) {
                             selected = vm.section == section && (section != Section.Projects || vm.projectId == null),
                             onClick = { vm.select(section) },
                             icon = { Icon(section.icon(), null) }, label = { Text(section.name) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = section.tint(),
+                                indicatorColor = section.tint().copy(alpha = 0.14f),
+                            ),
                         )
                     }
                 }
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
-                Column(Modifier.widthIn(max = 840.dp).fillMaxSize()) {
-                when (vm.section) {
-                    Section.Projects -> if (vm.projectId == null) ProjectOverview(data, workspace, vm) else
-                        TaskSection(data, vm, selectedProject?.name ?: "Project",
-                            data.tasks.filter { it.workspaceId == workspace.id && it.projectId == vm.projectId && it.completedAt == null })
+                AnimatedContent(
+                    targetState = vm.section to vm.projectId,
+                    transitionSpec = {
+                        (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 28 }) togetherWith fadeOut(tween(120))
+                    },
+                    label = "section",
+                    modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
+                ) { (section, projectId) ->
+                Column(Modifier.fillMaxSize()) {
+                when (section) {
+                    Section.Projects -> if (projectId == null) ProjectOverview(data, workspace, vm) else
+                        TaskSection(data, vm, section, data.projects.firstOrNull { it.id == projectId }?.name ?: "Project",
+                            data.tasks.filter { it.workspaceId == workspace.id && it.projectId == projectId && it.completedAt == null },
+                            tint = Accents.project(projectId))
                     Section.Settings -> SettingsScreen(workspace, vm, notificationsEnabled, notificationBusy, toggleNotifications)
                     Section.Search -> SearchScreen(data, workspace, vm)
                     Section.Calendar -> CalendarScreen(data, workspace, vm)
                     else -> {
                         val day = today()
                         val tasks = data.tasks.filter { it.workspaceId == workspace.id && it.isActive(data) }
-                        val shown = when (vm.section) {
+                        val shown = when (section) {
                             Section.Today -> tasks.filter { it.isToday(day) }
                             Section.Inbox -> tasks.filter { it.projectId == null && it.scheduled == null && it.due == null }
                             Section.Upcoming -> tasks.filter { (it.scheduled ?: it.due)?.let { date -> date > day } == true || (it.due?.let { date -> date > day } == true) }
                             Section.Completed -> data.tasks.filter { it.workspaceId == workspace.id && it.completedAt != null }
                             else -> emptyList()
                         }
-                        val title = vm.section.name
-                        TaskSection(data, vm, title, shown)
+                        TaskSection(data, vm, section, section.name, shown)
                     }
+                }
                 }
                 }
                 }
@@ -414,13 +485,18 @@ private fun NameDialog(title: String, onDismiss: () -> Unit, onCreate: (String) 
 }
 
 @Composable
-internal fun SectionHeading(title: String, count: Int = 0, detail: String? = null, onAdd: (() -> Unit)? = null) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 20.dp)) {
+internal fun SectionHeading(title: String, count: Int = 0, detail: String? = null, icon: ImageVector? = null,
+    tint: Color = MaterialTheme.colorScheme.primary, onAdd: (() -> Unit)? = null) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) Box(Modifier.padding(end = 12.dp).size(40.dp)
+                .background(tint.copy(alpha = 0.12f), MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(22.dp), tint = tint)
+            }
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f, fill = false))
-                if (count > 0) Text(count.toString(), modifier = Modifier.padding(start = 10.dp),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (count > 0) CountPill(count, modifier = Modifier.padding(start = 10.dp))
             }
             if (onAdd != null) Button(onClick = onAdd, shape = MaterialTheme.shapes.small,
                 contentPadding = PaddingValues(horizontal = 12.dp), modifier = Modifier.height(36.dp)) {
@@ -430,41 +506,59 @@ internal fun SectionHeading(title: String, count: Int = 0, detail: String? = nul
             }
         }
         if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, start = if (icon != null) 52.dp else 0.dp))
     }
 }
 
 @Composable
-private fun TaskSection(data: AppData, vm: CatDoViewModel, title: String, tasks: List<Task>) {
+internal fun CountPill(count: Int, modifier: Modifier = Modifier, selected: Boolean = false) {
+    Text(count.toString(), modifier = modifier
+        .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+        .padding(horizontal = 8.dp, vertical = 2.dp),
+        style = MaterialTheme.typography.labelMedium,
+        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun TaskSection(data: AppData, vm: CatDoViewModel, section: Section, title: String, tasks: List<Task>,
+    tint: Color = section.tint()) {
     val sorted = tasks.sortedWith(compareBy<Task> { it.scheduled ?: it.due ?: "9999-12-31" }.thenBy { it.createdAt })
-    val isToday = vm.section == Section.Today
+    val isToday = section == Section.Today
     val overdue = if (isToday) sorted.filter { it.due != null && it.due < today() } else emptyList()
     val remaining = sorted.filterNot { it in overdue }
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-        item {
-            SectionHeading(title, sorted.size,
-                detail = if (isToday) LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d")) else null,
-                onAdd = { vm.newTask(if (isToday) today() else null) })
+    LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
+        item(key = "heading") {
+            SectionHeading(title, sorted.size, icon = section.icon(), tint = tint,
+                detail = if (isToday) LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d")) else null)
         }
-        if (sorted.isEmpty()) item { EmptyState(if (isToday) "You’re all caught up" else "No tasks yet", "") }
+        if (sorted.isEmpty()) item(key = "empty") {
+            EmptyState(
+                if (section == Section.Completed) "Small steps add up." else "A little breathing room.",
+                if (section == Section.Completed) "Completed tasks will show up here." else "Add something to do, or enjoy the clear space.",
+                modifier = Modifier.animateItem(),
+            )
+        }
         if (overdue.isNotEmpty()) {
-            item { TaskGroupHeading("Overdue", overdue.size, overdue = true) }
+            item(key = "overdue") { TaskGroupHeading("Overdue", overdue.size, overdue = true, modifier = Modifier.animateItem()) }
             items(overdue, key = { it.id }) { task ->
-                TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = false)
+                TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = false, modifier = Modifier.animateItem())
             }
-            if (remaining.isNotEmpty()) item { TaskGroupHeading("Today", remaining.size) }
+            if (remaining.isNotEmpty()) item(key = "today") { TaskGroupHeading("Today", remaining.size, modifier = Modifier.animateItem()) }
         }
         items(remaining, key = { it.id }) { task ->
-            TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = !isToday)
+            TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = !isToday, modifier = Modifier.animateItem())
         }
     }
 }
 
 @Composable
-private fun TaskGroupHeading(title: String, count: Int, overdue: Boolean = false) {
-    Column {
+private fun TaskGroupHeading(title: String, count: Int, overdue: Boolean = false, modifier: Modifier = Modifier) {
+    Column(modifier) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(if (overdue) Icons.Outlined.ErrorOutline else Icons.Outlined.WbSunny, null, Modifier.size(14.dp),
+                tint = if (overdue) MaterialTheme.colorScheme.error else Accents.today())
             Text(title, style = MaterialTheme.typography.labelMedium,
                 color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
             Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -474,41 +568,89 @@ private fun TaskGroupHeading(title: String, count: Int, overdue: Boolean = false
 }
 
 @Composable
-fun TaskRow(task: Task, data: AppData, onOpen: () -> Unit, onComplete: () -> Unit, showScheduled: Boolean = true) {
-    val completed = task.completedAt != null
+fun TaskRow(task: Task, data: AppData, onOpen: () -> Unit, onComplete: () -> Unit, showScheduled: Boolean = true,
+    modifier: Modifier = Modifier) {
+    // Let the check fill before the row leaves the list.
+    var completing by remember(task.id) { mutableStateOf(false) }
+    LaunchedEffect(completing) {
+        if (completing) { delay(280); onComplete(); completing = false }
+    }
+    val completed = task.completedAt != null || completing
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val overdue = task.due != null && task.due < today() && !completed
-    val metadata = buildAnnotatedString {
-        task.due?.let { due ->
-            withStyle(SpanStyle(color = if (overdue) MaterialTheme.colorScheme.error else muted)) { append("Due ${formatDay(due)}") }
-        }
-        val details = buildList {
-            if (showScheduled) task.scheduled?.let { add(formatDay(it)) }
-            task.projectId?.let { id -> data.projects.firstOrNull { it.id == id }?.name?.let { add(it) } }
-            task.recurrence?.let { add("Repeats") }
-            data.tasks.count { it.parentId == task.id }.takeIf { it > 0 }?.let { add("$it subtasks") }
-        }
-        if (details.isNotEmpty()) {
-            if (length > 0) append(" · ")
-            append(details.joinToString(" · "))
-        }
-    }
-    Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onOpen).padding(start = 8.dp, end = 20.dp),
-            verticalAlignment = Alignment.Top) {
-            IconButton(onClick = onComplete, modifier = Modifier.size(48.dp).padding(top = 3.dp)) {
-                Icon(if (completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                    if (completed) "Restore ${task.title}" else "Complete ${task.title}", modifier = Modifier.size(20.dp),
-                    tint = if (completed) MaterialTheme.colorScheme.primary else muted.copy(alpha = 0.7f))
-            }
+    val project = task.projectId?.let { id -> data.projects.firstOrNull { it.id == id } }
+    val subtasks = data.tasks.count { it.parentId == task.id }
+    val dueToday = task.due != null && task.due == today() && !completed
+    val hasMeta = task.due != null || (showScheduled && task.scheduled != null) || project != null || task.recurrence != null || subtasks > 0
+    val titleColor by animateColorAsState(if (completed) muted else MaterialTheme.colorScheme.onSurface, tween(220), label = "title")
+    Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onOpen)
+            .padding(end = 12.dp), verticalAlignment = Alignment.Top) {
+            CompleteCheck(
+                completed = completed,
+                label = if (task.completedAt != null) "Restore ${task.title}" else "Complete ${task.title}",
+                modifier = Modifier.padding(top = 4.dp),
+            ) { if (task.completedAt != null) onComplete() else if (!completing) completing = true }
             Column(Modifier.weight(1f).padding(top = 13.dp, bottom = 12.dp)) {
                 Text(task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal,
-                    color = if (completed) muted else MaterialTheme.colorScheme.onSurface,
+                    color = titleColor,
                     textDecoration = if (completed) TextDecoration.LineThrough else TextDecoration.None)
                 if (task.notes.isNotBlank()) Text(task.notes, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall, color = muted, modifier = Modifier.padding(top = 2.dp))
-                if (metadata.isNotEmpty()) Text(metadata, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, color = muted, modifier = Modifier.padding(top = 3.dp))
+                if (hasMeta) Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    task.due?.let { due ->
+                        MetaChip(Icons.Outlined.Flag, "Due ${formatDay(due)}",
+                            if (overdue) MaterialTheme.colorScheme.error else if (dueToday) Accents.today() else muted,
+                            filled = overdue || dueToday)
+                    }
+                    if (showScheduled) task.scheduled?.let { MetaChip(Icons.Outlined.Event, formatDay(it), Accents.scheduled()) }
+                    project?.let {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Box(Modifier.size(7.dp).background(Accents.project(it.id), CircleShape))
+                            Text(it.name, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                color = muted, modifier = Modifier.widthIn(max = 120.dp))
+                        }
+                    }
+                    task.recurrence?.let { MetaChip(Icons.Outlined.Repeat, "Repeats", Accents.repeat()) }
+                    if (subtasks > 0) MetaChip(Icons.Outlined.AccountTree, subtasks.toString(), muted)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetaChip(icon: ImageVector, label: String, tint: Color, filled: Boolean = false) {
+    Row(Modifier.then(if (filled) Modifier.background(tint.copy(alpha = 0.12f), CircleShape).padding(horizontal = 7.dp, vertical = 2.dp) else Modifier),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, null, Modifier.size(12.dp), tint = tint)
+        Text(label, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1, color = tint,
+            fontWeight = if (filled) FontWeight.Medium else FontWeight.Normal)
+    }
+}
+
+/// A round check that fills green and springs under the finger.
+@Composable
+private fun CompleteCheck(completed: Boolean, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        if (pressed) 0.85f else if (completed) 1.08f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "checkScale")
+    val done = Accents.done()
+    val fill by animateColorAsState(if (completed) done else Color.Transparent, tween(180), label = "checkFill")
+    val ring by animateColorAsState(
+        if (completed) done else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+        tween(180), label = "checkRing")
+    Box(modifier.size(48.dp)
+        .clickable(interactionSource = interaction, indication = ripple(bounded = false, radius = 24.dp),
+            role = Role.Checkbox, onClick = onClick)
+        .semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).scale(scale).background(fill, CircleShape).border(1.5.dp, ring, CircleShape),
+            contentAlignment = Alignment.Center) {
+            AnimatedVisibility(completed, enter = scaleIn(spring(Spring.DampingRatioMediumBouncy)) + fadeIn(), exit = scaleOut() + fadeOut()) {
+                Icon(Icons.Outlined.Check, null, Modifier.size(14.dp), tint = Color.White)
             }
         }
     }
@@ -524,11 +666,19 @@ fun formatDay(day: String): String = try {
 } catch (_: Exception) { day }
 
 @Composable
-private fun EmptyState(title: String, subtitle: String) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 32.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+private fun EmptyState(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    AnimatedVisibility(shown, enter = fadeIn(tween(360)) + slideInVertically(tween(360)) { it / 6 }, modifier = modifier) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(56.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Pets, null, Modifier.size(26.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        }
     }
 }
 
@@ -536,18 +686,23 @@ private fun EmptyState(title: String, subtitle: String) {
 private fun ProjectOverview(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
     val projects = data.projects.filter { it.workspaceId == workspace.id && !it.archived }
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { SectionHeading("Projects", projects.size) }
-        if (projects.isEmpty()) item { EmptyState("No projects yet", "") }
+        item { SectionHeading("Projects", projects.size, icon = Section.Projects.icon()) }
+        if (projects.isEmpty()) item { EmptyState("A home for your next idea.", "Add a project with the button below.") }
         items(projects, key = { it.id }) { project ->
             val count = data.tasks.count { it.projectId == project.id && it.isActive(data) }
-            Row(Modifier.fillMaxWidth().clickable { vm.select(Section.Projects, project.id) }
-                .padding(horizontal = 20.dp).heightIn(min = 60.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.FolderOpen, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(project.name, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.bodyLarge)
-                Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Icon(Icons.Outlined.ChevronRight, null, Modifier.padding(start = 12.dp).size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.animateItem().fillMaxWidth().padding(horizontal = 8.dp).clip(MaterialTheme.shapes.medium)
+                .clickable { vm.select(Section.Projects, project.id) }
+                .padding(horizontal = 12.dp).heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                val hue = Accents.project(project.id)
+                Box(Modifier.size(32.dp).background(hue.copy(alpha = 0.14f), MaterialTheme.shapes.small),
+                    contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.FolderOpen, null, Modifier.size(18.dp), tint = hue)
+                }
+                Text(project.name, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (count > 0) CountPill(count)
+                Icon(Icons.Outlined.ChevronRight, null, Modifier.padding(start = 8.dp).size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            HorizontalDivider(Modifier.padding(horizontal = 20.dp))
         }
         item { TextButton(onClick = { vm.nameDialog = "project" }, modifier = Modifier.padding(start = 12.dp, top = 8.dp)) {
             Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("New project")
@@ -561,13 +716,13 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
     val tasks = data.tasks.filter { it.workspaceId == workspace.id && it.completedAt == null &&
         query.isNotEmpty() && (it.title.contains(query, true) || it.notes.contains(query, true)) }
     Column {
-        SectionHeading("Search", tasks.size)
+        SectionHeading("Search", tasks.size, icon = Section.Search.icon())
         OutlinedTextField(vm.search, { vm.search = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             placeholder = { Text("Search tasks") }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, singleLine = true, shape = MaterialTheme.shapes.small)
         Spacer(Modifier.height(16.dp))
         LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
-            items(tasks, key = { it.id }) { task -> TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }) }
-            if (query.isNotEmpty() && tasks.isEmpty()) item { EmptyState("No matching tasks.", "Try a different word.") }
+            items(tasks, key = { it.id }) { task -> TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, modifier = Modifier.animateItem()) }
+            if (query.isNotEmpty() && tasks.isEmpty()) item { EmptyState("No matching tasks", "Try another word, or switch workspaces.") }
         }
     }
 }
@@ -576,7 +731,7 @@ private fun SearchScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel
 private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificationsEnabled: Boolean, notificationBusy: Boolean, onNotificationsChanged: (Boolean) -> Unit) {
     val uriHandler = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-        SectionHeading("Settings")
+        SectionHeading("Settings", icon = Section.Settings.icon())
         SettingsGroup("Workspace") {
             SettingsRow(workspace.name, "", Icons.Outlined.Workspaces,
                 onClick = { vm.nameDialog = "switch" })

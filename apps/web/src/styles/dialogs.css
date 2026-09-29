@@ -1,7 +1,8 @@
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgb(10 20 13 / 0.3);
+  background: rgb(12 12 12 / 0.34);
+  backdrop-filter: blur(2px);
   z-index: 50;
 }
 .dialog-content {
@@ -17,9 +18,9 @@
   scrollbar-color: var(--scrollbar-thumb) transparent;
   background: var(--background);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 28px;
-  box-shadow: none;
+  box-shadow: var(--shadow-lg);
 }
 .dialog-content > h2 {
   padding-right: 28px;
@@ -43,6 +44,17 @@
   background: transparent;
   border: 0;
   padding: 6px;
+  border-radius: 8px;
+  color: var(--muted);
+  transition:
+    background-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out),
+    transform var(--base) var(--ease-spring);
+}
+.dialog-close:hover {
+  background: var(--hover);
+  color: var(--foreground);
+  transform: rotate(90deg);
 }
 .dialog-actions {
   display: flex;
@@ -57,7 +69,7 @@
   height: min(680px, calc(100dvh - 64px));
   max-height: calc(100dvh - 64px);
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 0;
 }
 .editor-header {
@@ -114,6 +126,25 @@
   font-size: 12px;
   gap: 7px;
 }
+.editor-title-field {
+  position: relative;
+}
+.editor-title-field::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--base) var(--ease-out);
+}
+.editor-title-field:focus-within::after {
+  transform: scaleX(1);
+}
 .editor .editor-title-input {
   field-sizing: content;
   min-height: 40px;
@@ -129,7 +160,6 @@
 }
 .editor .editor-title-input:focus-visible {
   outline: none;
-  box-shadow: 0 1px 0 var(--primary);
 }
 .editor-title-input::placeholder {
   color: var(--muted);
@@ -206,8 +236,10 @@
   white-space: normal;
   height: auto;
   min-height: 38px;
-  padding: 8px 0;
+  margin: 0 -8px;
+  padding: 8px 8px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   text-align: left;
   font-size: 13px;
@@ -220,6 +252,7 @@
 }
 .editor .subtask-link:hover {
   color: var(--primary);
+  background: var(--surface);
 }
 .editor .editor-add-subtask {
   align-self: flex-start;
@@ -284,14 +317,18 @@
   flex: 1;
   padding: 0;
   min-width: 0;
-  height: 28px;
+  height: 30px;
+  border: 1px solid var(--border);
   background: var(--background);
   color: var(--muted);
   font-size: 11px;
+  border-radius: 7px;
 }
 .weekdays [aria-pressed="true"] {
   background: var(--primary);
+  border-color: var(--primary);
   color: var(--primary-foreground);
+  box-shadow: var(--shadow-sm);
 }
 @media (max-width: 640px) {
   .dialog-content.editor {
@@ -357,6 +394,9 @@
   margin-bottom: 28px;
   border-bottom: 1px solid var(--border);
 }
+.manage-body > .ui-button {
+  margin-bottom: 28px;
+}
 .settings-section > h2 {
   font-size: 16px;
   margin-bottom: 8px;
@@ -384,8 +424,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  margin: 0 -10px;
+  padding: 8px 10px;
+  border-radius: 8px;
   font-size: 13px;
+  transition: background-color var(--fast) var(--ease-out);
+}
+.manage-row:hover {
+  background: var(--surface);
 }
 .manage-row > strong,
 .manage-row > span {
@@ -402,6 +448,6 @@
   height: 30px;
 }
 .manage-row.indented {
-  padding-left: 18px;
+  padding-left: 28px;
   color: var(--muted);
 }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.workercat.catdo"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 11
-        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.12"
+        versionCode = providers.environmentVariable("CATDO_ANDROID_VERSION_CODE").orNull?.toInt() ?: 13
+        versionName = providers.environmentVariable("CATDO_ANDROID_VERSION_NAME").orNull ?: "0.2.13"
     }
 
     signingConfigs {

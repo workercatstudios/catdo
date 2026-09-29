@@ -6,6 +6,7 @@ import { appPath } from "../lib/app-route";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { ThemeControl } from "../lib/theme";
+import { projectColorIndex } from "../lib/colors";
 
 import type { ReactNode } from "react";
 export function AppSidebar({
@@ -45,7 +46,14 @@ export function AppSidebar({
     <Link
       key={id}
       to={appPath(workspace, id)}
-      className={view === id && !search ? "selected" : ""}
+      className={`${id.startsWith("project:") ? "view-project" : `view-${id}`} ${view === id && !search ? "selected" : ""}`}
+      style={
+        id.startsWith("project:")
+          ? ({
+              "--project-color": `var(--c-p${projectColorIndex(id.slice(8))})`,
+            } as React.CSSProperties)
+          : undefined
+      }
       aria-current={view === id && !search ? "page" : undefined}
       onClick={(e) => {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;

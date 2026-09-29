@@ -16,7 +16,8 @@ export function Calendar({
   move: (id: string, date: string) => void;
 }) {
   const [month, setMonth] = useState(localDay().slice(0, 7) + "-01"),
-    [selected, setSelected] = useState(localDay());
+    [selected, setSelected] = useState(localDay()),
+    [dropTarget, setDropTarget] = useState<string | null>(null);
   const first = new Date(`${month}T12:00:00`);
   const start = addDays(month, -((first.getDay() + 6) % 7));
   const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
@@ -65,11 +66,18 @@ export function Calendar({
         </div>
       </div>
       <p className="muted calendar-key">
-        Scheduled · <span className="deadline">◆ Due date</span>
+        <span>
+          <span className="calendar-dot" aria-hidden="true" />
+          Scheduled
+        </span>
+        <span className="deadline">
+          <span className="calendar-dot deadline" aria-hidden="true" />
+          Due date
+        </span>
         <span>Drag a scheduled task to move its date.</span>
       </p>
       <div className="calendar-layout">
-        <div className="calendar-grid">
+        <div className="calendar-grid" key={month}>
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
             <div className="weekday" key={day}>
               {day}
@@ -83,10 +91,19 @@ export function Calendar({
             return (
               <div
                 key={date}
-                className={`calendar-day ${date.slice(0, 7) !== month.slice(0, 7) ? "outside" : ""} ${date === selected ? "selected" : ""}`}
-                onDragOver={(e) => e.preventDefault()}
+                className={`calendar-day ${date.slice(0, 7) !== month.slice(0, 7) ? "outside" : ""} ${date === selected ? "selected" : ""} ${dropTarget === date ? "drop-target" : ""}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dropTarget !== date) setDropTarget(date);
+                }}
+                onDragLeave={() =>
+                  setDropTarget((current) =>
+                    current === date ? null : current,
+                  )
+                }
                 onDrop={(e) => {
                   e.preventDefault();
+                  setDropTarget(null);
                   const id = e.dataTransfer.getData("text/plain");
                   if (tasks.some((t) => t.id === id && t.scheduled))
                     move(id, date);
@@ -122,8 +139,16 @@ export function Calendar({
                       onClick={() => open(t)}
                       title={t.title}
                     >
-                      {t.due === date && <span className="deadline">◆ </span>}
-                      {t.title}
+                      <span
+                        className={`calendar-dot ${t.due === date ? "deadline" : ""}`}
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {t.due === date && (
+                          <span className="sr-only">Due: </span>
+                        )}
+                        {t.title}
+                      </span>
                     </button>
                   ))}
                   {dayTasks.length > 3 && (
@@ -148,23 +173,27 @@ export function Calendar({
               day: "numeric",
             })}
           </h2>
-          {tasks
-            .filter((t) => t.scheduled === selected || t.due === selected)
-            .map((t) => (
-              <button
-                className="agenda-task"
-                key={t.id}
-                draggable={t.scheduled === selected}
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
-                onClick={() => open(t)}
-              >
-                {t.title}
-                <span>{t.due === selected ? "Due" : "Scheduled"}</span>
-              </button>
-            ))}
-          {!tasks.some(
-            (t) => t.scheduled === selected || t.due === selected,
-          ) && <p className="muted">Nothing planned for this day.</p>}
+          <div className="agenda-list" key={selected}>
+            {tasks
+              .filter((t) => t.scheduled === selected || t.due === selected)
+              .map((t) => (
+                <button
+                  className="agenda-task"
+                  key={t.id}
+                  draggable={t.scheduled === selected}
+                  onDragStart={(e) =>
+                    e.dataTransfer.setData("text/plain", t.id)
+                  }
+                  onClick={() => open(t)}
+                >
+                  {t.title}
+                  <span>{t.due === selected ? "Due" : "Scheduled"}</span>
+                </button>
+              ))}
+            {!tasks.some(
+              (t) => t.scheduled === selected || t.due === selected,
+            ) && <p className="muted">Nothing planned for this day.</p>}
+          </div>
         </div>
       </div>
     </>

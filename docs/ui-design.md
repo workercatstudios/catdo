@@ -1,22 +1,35 @@
 # CatDo UI
 
-Desktop, web, and Android share a neutral foundation with sage for actions,
-focus, and selection. Use platform components with these tokens; keep native
-keyboard, focus, touch, and accessibility behavior.
+Desktop, web, and Android share a warm neutral foundation. Actions, focus, and
+selection use ink (near-black in light mode, near-white in dark mode) rather
+than a hue. Colour is reserved for meaning: each view has its own hue for its
+icon (amber Today, blue Inbox, violet Upcoming, teal Calendar, green Completed),
+every project gets a stable colour dot from a hash of its id (eight slots shared
+by all clients), deadlines are red when late and amber when due today, scheduled
+dates read blue, repeats read teal, and a finished check fills green. Metadata
+always pairs its colour with an icon (flag, calendar, repeat, subtasks) so it
+still reads without colour. Use platform components with these tokens; keep
+native keyboard, focus, touch, and accessibility behavior. Text on a tint must
+keep 4.5:1 contrast; the light-mode hues above are chosen for that.
 
 ## Colors
 
 | Role                     | Light     | Dark      |
 | ------------------------ | --------- | --------- |
-| Canvas                   | `#FFFFFF` | `#1C201D` |
-| Sidebar / low surface    | `#F7F7F5` | `#181B19` |
-| Secondary surface        | `#F7F7F5` | `#242925` |
-| Text                     | `#242824` | `#EDF0EA` |
-| Secondary text           | `#696F66` | `#A2AAA0` |
-| Border                   | `#E8EAE5` | `#333B34` |
-| Primary                  | `#3E624E` | `#ACCCB1` |
-| On primary               | `#FFFFFF` | `#1C201D` |
-| Selection                | `#E9EFE9` | `#2C3E30` |
+| Canvas                   | `#FFFFFF` | `#1B1B1A` |
+| Sidebar / low surface    | `#F6F6F4` | `#171716` |
+| Secondary surface        | `#F6F6F4` | `#232322` |
+| Text                     | `#232323` | `#EDEDEA` |
+| Secondary text           | `#6B6B67` | `#A3A39F` |
+| Border                   | `#E7E7E3` | `#333331` |
+| Primary (ink)            | `#262626` | `#EDEDEA` |
+| On primary               | `#FFFFFF` | `#1B1B1A` |
+| Selection                | `#ECECE8` | `#2C2C2A` |
+| Today accent             | `#946A2A` | `#D9A860` |
+| Inbox / scheduled        | `#3B6FB6` | `#8FB4E8` |
+| Upcoming                 | `#6B5BB5` | `#B3A6E8` |
+| Calendar / repeat        | `#25736A` | `#86CDBF` |
+| Done                     | `#3E7A4F` | `#9ACB9F` |
 | Error / overdue deadline | `#AD3F3C` | `#E7988B` |
 
 Token definitions live in:
@@ -53,8 +66,17 @@ previews and expose all tasks in the agenda. On phones, show task counts in the
 month grid and readable task names below it. Settings use compact rows and
 section rules without nested cards.
 
-Use the existing CatDo artwork. No decorative gradients, glass, or large shadows
-are needed for the task workspace.
+Use the existing CatDo artwork. No decorative gradients or glass. Dialogs may
+carry a soft shadow; rows and panels stay flat.
+
+## Motion
+
+Motion is quick and purposeful. Views and rows settle in with a short fade and
+lift (about 250ms, staggered a little per row); checks fill and spring when a
+task completes, and the row leaves before the list reflows; dialogs rise over a
+fading scrim; hover and press states transition in roughly 150ms. Keep every
+entrance under 400ms, and honour the platform's reduced-motion setting by
+keeping only the fades. On the web, keyboard-driven sessions stay immediate.
 
 ## Reviewing a UI change
 

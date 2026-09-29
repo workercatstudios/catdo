@@ -9,6 +9,8 @@ use gpui_kit::component::{
 };
 use gpui_kit::{prelude::*, *};
 
+use crate::motion::{fade_in, settle};
+
 impl Render for CatDo {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.workspace_select_dirty {
@@ -143,38 +145,41 @@ impl Render for CatDo {
                     ),
             )
             .when_some(self.editor.clone(), |el, editor| {
-                el.child(
+                el.child(fade_in(
                     div()
                         .id("editor-modal")
                         .occlude()
                         .absolute()
                         .inset_0()
-                        .bg(gpui_kit::black().opacity(0.25))
+                        .bg(gpui_kit::black().opacity(0.28))
                         .flex()
                         .items_center()
                         .justify_center()
-                        .child(editor),
-                )
+                        .child(settle(div().child(editor), "editor-settle", cx)),
+                    "editor-scrim",
+                    cx,
+                ))
             })
             .when_some(self.create_kind, |el, kind| {
-                el.child(
+                el.child(fade_in(
                     div()
                         .absolute()
                         .inset_0()
-                        .bg(gpui_kit::black().opacity(0.25))
+                        .bg(gpui_kit::black().opacity(0.28))
                         .flex()
                         .items_center()
                         .justify_center()
-                        .child(
+                        .child(settle(
                             div()
                                 .v_flex()
-                                .w(px(360.))
+                                .w(px(380.))
                                 .p_6()
                                 .gap_4()
-                                .rounded(px(12.))
+                                .rounded(px(14.))
                                 .bg(p.background)
                                 .border_1()
                                 .border_color(p.border)
+                                .shadow_lg()
                                 .child(div().text_lg().font_weight(FontWeight::SEMIBOLD).child(
                                     match kind {
                                         CreateKind::Workspace => "New workspace",
@@ -221,8 +226,12 @@ impl Render for CatDo {
                                         )
                                     },
                                 ),
-                        ),
-                )
+                            "name-dialog-settle",
+                            cx,
+                        )),
+                    "name-dialog-scrim",
+                    cx,
+                ))
             })
     }
 }

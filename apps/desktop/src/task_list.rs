@@ -5,13 +5,15 @@ use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::{
     Icon, IconName, Sizable, StyledExt,
     button::{Button, ButtonVariants},
-    checkbox::Checkbox,
     input::Input,
     list::ListItem,
 };
 use gpui_kit::{prelude::*, *};
 
 use crate::app::{CatDo, View};
+use crate::motion::{settle, settle_after};
+use crate::theme::{Accent, accent, project_color_index};
+use gpui_kit::assets::IconName as Lucide;
 
 impl CatDo {
     pub fn visible_tasks(&self, cx: &App) -> Vec<Task> {
@@ -67,13 +69,65 @@ impl CatDo {
     }
 
     pub fn task_row(&self, task: Task, cx: &Context<Self>) -> impl IntoElement {
+        self.task_row_at(task, 0, cx)
+    }
+
+    /// A round check that fills with the primary colour once the task is done.
+    fn check(&self, task: &Task, cx: &Context<Self>) -> impl IntoElement {
+        let p = cx.theme().color_tokens();
+        let id = task.id;
+        let done = !task.active();
+        Button::new(SharedString::from(format!("complete-{id}")))
+            .ghost()
+            .w(px(28.))
+            .h(px(28.))
+            .p_0()
+            .rounded_full()
+            .mt_2()
+            .flex_shrink_0()
+            .accessibility_label(format!(
+                "{} {}",
+                if done { "Reopen" } else { "Complete" },
+                task.title
+            ))
+            .tooltip(if done { "Reopen task" } else { "Complete task" })
+            .child(
+                div()
+                    .size(px(20.))
+                    .rounded_full()
+                    .border(px(1.5))
+                    .border_color(if done {
+                        accent(Accent::Done, cx)
+                    } else {
+                        p.muted_foreground.opacity(0.55)
+                    })
+                    .bg(if done {
+                        accent(Accent::Done, cx)
+                    } else {
+                        transparent_black()
+                    })
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .text_color(gpui_kit::white())
+                    .when(done, |el| el.child(Icon::new(IconName::Check).size_3())),
+            )
+            .on_click(cx.listener(move |this, _, _, cx| this.complete_task(id, cx)))
+    }
+
+    fn task_row_at(&self, task: Task, index: usize, cx: &Context<Self>) -> impl IntoElement {
         let p = cx.theme().color_tokens();
         let today = Local::now().date_naive();
         let id = task.id;
         let project = task
             .project_id
             .and_then(|id| self.data.projects.iter().find(|p| p.id == id))
-            .map(|p| p.name.clone());
+            .map(|p| {
+                (
+                    p.name.clone(),
+                    accent(Accent::Project(project_color_index(p.id)), cx),
+                )
+            });
         let children = self
             .data
             .tasks
@@ -99,41 +153,26 @@ impl CatDo {
             .unwrap_or_default()
             .trim()
             .to_string();
-        div()
+        let check = self.check(&task, cx);
+        let row = div()
             .id(SharedString::from(format!("task-{id}")))
             .h_flex()
             .items_start()
-            .gap_3()
-            .px_3()
-            .py_2()
-            .border_b_1()
-            .border_color(p.border)
-            .min_h(px(76.))
-            .child(
-                Checkbox::new(SharedString::from(format!("complete-{id}")))
-                    .large()
-                    .mt_3()
-                    .checked(!task.active())
-                    .accessibility_label(format!(
-                        "{} {}",
-                        if task.active() { "Complete" } else { "Reopen" },
-                        task.title
-                    ))
-                    .tooltip(if task.active() {
-                        "Complete task"
-                    } else {
-                        "Reopen task"
-                    })
-                    .on_click(cx.listener(move |this, _, _, cx| this.complete_task(id, cx))),
-            )
+            .gap_2()
+            .px_2()
+            .py_1p5()
+            .rounded(px(10.))
+            .min_h(px(60.))
+            .hover(|s| s.bg(p.muted))
+            .child(check)
             .child(
                 ListItem::new(SharedString::from(format!("open-{id}")))
                     .role(gpui_kit::accesskit::Role::Button)
                     .aria_label(format!("Open {}", task.title))
-                    .rounded(px(6.))
-                    .py_2p5()
+                    .rounded(px(8.))
+                    .py_2()
                     .px_1()
-                    .text_size(px(17.))
+                    .text_size(px(16.))
                     .flex_1()
                     .min_w_0()
                     .cursor_pointer()
@@ -174,13 +213,22 @@ impl CatDo {
                                                 .gap_3()
                                                 .text_xs()
                                                 .text_color(p.muted_foreground)
-                                                .when_some(project, |el, project| {
+                                                .when_some(project, |el, (name, hue)| {
                                                     el.child(
                                                         div()
+                                                            .h_flex()
+                                                            .items_center()
+                                                            .gap_1p5()
                                                             .flex_shrink_0()
-                                                            .max_w(px(140.))
-                                                            .truncate()
-                                                            .child(project),
+                                                            .max_w(px(160.))
+                                                            .child(
+                                                                div()
+                                                                    .size(px(7.))
+                                                                    .flex_shrink_0()
+                                                                    .rounded_full()
+                                                                    .bg(hue),
+                                                            )
+                                                            .child(div().truncate().child(name)),
                                                     )
                                                 })
                                                 .when(!notes.is_empty(), |el| {
@@ -202,12 +250,32 @@ impl CatDo {
                                                 .text_xs()
                                                 .text_color(p.muted_foreground)
                                                 .when(children > 0, |el| {
-                                                    el.child(format!(
-                                                        "{completed_children}/{children} subtasks"
-                                                    ))
+                                                    el.child(
+                                                        div()
+                                                            .h_flex()
+                                                            .items_center()
+                                                            .gap_1()
+                                                            .child(
+                                                                Icon::new(Lucide::ListTree)
+                                                                    .size_3(),
+                                                            )
+                                                            .child(format!(
+                                                                "{completed_children}/{children}"
+                                                            )),
+                                                    )
                                                 })
                                                 .when_some(task.recurrence.clone(), |el, rule| {
-                                                    el.child(format!("↻ {}", rule.label()))
+                                                    el.child(
+                                                        div()
+                                                            .h_flex()
+                                                            .items_center()
+                                                            .gap_1()
+                                                            .text_color(accent(Accent::Repeat, cx))
+                                                            .child(
+                                                                Icon::new(Lucide::Repeat).size_3(),
+                                                            )
+                                                            .child(rule.label()),
+                                                    )
                                                 }),
                                         )
                                     }),
@@ -223,17 +291,31 @@ impl CatDo {
                                     .text_sm()
                                     .text_color(p.muted_foreground)
                                     .when_some(task.due, |el, due| {
+                                        let late = due < today && task.active();
+                                        let soon = due == today && task.active();
+                                        let tone = if late {
+                                            p.destructive
+                                        } else if soon {
+                                            accent(Accent::Today, cx)
+                                        } else {
+                                            p.muted_foreground
+                                        };
                                         el.child(
                                             div()
                                                 .h_flex()
                                                 .items_center()
                                                 .gap_1()
-                                                .text_color(if due < today && task.active() {
-                                                    p.destructive
+                                                .px_2()
+                                                .py_0p5()
+                                                .rounded_full()
+                                                .text_xs()
+                                                .bg(if late || soon {
+                                                    tone.opacity(0.12)
                                                 } else {
-                                                    p.muted_foreground
+                                                    p.muted
                                                 })
-                                                .child(Icon::new(IconName::Calendar).size_3())
+                                                .text_color(tone)
+                                                .child(Icon::new(Lucide::Flag).size_3())
                                                 .font_medium()
                                                 .child(if task.overdue(today) {
                                                     format!(
@@ -251,7 +333,13 @@ impl CatDo {
                                                 .h_flex()
                                                 .gap_1()
                                                 .items_center()
-                                                .child(Icon::new(IconName::Calendar).size_3())
+                                                .px_2()
+                                                .py_0p5()
+                                                .rounded_full()
+                                                .text_xs()
+                                                .bg(accent(Accent::Scheduled, cx).opacity(0.1))
+                                                .text_color(accent(Accent::Scheduled, cx))
+                                                .child(Icon::new(Lucide::CalendarDays).size_3())
                                                 .child(format!(
                                                     "Planned {}",
                                                     friendly_date(date, today)
@@ -260,7 +348,8 @@ impl CatDo {
                                     }),
                             ),
                     ),
-            )
+            );
+        settle_after(row, SharedString::from(format!("settle-{id}")), index, cx)
     }
 
     pub fn render_task_list(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -279,6 +368,7 @@ impl CatDo {
             .filter(|t| !t.overdue(today))
             .cloned()
             .collect::<Vec<_>>();
+        let overdue_len = overdue.len();
         let title = if searching {
             "Search results".into()
         } else {
@@ -307,22 +397,45 @@ impl CatDo {
                     .max_w(px(1120.))
                     .mx_auto()
                     .py_4()
-                    .child(
+                    .child(settle(
                         div()
                             .h_flex()
                             .items_center()
                             .gap_3()
-                            .child(Icon::new(icon).size_6().text_color(
-                                if self.view == View::Today && !searching && !cx.theme().is_dark() {
-                                    rgb(0xB1843D).into()
-                                } else {
+                            .child({
+                                let tint: Hsla = if searching {
                                     p.primary
-                                },
-                            ))
+                                } else {
+                                    match self.view {
+                                        View::Today => accent(Accent::Today, cx),
+                                        View::Inbox => accent(Accent::Inbox, cx),
+                                        View::Upcoming => accent(Accent::Upcoming, cx),
+                                        View::Calendar => accent(Accent::Calendar, cx),
+                                        View::Completed => accent(Accent::Done, cx),
+                                        View::Project(id) => {
+                                            accent(Accent::Project(project_color_index(id)), cx)
+                                        }
+                                        View::Manage => p.primary,
+                                    }
+                                };
+                                div()
+                                    .size(px(42.))
+                                    .rounded(px(12.))
+                                    .bg(tint.opacity(0.12))
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .child(Icon::new(icon).size_5().text_color(tint))
+                            })
                             .child(div().text_3xl().font_semibold().child(title))
                             .child(
                                 div()
-                                    .text_sm()
+                                    .px_2()
+                                    .py_0p5()
+                                    .rounded_full()
+                                    .bg(p.muted)
+                                    .text_xs()
+                                    .font_medium()
                                     .text_color(p.muted_foreground)
                                     .child(format!(
                                         "{} {}",
@@ -330,11 +443,13 @@ impl CatDo {
                                         if tasks.len() == 1 { "task" } else { "tasks" }
                                     )),
                             ),
-                    )
+                        "heading",
+                        cx,
+                    ))
                     .when(self.view == View::Today && !searching, |el| {
                         el.child(
                             div()
-                                .pl_9()
+                                .pl(px(54.))
                                 .mt_2()
                                 .text_xs()
                                 .text_color(p.muted_foreground)
@@ -344,7 +459,7 @@ impl CatDo {
                     .when(searching, |el| {
                         el.child(
                             div()
-                                .pl_9()
+                                .pl(px(54.))
                                 .mt_2()
                                 .text_xs()
                                 .text_color(p.muted_foreground)
@@ -367,6 +482,11 @@ impl CatDo {
                                         .border_color(p.border)
                                         .text_xs()
                                         .child(
+                                            Icon::new(Lucide::CircleAlert)
+                                                .size_3p5()
+                                                .text_color(p.destructive),
+                                        )
+                                        .child(
                                             div()
                                                 .font_weight(FontWeight::SEMIBOLD)
                                                 .text_color(p.destructive)
@@ -378,7 +498,12 @@ impl CatDo {
                                                 .child(overdue.len().to_string()),
                                         ),
                                 )
-                                .children(overdue.into_iter().map(|task| self.task_row(task, cx))),
+                                .children(
+                                    overdue
+                                        .into_iter()
+                                        .enumerate()
+                                        .map(|(i, task)| self.task_row_at(task, i, cx)),
+                                ),
                         )
                     })
                     .when(
@@ -392,6 +517,11 @@ impl CatDo {
                                     .border_b_1()
                                     .border_color(p.border)
                                     .text_xs()
+                                    .child(
+                                        Icon::new(IconName::Sun)
+                                            .size_3p5()
+                                            .text_color(accent(Accent::Today, cx)),
+                                    )
                                     .child(div().font_weight(FontWeight::SEMIBOLD).child("Today"))
                                     .child(
                                         div()
@@ -401,29 +531,35 @@ impl CatDo {
                             )
                         },
                     )
-                    .children(rest.into_iter().map(|task| self.task_row(task, cx)))
+                    .children(
+                        rest.into_iter()
+                            .enumerate()
+                            .map(|(i, task)| self.task_row_at(task, i + overdue_len, cx)),
+                    )
                     .when(self.view != View::Completed && !searching, |el| {
                         el.child(
                             div()
+                                .id("quick-add-row")
                                 .h_flex()
                                 .items_center()
                                 .gap_2()
-                                .mt_6()
-                                .p_3()
-                                .rounded(px(8.))
-                                .bg(p.muted)
+                                .mt_4()
+                                .px_3()
+                                .py_1p5()
+                                .rounded(px(10.))
                                 .border_1()
-                                .border_color(p.border)
-                                .child(
-                                    Input::new(&self.quick_add).appearance(false).prefix(
-                                        Icon::new(IconName::Plus)
-                                            .size_4()
-                                            .text_color(p.muted_foreground),
-                                    ),
-                                )
+                                .border_color(transparent_black())
+                                .hover(|s| s.bg(p.muted))
+                                .when(!self.quick_add.read(cx).value().is_empty(), |el| {
+                                    el.bg(p.background).border_color(p.border)
+                                })
+                                .child(Input::new(&self.quick_add).appearance(false).prefix(
+                                    Icon::new(IconName::Plus).size_4().text_color(p.primary),
+                                ))
                                 .child(
                                     Button::new("quick-add")
                                         .primary()
+                                        .small()
                                         .label("Add task")
                                         .tooltip("Enter to add · Ctrl+N for task details")
                                         .on_click(cx.listener(|this, _, window, cx| {
@@ -437,34 +573,33 @@ impl CatDo {
                         )
                     })
                     .when(tasks.is_empty() && self.view != View::Completed, |el| {
-                        el.child(
+                        el.child(settle(
                             div()
                                 .v_flex()
                                 .items_center()
                                 .gap_2()
                                 .py_16()
                                 .child(
-                                    Icon::new(if searching {
-                                        IconName::Search
-                                    } else {
-                                        IconName::CircleCheck
-                                    })
-                                    .size_8()
-                                    .text_color(p.muted_foreground),
+                                    img(crate::sidebar::brand())
+                                        .size(px(56.))
+                                        .opacity(0.9)
+                                        .mb_2(),
                                 )
-                                .child(if searching {
+                                .child(div().text_base().font_semibold().child(if searching {
                                     "No matching tasks"
                                 } else {
-                                    "All clear for now"
-                                })
+                                    "A little breathing room."
+                                }))
                                 .child(div().text_sm().text_color(p.muted_foreground).child(
                                     if searching {
                                         "Try another word, or switch workspaces."
                                     } else {
-                                        "Add a task when you're ready."
+                                        "Add something to do, or enjoy the clear space."
                                     },
                                 )),
-                        )
+                            "empty-state",
+                            cx,
+                        ))
                     })
                     .when(self.view == View::Completed && !searching, |el| {
                         el.child(self.render_history(cx))

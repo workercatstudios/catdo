@@ -14,6 +14,7 @@ use gpui_kit::component::{
 use gpui_kit::{prelude::*, *};
 
 use crate::app::{CatDo, CreateKind, View};
+use crate::theme::{Accent, accent, project_color_index};
 
 static BRAND: LazyLock<Arc<Image>> = LazyLock::new(|| {
     Arc::new(Image::from_bytes(
@@ -21,6 +22,11 @@ static BRAND: LazyLock<Arc<Image>> = LazyLock::new(|| {
         include_bytes!("../../../assets/com.workercat.catdo.png").to_vec(),
     ))
 });
+
+/// The CatDo artwork, shared by the sidebar brand and empty states.
+pub fn brand() -> Arc<Image> {
+    BRAND.clone()
+}
 
 type NavigationClick = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 
@@ -30,6 +36,7 @@ type NavigationClick = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 struct NavigationItem {
     label: SharedString,
     icon: IconName,
+    tint: Option<Hsla>,
     active: bool,
     count: usize,
     on_click: NavigationClick,
@@ -44,31 +51,71 @@ impl Collapsible for NavigationItem {
 }
 impl SidebarItem for NavigationItem {
     fn render(self, id: impl Into<ElementId>, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        Button::new(id)
-            .ghost()
-            .selected(self.active)
+        let p = cx.theme().color_tokens();
+        let active = self.active;
+        div()
+            .h_flex()
+            .items_center()
             .w_full()
-            .h(px(36.))
-            .text_sm()
-            .accessibility_label(self.label.clone())
             .child(
                 div()
-                    .h_flex()
-                    .items_center()
-                    .w_full()
-                    .gap_3()
-                    .child(Icon::new(self.icon).size_4())
-                    .child(div().flex_1().text_left().truncate().child(self.label))
-                    .when(self.count > 0, |el| {
-                        el.child(
-                            div()
-                                .text_xs()
-                                .text_color(cx.theme().muted_foreground)
-                                .child(self.count.to_string()),
-                        )
+                    .w(px(3.))
+                    .h(px(18.))
+                    .mr(px(6.))
+                    .rounded_r_sm()
+                    .bg(if active {
+                        p.primary
+                    } else {
+                        transparent_black()
                     }),
             )
-            .on_click(move |event, window, cx| (self.on_click)(event, window, cx))
+            .child(
+                Button::new(id)
+                    .ghost()
+                    .selected(active)
+                    .flex_1()
+                    .h(px(36.))
+                    .text_sm()
+                    .when(active, |b| b.font_semibold())
+                    .accessibility_label(self.label.clone())
+                    .child(
+                        div()
+                            .h_flex()
+                            .items_center()
+                            .w_full()
+                            .gap_3()
+                            .child(
+                                Icon::new(self.icon)
+                                    .size_4()
+                                    .text_color(self.tint.unwrap_or(if active {
+                                        p.primary
+                                    } else {
+                                        p.muted_foreground
+                                    })),
+                            )
+                            .child(div().flex_1().text_left().truncate().child(self.label))
+                            .when(self.count > 0, |el| {
+                                el.child(
+                                    div()
+                                        .min_w(px(20.))
+                                        .px_1p5()
+                                        .py_0p5()
+                                        .rounded_full()
+                                        .text_xs()
+                                        .text_center()
+                                        .font_medium()
+                                        .bg(if active { p.primary } else { p.muted })
+                                        .text_color(if active {
+                                            p.primary_foreground
+                                        } else {
+                                            p.muted_foreground
+                                        })
+                                        .child(self.count.to_string()),
+                                )
+                            }),
+                    )
+                    .on_click(move |event, window, cx| (self.on_click)(event, window, cx)),
+            )
     }
 }
 
@@ -116,6 +163,7 @@ impl CatDo {
         &self,
         label: impl Into<SharedString>,
         icon: IconName,
+        tint: Option<Hsla>,
         view: View,
         count: usize,
         cx: &Context<Self>,
@@ -123,6 +171,7 @@ impl CatDo {
         NavigationItem {
             label: label.into(),
             icon,
+            tint,
             active: self.view == view,
             count,
             on_click: Rc::new(
@@ -160,6 +209,7 @@ impl CatDo {
                 self.nav_item(
                     project.name.clone(),
                     IconName::Folder,
+                    Some(accent(Accent::Project(project_color_index(project.id)), cx)),
                     View::Project(project.id),
                     tasks
                         .iter()
@@ -172,6 +222,7 @@ impl CatDo {
         projects.push(NavigationItem {
             label: "New project".into(),
             icon: IconName::Plus,
+            tint: None,
             active: false,
             count: 0,
             on_click: Rc::new(
@@ -222,6 +273,25 @@ impl CatDo {
                             ),
                     )
                     .child(
+                        Button::new("sidebar-new-task")
+                            .primary()
+                            .w_full()
+                            .h(px(38.))
+                            .accessibility_label("New task")
+                            .tooltip("Ctrl+N")
+                            .child(
+                                div()
+                                    .h_flex()
+                                    .items_center()
+                                    .w_full()
+                                    .gap_2()
+                                    .child(Icon::new(IconName::Plus).size_4())
+                                    .child(div().flex_1().text_left().child("New task"))
+                                    .child(div().text_xs().opacity(0.7).child("Ctrl N")),
+                            )
+                            .on_click(cx.listener(|this, _, window, cx| this.new_task(window, cx))),
+                    )
+                    .child(
                         Input::new(&self.search)
                             .appearance(false)
                             .small()
@@ -232,10 +302,38 @@ impl CatDo {
             .child(NavigationSection {
                 label: None,
                 items: vec![
-                    self.nav_item("Inbox", IconName::Inbox, View::Inbox, inbox, cx),
-                    self.nav_item("Today", IconName::Sun, View::Today, today_count, cx),
-                    self.nav_item("Upcoming", IconName::Calendar, View::Upcoming, 0, cx),
-                    self.nav_item("Calendar", IconName::LayoutDashboard, View::Calendar, 0, cx),
+                    self.nav_item(
+                        "Inbox",
+                        IconName::Inbox,
+                        Some(accent(Accent::Inbox, cx)),
+                        View::Inbox,
+                        inbox,
+                        cx,
+                    ),
+                    self.nav_item(
+                        "Today",
+                        IconName::Sun,
+                        Some(accent(Accent::Today, cx)),
+                        View::Today,
+                        today_count,
+                        cx,
+                    ),
+                    self.nav_item(
+                        "Upcoming",
+                        IconName::Calendar,
+                        Some(accent(Accent::Upcoming, cx)),
+                        View::Upcoming,
+                        0,
+                        cx,
+                    ),
+                    self.nav_item(
+                        "Calendar",
+                        IconName::LayoutDashboard,
+                        Some(accent(Accent::Calendar, cx)),
+                        View::Calendar,
+                        0,
+                        cx,
+                    ),
                 ],
             })
             .child(NavigationSection {
@@ -253,8 +351,19 @@ impl CatDo {
                             .ghost()
                             .selected(self.view == View::Completed)
                             .w_full()
-                            .icon(IconName::CircleCheck)
-                            .child(div().h_flex().w_full().child("Completed"))
+                            .child(
+                                div()
+                                    .h_flex()
+                                    .items_center()
+                                    .w_full()
+                                    .gap_3()
+                                    .child(
+                                        Icon::new(IconName::CircleCheck)
+                                            .size_4()
+                                            .text_color(accent(Accent::Done, cx)),
+                                    )
+                                    .child("Completed"),
+                            )
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.navigate(View::Completed, window, cx)
                             })),

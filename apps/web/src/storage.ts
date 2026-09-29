@@ -48,7 +48,7 @@ export class TaskStore {
   status = "Opening your tasks…";
   conflicts: Conflict[] = [];
   private listeners = new Set<() => void>();
-  private channel: BroadcastChannel;
+  private channel: BroadcastChannel | null = null;
   private stopped = false;
   private syncing = false;
   private syncRequested = false;
@@ -59,11 +59,16 @@ export class TaskStore {
   constructor(
     readonly owner: string,
     private token: () => Promise<string | null>,
-  ) {
-    this.channel = new BroadcastChannel(`catdo:${owner}`);
+  ) {}
+  // React StrictMode runs an effect's cleanup and setup twice in development,
+  // so a store must survive stop() followed by open() on the same instance.
+  private start() {
+    this.stopped = false;
+    this.channel ??= new BroadcastChannel(`catdo:${this.owner}`);
     this.channel.onmessage = () => {
       void this.reload();
     };
+    window.removeEventListener("online", this.onOnline);
     window.addEventListener("online", this.onOnline);
   }
   private onOnline = () => {
@@ -98,6 +103,7 @@ export class TaskStore {
     return navigator.locks.request(`catdo-data:${this.owner}`, fn);
   }
   async open() {
+    this.start();
     try {
       await this.lock(async () => {
         let state = await read(this.owner);
@@ -133,9 +139,12 @@ export class TaskStore {
   stop() {
     this.stopped = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.events?.close();
+    this.events = null;
     window.removeEventListener("online", this.onOnline);
-    this.channel.close();
+    this.channel?.close();
+    this.channel = null;
   }
   private async connectEvents() {
     if (this.stopped || this.connectingEvents || this.events) return;
@@ -204,7 +213,7 @@ export class TaskStore {
       this.status = "Saved on this device · waiting to sync";
       this.updateConflicts();
       this.emit();
-      this.channel.postMessage("change");
+      this.channel?.postMessage("change");
     });
     void this.sync();
   }
@@ -295,7 +304,7 @@ export class TaskStore {
             await write(state);
             this.state = state;
             this.updateConflicts();
-            this.channel.postMessage("change");
+            this.channel?.postMessage("change");
             this.emit();
           });
         },
@@ -367,7 +376,7 @@ export class TaskStore {
       this.state = state;
       this.updateConflicts();
       this.emit();
-      this.channel.postMessage("change");
+      this.channel?.postMessage("change");
     });
     void this.sync();
   }

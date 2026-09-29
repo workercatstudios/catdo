@@ -22,89 +22,92 @@ export function Management({
       <div className="page-heading">
         <h1>Settings</h1>
       </div>
-      <section className="settings-section">
-        <ThemeControl />
-      </section>
-      <section className="settings-section">
-        <h2>Workspaces & projects</h2>
-        <p className="muted">
-          Archives keep your tasks and history. Restore them whenever you need.
-        </p>
-        {data.workspaces.map((w) => (
-          <div className="manage-group" key={w.id}>
-            <div className="manage-row">
-              <strong>
-                {w.name}
-                {w.archived ? " · archived" : ""}
-              </strong>
-              <Button
-                variant="outline"
-                onClick={() => naming("workspace", w.id)}
-              >
-                Rename
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  act(() =>
-                    change((d) => {
-                      d.workspaces.find((x) => x.id === w.id)!.archived =
-                        !w.archived;
-                    }),
-                  )
-                }
-              >
-                {w.archived ? "Restore" : "Archive"}
-              </Button>
+      <div className="manage-body">
+        <section className="settings-section">
+          <ThemeControl />
+        </section>
+        <section className="settings-section">
+          <h2>Workspaces & projects</h2>
+          <p className="muted">
+            Archives keep your tasks and history. Restore them whenever you
+            need.
+          </p>
+          {data.workspaces.map((w) => (
+            <div className="manage-group" key={w.id}>
+              <div className="manage-row">
+                <strong>
+                  {w.name}
+                  {w.archived ? " · archived" : ""}
+                </strong>
+                <Button
+                  variant="outline"
+                  onClick={() => naming("workspace", w.id)}
+                >
+                  Rename
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    act(() =>
+                      change((d) => {
+                        d.workspaces.find((x) => x.id === w.id)!.archived =
+                          !w.archived;
+                      }),
+                    )
+                  }
+                >
+                  {w.archived ? "Restore" : "Archive"}
+                </Button>
+              </div>
+              {data.projects
+                .filter((p) => p.workspace_id === w.id)
+                .map((p) => (
+                  <div className="manage-row indented" key={p.id}>
+                    <span>
+                      {p.name}
+                      {p.archived ? " · archived" : ""}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => naming("project", p.id)}
+                    >
+                      Rename
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        act(() =>
+                          change((d) => {
+                            d.projects.find((x) => x.id === p.id)!.archived =
+                              !p.archived;
+                          }),
+                        )
+                      }
+                    >
+                      {p.archived ? "Restore" : "Archive"}
+                    </Button>
+                  </div>
+                ))}
             </div>
-            {data.projects
-              .filter((p) => p.workspace_id === w.id)
-              .map((p) => (
-                <div className="manage-row indented" key={p.id}>
-                  <span>
-                    {p.name}
-                    {p.archived ? " · archived" : ""}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() => naming("project", p.id)}
-                  >
-                    Rename
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      act(() =>
-                        change((d) => {
-                          d.projects.find((x) => x.id === p.id)!.archived =
-                            !p.archived;
-                        }),
-                      )
-                    }
-                  >
-                    {p.archived ? "Restore" : "Archive"}
-                  </Button>
-                </div>
-              ))}
-          </div>
-        ))}
-      </section>
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <Button variant="outline" onClick={() => exportTasks()}>
-        Export all tasks
-      </Button>
-      <section className="settings-section">
-        <h2>Help & privacy</h2>
-        <p>
-          Signing out keeps saved tasks on this device. Export anything you need
-          before clearing browser data.
-        </p>
-        <LegalLinks />
-      </section>
+          ))}
+        </section>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <Button variant="outline" onClick={() => exportTasks()}>
+          Export all tasks
+        </Button>
+        <section className="settings-section">
+          <h2>Help & privacy</h2>
+          <p>
+            Signing out keeps saved tasks on this device. Export anything you
+            need before clearing browser data.
+          </p>
+          <LegalLinks />
+        </section>
+      </div>
     </section>
   );
 }

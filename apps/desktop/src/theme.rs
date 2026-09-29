@@ -1,5 +1,5 @@
 use gpui_kit::component::{
-    Selectable, StyledExt, Theme, ThemeMode,
+    ActiveTheme, Selectable, StyledExt, Theme, ThemeMode,
     button::{Button, ButtonGroup},
 };
 use gpui_kit::{App, Context, IntoElement, ParentElement, Styled, Window, WindowAppearance, div};
@@ -48,28 +48,28 @@ fn apply_palette(cx: &mut App) {
     let theme = Theme::global_mut(cx);
     let dark = theme.is_dark();
     let color = |light, dark_color| rgb(if dark { dark_color } else { light }).into();
-    let canvas = color(0xFFFFFF, 0x1C201D);
-    let sidebar = color(0xF7F7F5, 0x181B19);
-    let surface = color(0xF7F7F5, 0x242925);
-    let foreground = color(0x242824, 0xEDF0EA);
-    let muted = color(0x696F66, 0xA2AAA0);
-    let border = color(0xE8EAE5, 0x333B34);
-    let primary = color(0x3E624E, 0xACCCB1);
-    let primary_foreground = color(0xFFFFFF, 0x1C201D);
-    let selected = color(0xE9EBE7, 0x343A35);
+    let canvas = color(0xFFFFFF, 0x1B1B1A);
+    let sidebar = color(0xF6F6F4, 0x171716);
+    let surface = color(0xF6F6F4, 0x232322);
+    let foreground = color(0x232323, 0xEDEDEA);
+    let muted = color(0x6B6B67, 0xA3A39F);
+    let border = color(0xE7E7E3, 0x333331);
+    let primary = color(0x262626, 0xEDEDEA);
+    let primary_foreground = color(0xFFFFFF, 0x1B1B1A);
+    let selected = color(0xECECE8, 0x2C2C2A);
     theme.background = canvas;
     theme.foreground = foreground;
     theme.muted = surface;
     theme.muted_foreground = muted;
     theme.border = border;
-    theme.input = color(0x8C978C, 0x718171);
+    theme.input = color(0x8F8F8B, 0x6F6F6B);
     theme.popover = canvas;
     theme.popover_foreground = foreground;
     theme.danger = color(0xAD3F3C, 0xE7988B);
     theme.primary = primary;
     theme.primary_foreground = primary_foreground;
-    theme.primary_hover = color(0x3D5949, 0xBBD5C3);
-    theme.primary_active = color(0x344C3E, 0x96B8A1);
+    theme.primary_hover = color(0x111111, 0xFFFFFF);
+    theme.primary_active = color(0x000000, 0xD6D6D2);
     theme.accent = selected;
     theme.accent_foreground = foreground;
     theme.secondary = surface;
@@ -120,6 +120,53 @@ fn apply_palette(cx: &mut App) {
     theme.radius_lg = px(12.);
     theme.tokens = theme.colors.into();
     Theme::sync_base(cx);
+}
+
+/// Colour with a job: each view, date kind, and project carries its own hue,
+/// while actions and selection stay neutral ink.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Accent {
+    Today,
+    Inbox,
+    Upcoming,
+    Calendar,
+    Done,
+    Scheduled,
+    Repeat,
+    Project(usize),
+}
+
+const PROJECT_LIGHT: [u32; 8] = [
+    0x3B6FB6, 0x6B5BB5, 0x2F8A7D, 0xB1843D, 0xB5486A, 0xC2622F, 0x3E7A4F, 0x5A6B7A,
+];
+const PROJECT_DARK: [u32; 8] = [
+    0x8FB4E8, 0xB3A6E8, 0x86CDBF, 0xD9A860, 0xE7A0B9, 0xEBA37A, 0x9ACB9F, 0x9FB0BF,
+];
+
+/// Stable colour slot for a project, using the same hash as the web and
+/// Android clients so a project looks the same everywhere.
+pub fn project_color_index(id: uuid::Uuid) -> usize {
+    let hash = id.to_string().bytes().fold(0u32, |hash, byte| {
+        hash.wrapping_mul(31).wrapping_add(byte as u32)
+    });
+    (hash % PROJECT_LIGHT.len() as u32) as usize
+}
+
+pub fn accent(accent: Accent, cx: &App) -> gpui_kit::Hsla {
+    use gpui_kit::rgb;
+    let dark = cx.theme().is_dark();
+    let (light, dark_color) = match accent {
+        Accent::Today => (0x946A2A, 0xD9A860),
+        Accent::Inbox | Accent::Scheduled => (0x3B6FB6, 0x8FB4E8),
+        Accent::Upcoming => (0x6B5BB5, 0xB3A6E8),
+        Accent::Calendar | Accent::Repeat => (0x25736A, 0x86CDBF),
+        Accent::Done => (0x3E7A4F, 0x9ACB9F),
+        Accent::Project(index) => (
+            PROJECT_LIGHT[index % PROJECT_LIGHT.len()],
+            PROJECT_DARK[index % PROJECT_DARK.len()],
+        ),
+    };
+    rgb(if dark { dark_color } else { light }).into()
 }
 
 impl CatDo {

@@ -1,6 +1,24 @@
 import type { Data, Task } from "../../../packages/domain/src/model";
 import { addDays } from "../../../packages/domain/src/model";
-import { CalendarDays, Flag, Repeat2, ListTree, Check } from "lucide-react";
+import {
+  CalendarDays,
+  Flag,
+  Repeat2,
+  ListTree,
+  Check,
+  AlertCircle,
+  Sun,
+} from "lucide-react";
+import { projectColorIndex } from "./lib/colors";
+import { useEffect, useRef, useState } from "react";
+
+const LEAVE_MS = 380;
+function immediateMotion() {
+  return (
+    document.documentElement.dataset.input === "keyboard" ||
+    matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 function dateLabel(date: string, today: string) {
   if (date === today) return "Today";
@@ -29,6 +47,36 @@ export function TaskList({
   complete: (id: string) => void;
   open: (task: Task) => void;
 }) {
+  // Completing a task lets the check fill and the row fade before it leaves.
+  // Anything still pending when the list unmounts completes immediately.
+  const [leaving, setLeaving] = useState<string[]>([]);
+  const pending = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const completeRef = useRef(complete);
+  completeRef.current = complete;
+  useEffect(() => {
+    const timers = pending.current;
+    return () => {
+      for (const [id, timer] of timers) {
+        clearTimeout(timer);
+        completeRef.current(id);
+      }
+      timers.clear();
+    };
+  }, []);
+  const finish = (task: Task) => {
+    if (task.completed_at || immediateMotion() || pending.current.has(task.id))
+      return pending.current.has(task.id) ? undefined : complete(task.id);
+    setLeaving((ids) => [...ids, task.id]);
+    pending.current.set(
+      task.id,
+      setTimeout(() => {
+        pending.current.delete(task.id);
+        setLeaving((ids) => ids.filter((id) => id !== task.id));
+        completeRef.current(task.id);
+      }, LEAVE_MS),
+    );
+  };
+  let index = 0;
   const groups: { title: string; tasks: Task[]; overdue?: boolean }[] = [];
   if (view === "today" && tasks.some((t) => t.due && t.due < today)) {
     groups.push({
@@ -67,6 +115,10 @@ export function TaskList({
               <div
                 className={`task-group-heading ${group.overdue ? "deadline" : ""}`}
               >
+                {group.overdue && <AlertCircle aria-hidden="true" />}
+                {view === "today" && !group.overdue && group.title && (
+                  <Sun aria-hidden="true" style={{ color: "var(--today)" }} />
+                )}
                 <h2>{group.title}</h2>
                 <span>{group.tasks.length}</span>
               </div>
@@ -77,6 +129,7 @@ export function TaskList({
               aria-label={group.title || "Tasks"}
             >
               {group.tasks.map((t) => {
+                const order = index++;
                 const project = data.projects.find(
                   (p) => p.id === t.project_id,
                 );
@@ -85,14 +138,15 @@ export function TaskList({
                   t.scheduled && view !== "today" && view !== "upcoming";
                 return (
                   <div
-                    className={`task-row ${t.completed_at ? "is-complete" : ""}`}
+                    className={`task-row ${t.completed_at ? "is-complete" : ""} ${leaving.includes(t.id) ? "is-leaving" : ""}`}
                     role="listitem"
                     key={t.id}
+                    style={{ "--i": order } as React.CSSProperties}
                   >
                     <button
                       className={`check ${t.completed_at ? "done" : ""}`}
                       aria-label={`${t.completed_at ? "Reopen" : "Complete"} ${t.title}`}
-                      onClick={() => complete(t.id)}
+                      onClick={() => finish(t)}
                     >
                       <Check size={12} aria-hidden="true" />
                     </button>
@@ -124,7 +178,18 @@ export function TaskList({
                           (project && !view.startsWith("project:"))) && (
                           <span className="task-context">
                             {project && !view.startsWith("project:") && (
-                              <span className="project-name">
+                              <span
+                                className="project-name"
+                                style={
+                                  {
+                                    "--project-color": `var(--c-p${projectColorIndex(project.id)})`,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                <span
+                                  className="color-dot"
+                                  aria-hidden="true"
+                                />
                                 {project.name}
                               </span>
                             )}
@@ -143,7 +208,7 @@ export function TaskList({
                           t.parent_id) && (
                           <span className="task-indicators">
                             {t.recurrence && (
-                              <span title="Repeating task">
+                              <span className="repeat" title="Repeating task">
                                 <Repeat2 size={12} />
                                 <span className="sr-only">Repeats</span>
                               </span>
@@ -165,7 +230,9 @@ export function TaskList({
                             className={
                               !t.completed_at && t.due < today
                                 ? "deadline"
-                                : "due-date"
+                                : !t.completed_at && t.due === today
+                                  ? "due-today"
+                                  : "due-date"
                             }
                           >
                             <Flag size={12} aria-hidden="true" />
@@ -173,7 +240,7 @@ export function TaskList({
                           </span>
                         )}
                         {scheduleVisible && (
-                          <span>
+                          <span className="scheduled">
                             <CalendarDays size={12} aria-hidden="true" />
                             {dateLabel(t.scheduled!, today)}
                           </span>
