@@ -9,6 +9,7 @@ mod desktop;
 mod editor;
 mod instance;
 mod management;
+mod motion;
 mod reminders;
 mod shell;
 mod sidebar;
@@ -72,7 +73,7 @@ fn run() -> Result<()> {
     let mut store = Store::open(&path.join("catdo.sqlite3"))?;
     let data = store.load()?;
     gpui_kit::application()
-        .with_assets(gpui_kit::assets::Assets)
+        .with_assets(gpui_kit::assets::AllAssets)
         .run(move |cx| {
             gpui_kit::init(cx);
             // Groups CatDo's windows and names its notifications.

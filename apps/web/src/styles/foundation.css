@@ -19,33 +19,82 @@
   color: var(--foreground);
   background: var(--background);
   --background: #ffffff;
-  --foreground: #242824;
-  --surface: #f7f7f5;
-  --sidebar: #f7f7f5;
-  --border: #e8eae5;
-  --muted: #696f66;
-  --primary: #3e624e;
+  --foreground: #232323;
+  --surface: #f6f6f4;
+  --sidebar: #f6f6f4;
+  --border: #e7e7e3;
+  --muted: #6b6b67;
+  --primary: #262626;
   --primary-foreground: #fff;
-  --selected: #e9efe9;
+  --selected: #ecece8;
   --destructive: #ad3f3c;
+  --today: #946a2a;
+  --c-inbox: #3b6fb6;
+  --c-upcoming: #6b5bb5;
+  --c-calendar: #25736a;
+  --c-done: #3e7a4f;
+  --c-repeat: #25736a;
+  --c-scheduled: #3b6fb6;
+  --c-p0: #3b6fb6;
+  --c-p1: #6b5bb5;
+  --c-p2: #2f8a7d;
+  --c-p3: #b1843d;
+  --c-p4: #b5486a;
+  --c-p5: #c2622f;
+  --c-p6: #3e7a4f;
+  --c-p7: #5a6b7a;
   --canvas: var(--background);
   --accent: var(--primary);
+  --primary-soft: color-mix(in srgb, var(--primary) 8%, transparent);
+  --primary-strong: color-mix(in srgb, var(--primary) 82%, black);
+  --hover: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --press: color-mix(in srgb, var(--foreground) 9%, transparent);
+  --shadow-sm: 0 1px 2px rgb(20 20 20 / 0.06);
+  --shadow-md:
+    0 1px 2px rgb(20 20 20 / 0.05), 0 6px 18px -6px rgb(20 20 20 / 0.14);
+  --shadow-lg:
+    0 2px 6px rgb(20 20 20 / 0.06), 0 24px 56px -16px rgb(20 20 20 / 0.28);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --fast: 140ms;
+  --base: 220ms;
   --scrollbar-thumb: color-mix(in srgb, var(--foreground) 28%, transparent);
   color-scheme: light;
 }
 .dark {
-  --background: #1c201d;
-  --foreground: #edf0ea;
-  --surface: #242925;
-  --sidebar: #181b19;
-  --border: #333b34;
-  --muted: #a2aaa0;
-  --primary: #acccb1;
-  --primary-foreground: #1c201d;
-  --selected: #2c3e30;
+  --background: #1b1b1a;
+  --foreground: #ededea;
+  --surface: #232322;
+  --sidebar: #171716;
+  --border: #333331;
+  --muted: #a3a39f;
+  --primary: #ededea;
+  --primary-foreground: #1b1b1a;
+  --selected: #2c2c2a;
   --destructive: #e7988b;
+  --today: #d9a860;
+  --c-inbox: #8fb4e8;
+  --c-upcoming: #b3a6e8;
+  --c-calendar: #86cdbf;
+  --c-done: #9acb9f;
+  --c-repeat: #86cdbf;
+  --c-scheduled: #8fb4e8;
+  --c-p0: #8fb4e8;
+  --c-p1: #b3a6e8;
+  --c-p2: #86cdbf;
+  --c-p3: #d9a860;
+  --c-p4: #e7a0b9;
+  --c-p5: #eba37a;
+  --c-p6: #9acb9f;
+  --c-p7: #9fb0bf;
+  --primary-soft: color-mix(in srgb, var(--primary) 10%, transparent);
+  --primary-strong: color-mix(in srgb, var(--primary) 90%, white);
+  --hover: color-mix(in srgb, var(--foreground) 6%, transparent);
+  --press: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 20px -6px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.35), 0 28px 64px -16px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 @layer base {
@@ -130,7 +179,7 @@
   textarea {
     background: var(--background);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 10px 12px;
     min-width: 0;
   }
@@ -197,15 +246,18 @@ html {
 .ui-button:focus-visible {
   outline-offset: 3px;
 }
-.primary {
+.primary,
+.ui-button.bg-primary {
   background: var(--primary);
   color: var(--primary-foreground);
   border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 .icon-button {
   border: 0;
   background: transparent;
   padding: 6px;
+  border-radius: 8px;
 }
 .text-button {
   border: 0;

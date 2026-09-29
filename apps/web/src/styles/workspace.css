@@ -17,50 +17,60 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 24px 16px 14px;
+  padding: 22px 14px 14px;
 }
 .app-brand {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 0 8px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   font-size: 18px;
   font-weight: 650;
   letter-spacing: -0.5px;
+  width: fit-content;
+  border-radius: 8px;
 }
 .app-brand img {
   width: 27px;
   height: 27px;
+  transition: transform 400ms var(--ease-spring);
 }
 .workspace-control {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .workspace-control select {
   width: 100%;
   min-width: 0;
-  border: 0;
+  border: 1px solid transparent;
   background: transparent;
   font-size: 13px;
   font-weight: 600;
-  padding: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color var(--fast) var(--ease-out),
+    border-color var(--fast) var(--ease-out);
 }
 .workspace-control .ui-button {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
   color: var(--muted);
+  border-radius: 8px;
 }
 .sidebar-add {
   width: 100%;
-  height: 36px;
+  height: 38px;
   justify-content: flex-start;
   padding: 0 12px;
   margin-bottom: 4px;
   font-size: 13px;
+  border-radius: 9px;
 }
 .sidebar-add kbd {
   margin-left: auto;
@@ -74,12 +84,19 @@
   height: 36px;
   padding: 0 10px;
   color: var(--muted);
-  border-radius: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    background-color var(--fast) var(--ease-out),
+    border-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out);
 }
 .search:focus-within {
   background: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
   outline: 2px solid var(--primary);
-  outline-offset: -2px;
+  outline-offset: -1px;
 }
 .search input {
   width: 100%;
@@ -88,17 +105,22 @@
   outline: none;
   background: transparent;
   font-size: 13px;
+  color: var(--foreground);
 }
 .search input:focus-visible {
   outline: none;
 }
 .search kbd {
   font-size: 10px;
+  transition: opacity var(--fast) var(--ease-out);
+}
+.search:focus-within kbd {
+  opacity: 0;
 }
 .sidebar-navigation {
   flex: 1;
   min-height: 80px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .sidebar-inner nav {
   display: flex;
@@ -106,13 +128,30 @@
   gap: 2px;
 }
 .sidebar-inner nav a {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 36px;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
+  transition:
+    background-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out),
+    transform var(--fast) var(--ease-out);
+}
+.sidebar-inner nav a::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: var(--primary);
+  transform: translateY(-50%) scaleY(0);
+  transition: transform var(--base) var(--ease-spring);
 }
 .sidebar-inner nav a > span {
   flex: 1;
@@ -125,38 +164,65 @@
   width: 16px;
   height: 16px;
   color: var(--muted);
+  transition:
+    color var(--fast) var(--ease-out),
+    transform var(--base) var(--ease-spring);
 }
 .sidebar-inner nav a small {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-align: center;
   color: var(--muted);
   font-size: 11px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  background: var(--hover);
+  transition:
+    background-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out);
+}
+.sidebar-inner nav a:active {
+  transform: scale(0.985);
 }
 .sidebar-inner nav a.selected {
   background: var(--selected);
   color: var(--primary);
   font-weight: 600;
 }
+.sidebar-inner nav a.selected::before {
+  transform: translateY(-50%) scaleY(1);
+}
 .sidebar-inner nav a.selected svg {
-  color: var(--primary);
+  transform: scale(1.08);
+}
+.sidebar-inner nav a.selected small {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 .section-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 0 10px;
-  margin: 26px 0 6px;
+  padding: 0 4px 0 10px;
+  margin: 22px 0 6px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .section-label .ui-button {
   height: 24px;
   width: 24px;
+  border-radius: 6px;
+  color: var(--muted);
 }
 .sidebar-hint {
   padding: 8px 10px;
   font-size: 12px;
   color: var(--muted);
+  line-height: 1.55;
 }
 .sidebar-footer {
   display: flex;
@@ -176,10 +242,13 @@
   font-weight: 400;
 }
 .theme-control select {
-  border: 0;
+  border: 1px solid transparent;
   padding: 4px 6px;
   background: transparent;
   font-size: 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color var(--fast) var(--ease-out);
 }
 .account {
   display: flex;
@@ -212,7 +281,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 60px 40px 40px;
+  padding: 56px 40px 40px;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
@@ -220,13 +289,18 @@
   max-width: 1400px;
   padding: 48px 40px 32px;
 }
+.view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
 .page-heading {
-  margin-bottom: 36px;
+  margin-bottom: 30px;
 }
 .heading-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .page-heading h1 {
   font-size: 30px;
@@ -236,37 +310,82 @@
 }
 .view-icon {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   color: var(--primary);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  flex-shrink: 0;
 }
 .view-icon svg {
-  width: 26px;
-  height: 26px;
-  stroke-width: 1.7;
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
 }
-.view-icon-today {
-  color: #b1843d;
+.view-icon-today,
+.sidebar-inner nav a.view-today svg {
+  color: var(--today);
+}
+.view-icon-inbox,
+.sidebar-inner nav a.view-inbox svg {
+  color: var(--c-inbox);
+}
+.view-icon-upcoming,
+.sidebar-inner nav a.view-upcoming svg {
+  color: var(--c-upcoming);
+}
+.view-icon-calendar,
+.sidebar-inner nav a.view-calendar svg {
+  color: var(--c-calendar);
+}
+.view-icon-completed,
+.sidebar-inner nav a.view-completed svg {
+  color: var(--c-done);
+}
+.view-icon-search,
+.view-icon-project\: {
+  color: var(--primary);
+}
+.sidebar-inner nav a.view-project svg,
+.view-icon.view-icon-project {
+  color: var(--project-color, var(--primary));
+}
+.color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--project-color, var(--muted));
+  flex-shrink: 0;
 }
 .task-count {
-  font-size: 13px;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--hover);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--muted);
-  margin-left: 2px;
   font-variant-numeric: tabular-nums;
 }
 .heading-date {
   margin-top: 8px;
-  padding-left: 38px;
-  font-size: 12px;
+  padding-left: 56px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.5;
 }
 .task-group + .task-group {
-  margin-top: 28px;
+  margin-top: 26px;
 }
 .task-group-heading {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 0 10px;
+  padding: 0 0 8px;
   border-bottom: 1px solid var(--border);
 }
 .task-group-heading h2 {
@@ -277,36 +396,85 @@
 .task-group-heading > span {
   font-size: 11px;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.task-group-heading.deadline > span {
+  color: var(--destructive);
+  opacity: 0.8;
+}
+.task-group-heading svg {
+  width: 14px;
+  height: 14px;
+}
+.task-list {
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
 }
 .task-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   min-height: 50px;
-  padding: 13px 4px;
-  border-radius: 5px;
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  transition:
+    background-color var(--fast) var(--ease-out),
+    opacity var(--base) var(--ease-out),
+    transform var(--base) var(--ease-out);
+}
+.task-row.is-leaving {
+  opacity: 0;
+  transform: translateX(10px);
+  pointer-events: none;
+  transition-delay: 160ms;
 }
 .check {
-  margin-top: 1px;
+  position: relative;
+  margin-top: 2px;
   padding: 0;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   border: 1.5px solid color-mix(in srgb, var(--muted) 55%, var(--background));
   border-radius: 50%;
   background: transparent;
   color: var(--primary);
+  transition:
+    border-color var(--fast) var(--ease-out),
+    background-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out),
+    transform var(--base) var(--ease-spring);
+}
+.check::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }
 .check svg {
   opacity: 0;
+  transition: opacity var(--fast) var(--ease-out);
 }
-.check.done {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--primary-foreground);
+.check svg path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset var(--base) var(--ease-out);
 }
-.check.done svg {
+.check.done,
+.task-row.is-leaving .check {
+  background: var(--c-done);
+  border-color: var(--c-done);
+  color: #fff;
+  animation: check-pop 360ms var(--ease-spring);
+}
+.check.done svg,
+.task-row.is-leaving .check svg {
   opacity: 1;
+}
+.check.done svg path,
+.task-row.is-leaving .check svg path {
+  stroke-dashoffset: 0;
 }
 .task-body {
   display: flex;
@@ -317,7 +485,7 @@
   min-width: 0;
   padding: 0;
   border: 0;
-  border-radius: 2px;
+  border-radius: 4px;
   background: transparent;
   text-align: left;
   line-height: 1.45;
@@ -333,6 +501,15 @@
   font-size: 15px;
   font-weight: 450;
   overflow-wrap: anywhere;
+  text-decoration: line-through transparent;
+  text-decoration-thickness: 1px;
+  transition:
+    color var(--base) var(--ease-out),
+    text-decoration-color var(--base) var(--ease-out);
+}
+.task-row.is-leaving .task-title {
+  color: var(--muted);
+  text-decoration-color: currentColor;
 }
 .task-context {
   display: flex;
@@ -343,6 +520,9 @@
   color: var(--muted);
 }
 .task-context .project-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   max-width: 40%;
   flex-shrink: 0;
 }
@@ -375,6 +555,23 @@
   align-items: center;
   gap: 5px;
   max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--hover);
+}
+.task-meta > span.deadline {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  font-weight: 500;
+}
+.task-meta > span.due-today {
+  color: var(--today);
+  background: color-mix(in srgb, var(--today) 12%, transparent);
+  font-weight: 500;
+}
+.task-meta > span.scheduled {
+  color: var(--c-scheduled);
+  background: color-mix(in srgb, var(--c-scheduled) 10%, transparent);
 }
 .task-meta:empty {
   display: none;
@@ -395,9 +592,13 @@
   align-items: center;
   gap: 4px;
 }
+.task-indicators .repeat {
+  color: var(--c-repeat);
+}
 .finished {
   color: var(--muted);
   text-decoration: line-through;
+  text-decoration-color: currentColor;
 }
 .deadline {
   color: var(--destructive);
@@ -406,11 +607,21 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 8px;
-  padding: 10px 2px;
+  margin: 10px -10px 0;
+  padding: 10px 10px;
   border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--primary);
+  border-radius: 10px;
+  color: var(--muted);
+  transition:
+    background-color var(--fast) var(--ease-out),
+    border-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out),
+    box-shadow var(--base) var(--ease-out);
+}
+.quick-add > svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--base) var(--ease-spring);
 }
 .quick-add input {
   flex: 1;
@@ -420,37 +631,51 @@
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
+  color: var(--foreground);
 }
 .quick-add input:focus-visible {
   outline: none;
 }
 .quick-add .ui-button {
   opacity: 0;
+  transform: translateX(6px);
   pointer-events: none;
   height: 28px;
   font-size: 11px;
+  color: var(--primary);
+  transition:
+    opacity var(--fast) var(--ease-out),
+    transform var(--base) var(--ease-out);
 }
 .quick-add:focus-within,
 .quick-add.has-value {
-  padding-left: 10px;
-  background: var(--surface);
+  background: var(--background);
   border-color: var(--border);
+  color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+.quick-add:focus-within > svg,
+.quick-add.has-value > svg {
+  transform: rotate(90deg);
 }
 .quick-add:focus-within .ui-button,
 .quick-add.has-value .ui-button {
   opacity: 1;
+  transform: none;
   pointer-events: auto;
 }
 .empty-state {
   max-width: 300px;
-  margin: 60px auto;
+  margin: 56px auto;
   text-align: center;
+  animation: fade-up 480ms var(--ease-out) 80ms backwards;
 }
 .empty-state img {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   margin-bottom: 16px;
+  animation: float 5s ease-in-out infinite;
 }
 .empty-state h2 {
   font-size: 17px;
@@ -481,15 +706,43 @@
   background: transparent;
   padding: 0;
   font-size: 11px;
+  transition: color var(--fast) var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
   .task-row:hover {
     background: var(--surface);
   }
+  .task-row:hover .check {
+    border-color: color-mix(in srgb, var(--primary) 70%, var(--border));
+  }
+  .check:hover {
+    transform: scale(1.1);
+  }
   .check:hover svg {
     opacity: 1;
   }
+  .check:hover svg path {
+    stroke-dashoffset: 0;
+  }
   .quick-add:hover {
+    color: var(--foreground);
+    background: var(--surface);
+  }
+  .workspace-control select:hover,
+  .theme-control select:hover {
+    background: var(--hover);
+  }
+  .search:hover {
+    background: var(--hover);
+  }
+  .app-brand:hover img {
+    transform: rotate(-10deg) scale(1.08);
+  }
+  .status button:hover {
+    color: var(--primary);
+  }
+  .sidebar-inner nav a:not(.selected):hover small {
+    background: var(--press);
     color: var(--foreground);
   }
 }
@@ -516,7 +769,7 @@
 .conflict {
   border: 1px solid var(--border);
   padding: 18px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 24px;
   font-size: 13px;
   background: var(--selected);
@@ -539,6 +792,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  animation: fade-up 260ms var(--ease-out);
 }
 .error button {
   border: 0;

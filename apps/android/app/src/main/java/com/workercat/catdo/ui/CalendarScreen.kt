@@ -1,6 +1,13 @@
 package com.workercat.catdo.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +43,7 @@ fun CalendarScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
 
     LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
         item {
-            SectionHeading("Calendar")
+            SectionHeading("Calendar", icon = Icons.Outlined.CalendarMonth, tint = Accents.calendar())
             Column(Modifier.padding(horizontal = 20.dp)) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -65,6 +72,7 @@ fun CalendarScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
                                 val number = week * 7 + weekday - offset + 1
                                 val date = if (number in 1..dayCount) month.atDay(number) else null
                                 val hasTask = date != null && tasks.any { it.scheduled == date.toString() || it.due == date.toString() }
+                                val hasDue = date != null && tasks.any { it.due == date.toString() }
                                 Box(Modifier.weight(1f).height(48.dp)
                                     .then(if (date != null) Modifier.clickable { selected = date }.semantics {
                                         this.selected = date == selected
@@ -73,11 +81,17 @@ fun CalendarScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
                                     } else Modifier), contentAlignment = Alignment.Center) {
                                     if (date != null) {
                                         val active = date == selected
+                                        val isToday = date == LocalDate.now()
+                                        val fill by animateColorAsState(
+                                            if (active) MaterialTheme.colorScheme.primary else if (isToday) Accents.today().copy(alpha = 0.16f) else MaterialTheme.colorScheme.background,
+                                            tween(180), label = "dayFill")
+                                        val bump by animateFloatAsState(if (active) 1.1f else 1f,
+                                            spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "dayScale")
                                         Surface(
-                                            shape = MaterialTheme.shapes.small,
-                                            border = if (date == LocalDate.now() && !active) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-                                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                                            modifier = Modifier.size(32.dp),
+                                            shape = CircleShape,
+                                            border = if (isToday && !active) BorderStroke(1.dp, Accents.today()) else null,
+                                            color = fill,
+                                            modifier = Modifier.size(34.dp).scale(bump),
                                         ) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                                 Text(number.toString(), style = MaterialTheme.typography.bodyMedium,
@@ -85,7 +99,8 @@ fun CalendarScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
                                                     color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onBackground)
                                                 if (hasTask) Box(Modifier.size(4.dp)) {
                                                     Surface(Modifier.fillMaxSize(), shape = CircleShape,
-                                                        color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary) {}
+                                                        color = if (active) MaterialTheme.colorScheme.onPrimary
+                                                            else if (hasDue) MaterialTheme.colorScheme.error else Accents.scheduled()) {}
                                                 }
                                             }
                                         }
@@ -116,6 +131,8 @@ fun CalendarScreen(data: AppData, workspace: Workspace, vm: CatDoViewModel) {
             Text("No tasks planned for this day.", modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        items(agenda, key = { it.id }) { task -> TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = false) }
+        items(agenda, key = { it.id }) { task ->
+            TaskRow(task, data, { vm.edit(task) }, { vm.complete(task.id) }, showScheduled = false, modifier = Modifier.animateItem())
+        }
     }
 }

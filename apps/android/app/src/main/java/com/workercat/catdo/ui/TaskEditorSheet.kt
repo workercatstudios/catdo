@@ -1,5 +1,7 @@
 package com.workercat.catdo.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
@@ -15,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.workercat.catdo.data.AppData
 import com.workercat.catdo.data.Recurrence
@@ -45,7 +48,7 @@ fun TaskEditorSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
-        Column(Modifier.fillMaxWidth().imePadding()) {
+        Column(Modifier.fillMaxWidth().imePadding().animateContentSize()) {
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     if (!isNew) IconButton(onClick = { deleteConfirmation = true }) {
@@ -180,12 +183,18 @@ fun TaskEditorSheet(
 @Composable
 private fun EditorOption(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String,
     onClear: (() -> Unit)? = null, clearLabel: String = "Clear", onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    val set = value != "Inbox" && value != "Any day" && value != "None" && value != "Never"
+    Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable(onClick = onClick).heightIn(min = 52.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(30.dp).background(
+            if (set) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+            MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(16.dp), tint = if (set) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Text(title, Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, Modifier.widthIn(max = 150.dp).padding(start = 8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium)
+            style = MaterialTheme.typography.bodyMedium, color = if (set) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
         if (onClear != null) IconButton(onClick = onClear, modifier = Modifier.size(48.dp)) {
             Icon(Icons.Outlined.Close, clearLabel, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         } else Box(Modifier.width(32.dp), contentAlignment = Alignment.CenterEnd) {
