@@ -24,6 +24,7 @@ jobs:
           node-version-file: .node-version
           package-manager-cache: false
       - run: node scripts/check-exact-versions.mjs
+      - run: python3 scripts/check-version-sync.py
 
   web:
     name: Web and API

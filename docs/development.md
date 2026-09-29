@@ -118,6 +118,7 @@ pnpm test:e2e
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+python3 scripts/check-version-sync.py
 ```
 
 A development-only integration example uses the real desktop OAuth/keyring/storage/sync code. Authorize its printed code with a disposable Clerk development user:
@@ -158,8 +159,11 @@ Linux packages and the Windows `.exe` have both versioned filenames for existing
 
 To release:
 
-1. Update the workspace version in `Cargo.toml` and refresh `Cargo.lock` with
-   `cargo check --workspace`. Commit both files and push.
+1. Update the workspace version in `Cargo.toml`, refresh `Cargo.lock` with
+   `cargo check --workspace`, and set the same `versionName` default (and the
+   next `versionCode`) in `apps/android/app/build.gradle.kts`. Commit all of
+   them together and push. `python3 scripts/check-version-sync.py` runs in the
+   Checks and Release workflows and fails on a partial bump.
 2. Tag that commit with the matching version, for example `git tag v0.1.0`.
 3. Push that tag with `git push origin v0.1.0`.
 
