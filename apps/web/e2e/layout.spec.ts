@@ -7,10 +7,13 @@ test("busy days remain usable through the agenda and a narrow task editor", asyn
 }) => {
   const data = fixtureData();
   const today = localDay();
+  const yesterday = addDays(today, -1);
+  // From the 28th the busy day is yesterday. The overdue due date has
+  // to sit on a different day, or that cell counts six tasks.
   const busyDay = addDays(today, Number(today.slice(8)) < 28 ? 1 : -1);
   const longTitle =
     "Review the entire release checklist with the team and prepare the final notes for next week's launch";
-  data.tasks[0].due = addDays(today, -1);
+  data.tasks[0].due = busyDay === yesterday ? addDays(today, -2) : yesterday;
   for (let i = 0; i < 5; i++)
     data.tasks.push(
       newTask(
