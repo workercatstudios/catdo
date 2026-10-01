@@ -73,12 +73,12 @@ Each open client holds a hibernatable WebSocket to its account Durable Object. A
 
 The web service worker caches the application shell and public assets only. API responses, Clerk traffic, and credentials are excluded. Offline reload offers **Open saved tasks** for the last signed-in account, then **Reconnect** to restore live auth and sync. The first visit and sign-in require connectivity. Browser storage can still be cleared by the user or browser; export is available in Manage.
 
-## Milestone validation
+## Integration coverage
 
 Automated tests cover Rust recurrence/storage/GPUI behavior, durable queued uploads and restart, deletion propagation, stale-window rejection, recurrence conflict history, TypeScript domain parity, server transactions/idempotency/account isolation, and API authorization boundaries.
 
 The development integration example performs real Clerk device authorization through the shared WorkerCat development instance, uses Secret Service credentials and SQLite, uploads a recurring task, edits it without network calls, reopens its database, retries an acknowledged operation, and verifies dates/history. Production smoke checks cover deployed assets, shared public auth configuration, and rejection of anonymous sync; a production user session still requires the user's own sign-in.
 
-## Remaining platform work
+## Platforms
 
-Native Android source is now in [`apps/android`](../apps/android), with local tasks, the shared sync protocol, and signed APKs on GitHub Releases. Physical-device testing, reminders, and Play Store distribution remain. A portable Windows x86-64 build ships alongside Linux; code signing and an installer remain. macOS is out of scope. Before a broader public release, validate native Wayland and accessibility, account recovery/export/import, background reminders, and larger-data performance through daily use.
+Native Android source is in [`apps/android`](../apps/android), with local tasks, the shared sync protocol, and signed APKs on GitHub Releases. A portable Windows x86-64 build ships alongside Linux. macOS is out of scope.
