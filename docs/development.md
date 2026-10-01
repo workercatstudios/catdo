@@ -91,9 +91,7 @@ Wrangler emulates a SQLite Durable Object per account locally. No production tas
 
 ## Deployment
 
-The [web product launch checklist](product-launch-checklist.md) covers privacy, terms, SEO, support, and public-facing readiness, including the canonical WorkerCat policies and remaining operator-specific facts.
-
-See the [web readiness checklist and recovery runbook](web-readiness.md) for HTTP smoke checks, remaining operational decisions, and rollback procedures. Manual deployments run the full Checks workflow; automatic and manual deployments both run read-only production smoke checks afterward.
+See the [web readiness review and recovery runbook](web-readiness.md) for HTTP smoke checks and rollback procedures. Manual deployments run the full Checks workflow; automatic and manual deployments both run read-only production smoke checks afterward.
 
 Production is a Cloudflare Worker named `catdo`, with TanStack Start server rendering, static assets, and SQLite-backed Durable Objects. Public configuration is in `apps/web/wrangler.jsonc`; the custom domain is managed in Cloudflare. Each account has independent task storage.
 
@@ -139,7 +137,7 @@ It checks native task upload, offline edit and database reopen, retry idempotenc
 
 Sync currently sends complete snapshots and caps an account's serialized task data at 900 KB. Conflicting edits to the same record require a choice; changes to different records merge automatically. Web Settings includes JSON export. See [implementation notes](implementation.md) for the protocol and limits.
 
-Reminders require the desktop app to be running and a working notification service; web push and scheduled Android delivery are not implemented. Android is registered with Firebase Cloud Messaging and can receive alerts after notification opt-in, but no server sender is configured yet. Dates are date-only, while reminders have local times. Recurrence shows the current occurrence, rather than an infinite calendar preview. Task and subtask completion are independent. Browser caches and desktop data remain on the device after sign-out; avoid offline access on a shared computer. Broader Android device testing, production load testing, and a full accessibility pass remain outstanding. See the [Android app guide](../apps/android/README.md) for its build and current feature boundaries.
+Reminders require the desktop app to be running and a working notification service; web push and scheduled Android delivery are not implemented. Android is registered with Firebase Cloud Messaging and can receive alerts after notification opt-in, but no server sender is configured yet. Dates are date-only, while reminders have local times. Recurrence shows the current occurrence, rather than an infinite calendar preview. Task and subtask completion are independent. Browser caches and desktop data remain on the device after sign-out; avoid offline access on a shared computer. See the [Android app guide](../apps/android/README.md) for its build and current feature boundaries.
 
 ## CI and releases
 
