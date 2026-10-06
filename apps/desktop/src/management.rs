@@ -1,10 +1,9 @@
 use crate::app::{CatDo, CreateKind};
-use gpui_kit::component::{
-    ActiveTheme, Icon, IconName, Sizable, StyledExt,
-    button::{Button, ButtonVariants},
-    scroll::ScrollableElement,
-};
+use crate::theme::{Accent, accent, project_color_index};
+use gpui_kit::component::{ActiveTheme, Icon, IconName, Sizable, StyledExt};
 use gpui_kit::{prelude::*, *};
+use kirakira::button::{Button, ButtonVariants};
+use kirakira::scroll::ScrollableElement;
 use uuid::Uuid;
 
 impl CatDo {
@@ -23,7 +22,7 @@ impl CatDo {
             .gap_3()
             .px_4()
             .py_3()
-            .when(!project, |el| el.bg(p.muted))
+            .when(!project, |el| el.bg(cx.theme().group_box))
             .when(project, |el| el.pl_8().border_t_1().border_color(p.border))
             .child(
                 Icon::new(if project {
@@ -32,7 +31,11 @@ impl CatDo {
                     IconName::LayoutDashboard
                 })
                 .size_4()
-                .text_color(p.muted_foreground),
+                .text_color(if project {
+                    accent(Accent::Project(project_color_index(id)), cx)
+                } else {
+                    p.muted_foreground
+                }),
             )
             .child(
                 div()
@@ -43,9 +46,9 @@ impl CatDo {
                     .child(
                         div()
                             .font_weight(if project {
-                                FontWeight::NORMAL
+                                FontWeight::MEDIUM
                             } else {
-                                FontWeight::SEMIBOLD
+                                FontWeight::BOLD
                             })
                             .child(name),
                     )
@@ -104,11 +107,13 @@ impl CatDo {
                     .child(
                         div()
                             .v_flex()
-                            .gap_2()
-                            .child(div().text_3xl().font_semibold().child("Settings"))
+                            .gap_1()
+                            .child(self.render_heading("Settings".into(), None, false, cx))
                             .child(
                                 div()
+                                    .pl(rems(3.5))
                                     .text_sm()
+                                    .font_medium()
                                     .text_color(p.muted_foreground)
                                     .child("Manage appearance, sync, and workspaces."),
                             ),
@@ -131,7 +136,7 @@ impl CatDo {
                                             .v_flex()
                                             .gap_1()
                                             .flex_1()
-                                            .child(div().font_medium().child("Color theme"))
+                                            .child(div().font_semibold().child("Color theme"))
                                             .child(
                                                 div()
                                                     .text_sm()
@@ -163,11 +168,11 @@ impl CatDo {
                             |workspace| {
                                 div()
                                     .v_flex()
-                                    .rounded(px(10.))
+                                    .rounded(cx.theme().radius_lg)
                                     .overflow_hidden()
                                     .border_1()
                                     .border_color(p.border)
-                                    .bg(p.background)
+                                    .bg(cx.theme().popover)
                                     .child(self.space_row(
                                         workspace.id,
                                         workspace.name.clone(),
@@ -205,7 +210,7 @@ impl CatDo {
                                         div()
                                             .v_flex()
                                             .gap_1()
-                                            .child(div().font_medium().child("CatDo"))
+                                            .child(div().font_semibold().child("CatDo"))
                                             .child(
                                                 div()
                                                     .text_sm()
@@ -229,7 +234,12 @@ fn settings_section(title: &'static str, description: &'static str, cx: &App) ->
         div()
             .v_flex()
             .gap_1()
-            .child(div().text_lg().font_semibold().child(title))
+            .child(
+                div()
+                    .text_lg()
+                    .font_weight(FontWeight::EXTRA_BOLD)
+                    .child(title),
+            )
             .child(
                 div()
                     .text_sm()
@@ -245,8 +255,8 @@ fn settings_panel(cx: &App) -> Div {
         .v_flex()
         .p_5()
         .gap_4()
-        .rounded(px(10.))
+        .rounded(cx.theme().radius_lg)
         .border_1()
         .border_color(p.border)
-        .bg(p.background)
+        .bg(cx.theme().popover)
 }

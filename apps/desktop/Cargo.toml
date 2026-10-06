@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 catdo-core = { path = "../../crates/catdo-core" }
+kirakira-rs = { path = "../../crates/kirakira" }
 anyhow.workspace = true
 chrono.workspace = true
 uuid.workspace = true

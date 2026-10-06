@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/catdo-core", "apps/desktop"]
+members = ["crates/catdo-core", "crates/kirakira", "apps/desktop"]
 resolver = "2"
 
 [workspace.package]

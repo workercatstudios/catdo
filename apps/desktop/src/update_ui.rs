@@ -3,11 +3,9 @@ use crate::{
     updates::{self, ReadyUpdate, Update},
 };
 use gpui_kit::assets::IconName;
-use gpui_kit::component::{
-    Sizable,
-    button::{Button, ButtonVariants},
-};
+use gpui_kit::component::Sizable;
 use gpui_kit::{Context, IntoElement};
+use kirakira::button::{Button, ButtonVariants};
 use std::time::Duration;
 
 #[derive(Default)]

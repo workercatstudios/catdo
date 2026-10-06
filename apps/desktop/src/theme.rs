@@ -1,11 +1,34 @@
-use gpui_kit::component::{
-    ActiveTheme, Selectable, StyledExt, Theme, ThemeMode,
-    button::{Button, ButtonGroup},
+use gpui_kit::component::{ActiveTheme, Selectable, StyledExt, Theme, ThemeMode};
+use gpui_kit::prelude::FluentBuilder as _;
+use gpui_kit::{
+    App, Context, Hsla, IntoElement, ParentElement, Styled, Window, WindowAppearance, div, rgb,
 };
-use gpui_kit::{App, Context, IntoElement, ParentElement, Styled, Window, WindowAppearance, div};
+use kirakira::button::{Button, ButtonGroup, ButtonVariants as _};
 use serde::{Deserialize, Serialize};
 
 use crate::app::CatDo;
+
+/// Kirakira's typeface. Static Latin weights, because GPUI can't pick weights from a
+/// variable font; other scripts fall back to the system font.
+pub(crate) const FONT: &str = "M PLUS 1";
+/// Set once the font is registered, so a failed load keeps the system font.
+static FONT_LOADED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub(crate) fn load_fonts(cx: &mut App) {
+    let fonts = [
+        include_bytes!("../../../assets/fonts/MPLUS1-400.ttf").as_slice(),
+        include_bytes!("../../../assets/fonts/MPLUS1-500.ttf").as_slice(),
+        include_bytes!("../../../assets/fonts/MPLUS1-700.ttf").as_slice(),
+        include_bytes!("../../../assets/fonts/MPLUS1-800.ttf").as_slice(),
+    ];
+    match cx
+        .text_system()
+        .add_fonts(fonts.into_iter().map(std::borrow::Cow::Borrowed).collect())
+    {
+        Ok(()) => FONT_LOADED.store(true, std::sync::atomic::Ordering::Relaxed),
+        Err(error) => eprintln!("Could not load the M PLUS 1 font: {error:#}"),
+    }
+}
 
 /// A device preference: System keeps following live OS appearance changes.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,9 +50,26 @@ impl Appearance {
         }
     }
 
+    /// Installs Kirakira's light or dark theme (warm paper and cocoa ink, or a navy night, with
+    /// a pink primary) into GPUI Kit, so every control and surface follows it.
     pub(crate) fn apply(self, window: &mut Window, cx: &mut App) {
-        Theme::change(self.resolve(window.appearance()), Some(window), cx);
-        apply_palette(cx);
+        kirakira::theme::apply(self.resolve(window.appearance()), Some(window), cx);
+        let theme = Theme::global_mut(cx);
+        // GPUI Component draws a selected ghost button (navigation, the appearance toggle) with
+        // `secondary_active`, Kirakira's teal plate. CatDo selects with Kirakira's blush accent,
+        // as the web and Android clients do.
+        theme.secondary_active = theme.accent;
+        if FONT_LOADED.load(std::sync::atomic::Ordering::Relaxed) {
+            theme.font_family = FONT.into();
+        }
+        // CatDo's clients share a sidebar a step warmer than the page in light mode, so the
+        // 240px rail reads as its own region.
+        if !theme.is_dark() {
+            theme.sidebar = rgb(0xFBF6F1).into();
+            theme.title_bar = theme.sidebar;
+        }
+        theme.tokens = theme.colors.into();
+        Theme::sync_base(cx);
         window.refresh();
     }
 
@@ -42,105 +82,31 @@ impl Appearance {
     }
 }
 
-/// Keep native Kit controls and application surfaces on the same palette.
-fn apply_palette(cx: &mut App) {
-    use gpui_kit::{px, rgb};
-    let theme = Theme::global_mut(cx);
-    let dark = theme.is_dark();
-    let color = |light, dark_color| rgb(if dark { dark_color } else { light }).into();
-    let canvas = color(0xFFFFFF, 0x1B1B1A);
-    let sidebar = color(0xF6F6F4, 0x171716);
-    let surface = color(0xF6F6F4, 0x232322);
-    let foreground = color(0x232323, 0xEDEDEA);
-    let muted = color(0x6B6B67, 0xA3A39F);
-    let border = color(0xE7E7E3, 0x333331);
-    let primary = color(0x262626, 0xEDEDEA);
-    let primary_foreground = color(0xFFFFFF, 0x1B1B1A);
-    let selected = color(0xECECE8, 0x2C2C2A);
-    theme.background = canvas;
-    theme.foreground = foreground;
-    theme.muted = surface;
-    theme.muted_foreground = muted;
-    theme.border = border;
-    theme.input = color(0x8F8F8B, 0x6F6F6B);
-    theme.popover = canvas;
-    theme.popover_foreground = foreground;
-    theme.danger = color(0xAD3F3C, 0xE7988B);
-    theme.primary = primary;
-    theme.primary_foreground = primary_foreground;
-    theme.primary_hover = color(0x111111, 0xFFFFFF);
-    theme.primary_active = color(0x000000, 0xD6D6D2);
-    theme.accent = selected;
-    theme.accent_foreground = foreground;
-    theme.secondary = surface;
-    theme.secondary_foreground = foreground;
-    theme.secondary_hover = selected;
-    theme.secondary_active = selected;
-    theme.ring = primary;
-    theme.caret = primary;
-    theme.selection = selected;
-    theme.link = primary;
-    theme.link_hover = theme.primary_hover;
-    theme.link_active = theme.primary_active;
-    theme.sidebar = sidebar;
-    theme.sidebar_foreground = foreground;
-    theme.sidebar_border = border;
-    theme.sidebar_accent = selected;
-    theme.sidebar_accent_foreground = foreground;
-    theme.sidebar_primary = primary;
-    theme.sidebar_primary_foreground = primary_foreground;
-    theme.colors.list = canvas;
-    theme.list_hover = surface;
-    theme.list_active = selected;
-    theme.list_active_border = border;
-    theme.list_head = surface;
-    theme.button = canvas;
-    theme.button_foreground = foreground;
-    theme.button_hover = surface;
-    theme.button_active = selected;
-    theme.button_primary = primary;
-    theme.button_primary_foreground = primary_foreground;
-    theme.button_primary_hover = theme.primary_hover;
-    theme.button_primary_active = theme.primary_active;
-    theme.button_secondary = surface;
-    theme.button_secondary_foreground = foreground;
-    theme.button_secondary_hover = selected;
-    theme.button_secondary_active = selected;
-    theme.title_bar = sidebar;
-    theme.title_bar_border = border;
-    theme.group_box = surface;
-    theme.group_box_foreground = foreground;
-    theme.tab = surface;
-    theme.tab_foreground = muted;
-    theme.tab_active = selected;
-    theme.tab_active_foreground = primary;
-    theme.tab_bar = sidebar;
-    theme.tab_bar_segmented = surface;
-    theme.radius = px(8.);
-    theme.radius_lg = px(12.);
-    theme.tokens = theme.colors.into();
-    Theme::sync_base(cx);
-}
-
-/// Colour with a job: each view, date kind, and project carries its own hue,
-/// while actions and selection stay neutral ink.
+/// Colour with a job: each view, date kind, and project carries its own Kirakira hue, while
+/// actions and selection use the theme's pink primary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Accent {
     Today,
     Inbox,
     Upcoming,
     Calendar,
+    /// A finished check: the pink primary.
     Done,
     Scheduled,
     Repeat,
+    /// Late deadlines and errors.
+    Overdue,
     Project(usize),
 }
 
+/// Project slots p0..p7 on Kirakira's hues, shared with the web and Android clients: pink, sky,
+/// teal, orange, lilac, yellow, lime and navy. Light yellow and lime are deepened a little so a dot
+/// still shows on paper; dark navy is lightened so it shows on the navy page.
 const PROJECT_LIGHT: [u32; 8] = [
-    0x3B6FB6, 0x6B5BB5, 0x2F8A7D, 0xB1843D, 0xB5486A, 0xC2622F, 0x3E7A4F, 0x5A6B7A,
+    0xEC5F8F, 0x5AA9E6, 0x4FB0AA, 0xF4A35F, 0xB79AD1, 0xE0B531, 0xE8775F, 0x2D3F63,
 ];
 const PROJECT_DARK: [u32; 8] = [
-    0x8FB4E8, 0xB3A6E8, 0x86CDBF, 0xD9A860, 0xE7A0B9, 0xEBA37A, 0x9ACB9F, 0x9FB0BF,
+    0xFF7AA5, 0x5AA9E6, 0x4FB0AA, 0xF4A35F, 0xB79AD1, 0xF7D35C, 0xFF9B85, 0x8FA6D6,
 ];
 
 /// Stable colour slot for a project, using the same hash as the web and
@@ -152,21 +118,52 @@ pub fn project_color_index(id: uuid::Uuid) -> usize {
     (hash % PROJECT_LIGHT.len() as u32) as usize
 }
 
-pub fn accent(accent: Accent, cx: &App) -> gpui_kit::Hsla {
-    use gpui_kit::rgb;
+/// The text-safe tone of a meaning: 4.5:1 on paper and on the navy page, so it can colour text,
+/// icons and chips. The tones are shared with the web and Android clients.
+pub fn accent(accent: Accent, cx: &App) -> Hsla {
     let dark = cx.theme().is_dark();
     let (light, dark_color) = match accent {
-        Accent::Today => (0x946A2A, 0xD9A860),
-        Accent::Inbox | Accent::Scheduled => (0x3B6FB6, 0x8FB4E8),
-        Accent::Upcoming => (0x6B5BB5, 0xB3A6E8),
-        Accent::Calendar | Accent::Repeat => (0x25736A, 0x86CDBF),
-        Accent::Done => (0x3E7A4F, 0x9ACB9F),
+        Accent::Done => return cx.theme().primary,
+        Accent::Today => (0xA35A12, 0xF7D35C),
+        Accent::Inbox | Accent::Scheduled => (0x2F6FB0, 0x8CC4F0),
+        Accent::Upcoming => (0x7A52A3, 0xC9B0E3),
+        Accent::Calendar | Accent::Repeat => (0x2B7A75, 0x7FD0C9),
+        Accent::Overdue => (0xC2333A, 0xFF8A8D),
         Accent::Project(index) => (
             PROJECT_LIGHT[index % PROJECT_LIGHT.len()],
             PROJECT_DARK[index % PROJECT_DARK.len()],
         ),
     };
     rgb(if dark { dark_color } else { light }).into()
+}
+
+/// A meaning's `--kk-*` hue: Kirakira yellow for Today, sky for Inbox and dates, lilac for
+/// Upcoming, teal for the calendar and repeats, pink for done, red for late, and a project's slot.
+fn pastel(accent: Accent, dark: bool) -> Hsla {
+    match accent {
+        Accent::Today => rgb(0xF7D35C),
+        Accent::Inbox | Accent::Scheduled => rgb(0x5AA9E6),
+        Accent::Upcoming => rgb(0xB79AD1),
+        Accent::Calendar | Accent::Repeat => rgb(0x4FB0AA),
+        Accent::Done => rgb(if dark { 0xFF7AA5 } else { 0xEC5F8F }),
+        Accent::Overdue => rgb(if dark { 0xFF6B6F } else { 0xE5484D }),
+        Accent::Project(index) => {
+            rgb(if dark { PROJECT_DARK } else { PROJECT_LIGHT }[index % PROJECT_LIGHT.len()])
+        }
+    }
+    .into()
+}
+
+/// The pastel tile behind a meaning's icon.
+pub fn fill(accent: Accent, cx: &App) -> Hsla {
+    let dark = cx.theme().is_dark();
+    pastel(accent, dark).opacity(if dark { 0.2 } else { 0.18 })
+}
+
+/// The lighter wash behind text in a meaning's tone, which keeps that text at 4.5:1.
+pub fn chip(accent: Accent, cx: &App) -> Hsla {
+    let dark = cx.theme().is_dark();
+    pastel(accent, dark).opacity(if dark { 0.18 } else { 0.1 })
 }
 
 impl CatDo {
@@ -189,8 +186,10 @@ impl CatDo {
         div().h_flex().py_2().child(
             ButtonGroup::new("appearance")
                 .children(Appearance::ALL.map(|appearance| {
+                    // The chosen segment is filled pink, readable in both themes.
                     Button::new(appearance.label())
                         .label(appearance.label())
+                        .when(self.appearance == appearance, |button| button.primary())
                         .selected(self.appearance == appearance)
                         .tooltip(match appearance {
                             Appearance::System => "Follow your system’s light or dark theme",

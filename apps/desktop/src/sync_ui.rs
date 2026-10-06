@@ -4,12 +4,10 @@ use crate::{
 };
 use catdo_core::sync::Choice;
 use gpui_kit::component::ActiveTheme;
-use gpui_kit::component::{
-    Disableable, Sizable, StyledExt,
-    button::{Button, ButtonVariants},
-    checkbox::Checkbox,
-};
+use gpui_kit::component::{Disableable, Sizable, StyledExt};
 use gpui_kit::{prelude::*, *};
+use kirakira::button::{Button, ButtonVariants};
+use kirakira::checkbox::Checkbox;
 use std::{
     sync::{
         Arc,
@@ -285,11 +283,11 @@ impl CatDo {
             .gap_4()
             .text_sm()
             .when(!self.sync_status.is_empty(), |el| {
-                el.child(div().font_medium().child(self.sync_status.clone()))
+                el.child(div().font_semibold().child(self.sync_status.clone()))
             })
             .when(!self.sync_enabled, |el| {
                 el.child(
-                    div().v_flex().gap_3().p_4().rounded(px(6.)).bg(p.muted)
+                    div().v_flex().gap_3().p_4().rounded(cx.theme().radius).bg(p.muted)
                         .child(Checkbox::new("sign-in-age")
                             .label("I am 13 or older")
                             .checked(self.sign_in_age_confirmed)

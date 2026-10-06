@@ -27,8 +27,8 @@ mod updates;
 use anyhow::{Context, Result};
 use catdo_core::Store;
 use directories::ProjectDirs;
-use gpui_kit::component::Root;
 use gpui_kit::*;
+use kirakira::Root;
 
 fn main() {
     #[cfg(windows)]
@@ -76,6 +76,8 @@ fn run() -> Result<()> {
         .with_assets(gpui_kit::assets::AllAssets)
         .run(move |cx| {
             gpui_kit::init(cx);
+            kirakira::init(cx);
+            theme::load_fonts(cx);
             // Groups CatDo's windows and names its notifications.
             #[cfg(windows)]
             cx.set_app_identity("com.workercat.catdo", "CatDo");

@@ -2,11 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use catdo_core::{Data, Store};
 use chrono::{Datelike, Local, NaiveDate};
-use gpui_kit::component::{
-    input::{InputEvent, InputState},
-    select::{SelectEvent, SelectState},
-};
 use gpui_kit::*;
+use kirakira::input::{InputEvent, InputState};
+use kirakira::select::{SelectEvent, SelectState};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, atomic::AtomicBool};
 use uuid::Uuid;
@@ -69,6 +67,10 @@ pub struct CatDo {
     pub(crate) workspace_select_dirty: bool,
     pub(crate) store: Store,
     pub(crate) reminders_in_flight: HashSet<Uuid>,
+    /// Tasks just completed, still shown in their list while the check pops and the row leaves.
+    pub(crate) leaving: HashMap<Uuid, crate::commands::Leaving>,
+    /// Completions per task this session; each new one fires that task's burst.
+    pub(crate) bursts: HashMap<Uuid, usize>,
     pub workspace_id: Uuid,
     pub view: View,
     views: HashMap<Uuid, (View, NaiveDate, NaiveDate)>,
@@ -135,6 +137,8 @@ impl CatDo {
             workspace_select_dirty: false,
             store,
             reminders_in_flight: HashSet::new(),
+            leaving: HashMap::new(),
+            bursts: HashMap::new(),
             view: View::Today,
             views: HashMap::new(),
             month: today.with_day(1).unwrap(),

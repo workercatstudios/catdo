@@ -1,0 +1,28 @@
+[package]
+name = "kirakira-rs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+description = "Kirakira UI for GPUI: pop, anime-title motion components on GPUI Kit."
+license = "MIT"
+homepage = "https://kk.workercat.com"
+publish = false
+
+[lib]
+name = "kirakira"
+# The crate's tests check every keyframe against the Kirakira web sources, which live in the
+# workercat monorepo; they run there, not here. See README.md.
+test = false
+doctest = false
+
+[dependencies]
+chrono = "=0.4.45"
+gpui-kit = "=0.6.6"
+unicode-properties = { version = "=0.1.4", default-features = false, features = ["general-category"] }
+unicode-script = "=0.5.8"
+unicode-segmentation = "=1.13.3"
+
+[lints.clippy]
+# GPUI callbacks are `Rc<dyn Fn(&Event, &mut Window, &mut App)>`; naming each one hides more than
+# it helps.
+type_complexity = "allow"

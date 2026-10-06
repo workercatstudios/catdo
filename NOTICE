@@ -2,4 +2,6 @@ Required Notice: Copyright 2026 WorkerCat.
 
 CatDo is licensed under the PolyForm Noncommercial License 1.0.0.
 Third-party dependencies remain under their respective licenses.
+crates/kirakira is Kirakira UI for GPUI, Copyright (c) 2026 Workercat, under the MIT License (crates/kirakira/LICENSE).
+The M PLUS 1 font (assets/fonts, apps/web via @fontsource-variable/m-plus-1) is Copyright 2021 The M+ FONTS Project Authors, under the SIL Open Font License 1.1 (assets/fonts/OFL.txt).
 WorkerCat and CatDo names and branding are not licensed as trademarks.

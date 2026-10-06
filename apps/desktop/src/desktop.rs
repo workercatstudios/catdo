@@ -7,9 +7,9 @@ use crate::{
 };
 use gpui_kit::{
     App, AppContext, Bounds, Entity, Global, TitlebarOptions, WindowBounds, WindowOptions,
-    component::{Root, TitleBar},
-    px, size,
+    component::TitleBar, px, size,
 };
+use kirakira::Root;
 use std::{sync::mpsc, time::Duration};
 
 struct Desktop {

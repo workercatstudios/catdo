@@ -153,3 +153,46 @@ fn keyboard_capture_and_save_render_through_the_real_root(cx: &mut TestAppContex
     cx.simulate_keystrokes(*window, "ctrl-z");
     cx.read_entity(&app, |app, _| assert!(app.data.tasks[0].active()));
 }
+
+#[gpui_kit::test]
+fn completed_task_bursts_and_leaves_its_list_before_it_reflows(cx: &mut TestAppContext) {
+    let temp = tempfile::tempdir().unwrap();
+    let mut store = Store::open(&temp.path().join("test.sqlite3")).unwrap();
+    let data = store.load().unwrap();
+    cx.update(gpui_kit::init);
+    let window = cx.add_window(|window, cx| CatDo::new(store, data, window, cx));
+    let id = window
+        .update(cx, |app, window, cx| {
+            app.quick_add.update(cx, |input, cx| {
+                input.set_value("Water the plants", window, cx)
+            });
+            app.quick_create(window, cx);
+            let id = app.data.tasks[0].id;
+            app.complete_task(id, cx);
+            // Saved at once, so undo and sync see it; the row stays a moment, drawn done.
+            assert!(!app.data.tasks[0].active());
+            assert!(app.visible_tasks(cx).is_empty());
+            assert_eq!(app.bursts.get(&id), Some(&1));
+            let listed = app.listed_tasks(cx);
+            assert_eq!(listed.len(), 1);
+            assert!(listed[0].0.active() && listed[0].1.is_some());
+            id
+        })
+        .unwrap();
+    cx.executor().advance_clock(crate::motion::LEAVE);
+    cx.run_until_parked();
+    window
+        .update(cx, |app, window, cx| {
+            assert!(app.listed_tasks(cx).is_empty(), "the row has left");
+            app.undo(window, cx);
+            assert!(app.data.tasks[0].active());
+            app.complete_task(id, cx);
+            app.undo(window, cx);
+            assert!(
+                app.leaving.is_empty(),
+                "undo brings the live row back at once"
+            );
+            assert_eq!(app.listed_tasks(cx).len(), 1);
+        })
+        .unwrap();
+}

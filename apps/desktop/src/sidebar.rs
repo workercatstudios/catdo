@@ -6,15 +6,17 @@ use std::{
 use chrono::Local;
 use gpui_kit::component::{
     ActiveTheme, Collapsible, Icon, IconName, Selectable, Sizable, StyledExt,
-    button::{Button, ButtonVariants},
-    input::Input,
-    select::Select,
     sidebar::{Sidebar, SidebarGroup, SidebarItem},
 };
 use gpui_kit::{prelude::*, *};
+use kirakira::button::{Button, ButtonVariants};
+use kirakira::input::Input;
+use kirakira::select::Select;
+use kirakira::sparkles::{Sparkles, SparklesTrigger};
 
 use crate::app::{CatDo, CreateKind, View};
 use crate::theme::{Accent, accent, project_color_index};
+use gpui_kit::assets::IconName as Lucide;
 
 static BRAND: LazyLock<Arc<Image>> = LazyLock::new(|| {
     Arc::new(Image::from_bytes(
@@ -23,11 +25,6 @@ static BRAND: LazyLock<Arc<Image>> = LazyLock::new(|| {
     ))
 });
 
-/// The CatDo artwork, shared by the sidebar brand and empty states.
-pub fn brand() -> Arc<Image> {
-    BRAND.clone()
-}
-
 type NavigationClick = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 
 // Kit Sidebar requires cloneable entries. Render each entry as a Kit Button so
@@ -35,7 +32,7 @@ type NavigationClick = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 #[derive(Clone)]
 struct NavigationItem {
     label: SharedString,
-    icon: IconName,
+    icon: Lucide,
     tint: Option<Hsla>,
     active: bool,
     count: usize,
@@ -59,10 +56,10 @@ impl SidebarItem for NavigationItem {
             .w_full()
             .child(
                 div()
-                    .w(px(3.))
+                    .w(px(4.))
                     .h(px(18.))
-                    .mr(px(6.))
-                    .rounded_r_sm()
+                    .mr(px(5.))
+                    .rounded_full()
                     .bg(if active {
                         p.primary
                     } else {
@@ -85,13 +82,13 @@ impl SidebarItem for NavigationItem {
                             .w_full()
                             .gap_3()
                             .child(
-                                Icon::new(self.icon)
-                                    .size_4()
-                                    .text_color(self.tint.unwrap_or(if active {
-                                        p.primary
-                                    } else {
-                                        p.muted_foreground
-                                    })),
+                                // Selected rows sit on blush with ink text; the pink icon
+                                // and indicator mark them, as pink text on blush would fail.
+                                Icon::new(self.icon).size_4().text_color(if active {
+                                    p.primary
+                                } else {
+                                    self.tint.unwrap_or(p.muted_foreground)
+                                }),
                             )
                             .child(div().flex_1().text_left().truncate().child(self.label))
                             .when(self.count > 0, |el| {
@@ -103,7 +100,7 @@ impl SidebarItem for NavigationItem {
                                         .rounded_full()
                                         .text_xs()
                                         .text_center()
-                                        .font_medium()
+                                        .font_semibold()
                                         .bg(if active { p.primary } else { p.muted })
                                         .text_color(if active {
                                             p.primary_foreground
@@ -162,7 +159,7 @@ impl CatDo {
     fn nav_item(
         &self,
         label: impl Into<SharedString>,
-        icon: IconName,
+        icon: Lucide,
         tint: Option<Hsla>,
         view: View,
         count: usize,
@@ -208,7 +205,7 @@ impl CatDo {
             .map(|project| {
                 self.nav_item(
                     project.name.clone(),
-                    IconName::Folder,
+                    Lucide::Folder,
                     Some(accent(Accent::Project(project_color_index(project.id)), cx)),
                     View::Project(project.id),
                     tasks
@@ -221,7 +218,7 @@ impl CatDo {
             .collect::<Vec<_>>();
         projects.push(NavigationItem {
             label: "New project".into(),
-            icon: IconName::Plus,
+            icon: Lucide::Plus,
             tint: None,
             active: false,
             count: 0,
@@ -248,11 +245,16 @@ impl CatDo {
                             .gap_3()
                             .px_2()
                             .pb_2()
-                            .child(img(BRAND.clone()).size(px(26.)))
+                            .child(
+                                Sparkles::new("brand-sparkles")
+                                    .trigger(SparklesTrigger::Hover)
+                                    .count(4)
+                                    .child(img(BRAND.clone()).size(px(28.))),
+                            )
                             .child(
                                 div()
                                     .text_lg()
-                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .font_weight(FontWeight::EXTRA_BOLD)
                                     .child("CatDo"),
                             ),
                     )
@@ -304,7 +306,7 @@ impl CatDo {
                 items: vec![
                     self.nav_item(
                         "Inbox",
-                        IconName::Inbox,
+                        Lucide::Inbox,
                         Some(accent(Accent::Inbox, cx)),
                         View::Inbox,
                         inbox,
@@ -312,7 +314,7 @@ impl CatDo {
                     ),
                     self.nav_item(
                         "Today",
-                        IconName::Sun,
+                        Lucide::Sun,
                         Some(accent(Accent::Today, cx)),
                         View::Today,
                         today_count,
@@ -320,7 +322,7 @@ impl CatDo {
                     ),
                     self.nav_item(
                         "Upcoming",
-                        IconName::Calendar,
+                        Lucide::CalendarDays,
                         Some(accent(Accent::Upcoming, cx)),
                         View::Upcoming,
                         0,
@@ -328,7 +330,7 @@ impl CatDo {
                     ),
                     self.nav_item(
                         "Calendar",
-                        IconName::LayoutDashboard,
+                        Lucide::Calendar,
                         Some(accent(Accent::Calendar, cx)),
                         View::Calendar,
                         0,
@@ -357,11 +359,13 @@ impl CatDo {
                                     .items_center()
                                     .w_full()
                                     .gap_3()
-                                    .child(
-                                        Icon::new(IconName::CircleCheck)
-                                            .size_4()
-                                            .text_color(accent(Accent::Done, cx)),
-                                    )
+                                    .child(Icon::new(IconName::CircleCheck).size_4().text_color(
+                                        if self.view == View::Completed {
+                                            cx.theme().primary
+                                        } else {
+                                            accent(Accent::Done, cx)
+                                        },
+                                    ))
                                     .child("Completed"),
                             )
                             .on_click(cx.listener(|this, _, window, cx| {
