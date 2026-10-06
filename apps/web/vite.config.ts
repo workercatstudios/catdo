@@ -20,19 +20,22 @@ export default defineConfig({
         const files = Object.keys(bundle)
           .filter((name) => /\.(js|css|woff2)$/.test(name))
           .sort();
-        const version = createHash("sha256")
-          .update(
-            files
-              .map((name) => {
-                const entry = bundle[name];
-                return entry.type === "chunk"
-                  ? entry.code
-                  : String(entry.source);
-              })
-              .join("\n"),
-          )
-          .digest("hex")
-          .slice(0, 12);
+        // Public files keep their names, so their bytes go into the version
+        // too: changing one ships a new worker and a fresh cache.
+        const publicFiles = ["/icon.png"];
+        const hash = createHash("sha256").update(
+          files
+            .map((name) => {
+              const entry = bundle[name];
+              return entry.type === "chunk" ? entry.code : String(entry.source);
+            })
+            .join("\n"),
+        );
+        for (const name of publicFiles)
+          hash.update(
+            readFileSync(new URL("./public" + name, import.meta.url)),
+          );
+        const version = hash.digest("hex").slice(0, 12);
         this.emitFile({
           type: "asset",
           fileName: "sw.js",
@@ -45,7 +48,7 @@ export default defineConfig({
               "__ASSETS__",
               JSON.stringify([
                 "/app",
-                "/icon.png",
+                ...publicFiles,
                 ...files.map((name) => "/" + name),
               ]),
             ),
