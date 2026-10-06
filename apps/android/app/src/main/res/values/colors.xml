@@ -1,0 +1,4 @@
+<resources>
+    <!-- Kirakira paper, so the window behind Compose matches the theme while the app starts. -->
+    <color name="catdo_paper">#FFFCF8</color>
+</resources>

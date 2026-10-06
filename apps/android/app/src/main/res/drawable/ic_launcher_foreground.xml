@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paths from assets/catdo-icon.svg. Ellipses are arcs; translucent layers on the cream cat are flattened to solid colours. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:pivotX="270"
+        android:pivotY="276"
+        android:scaleX="0.68"
+        android:scaleY="0.68"
+        android:translateX="-14"
+        android:translateY="-20">
+        <path android:fillColor="#1F2238" android:fillAlpha="0.35"
+            android:pathData="M124,432 a132,10 0 1,0 264,0 a132,10 0 1,0 -264,0 Z" />
+        <path android:fillColor="#FFFCF8"
+            android:pathData="M116,312 C116,240 140,202 164,184 L151,122 Q147,102 165,110 L218,142 C244,135 268,135 294,142 L347,110 Q365,102 361,122 L348,184 C372,202 396,240 396,312 C396,392 336,430 256,430 C176,430 116,392 116,312 Z" />
+        <path android:fillColor="#F49EB9" android:strokeColor="#F49EB9" android:strokeWidth="10" android:strokeLineJoin="round"
+            android:pathData="M182,168 L172,130 L201,147 Z M330,168 L340,130 L311,147 Z" />
+        <path android:strokeColor="#4B3832" android:strokeWidth="13" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M183,260 Q204,230 225,260 M287,260 Q308,230 329,260 M232,288 Q244,304 256,288 Q268,304 280,288" />
+        <path android:fillColor="#EE6F9A"
+            android:pathData="M150,292 a22,13 0 1,0 44,0 a22,13 0 1,0 -44,0 Z M318,292 a22,13 0 1,0 44,0 a22,13 0 1,0 -44,0 Z" />
+        <path android:fillColor="#2D3F63"
+            android:pathData="M302,380 a76,76 0 1,0 152,0 a76,76 0 1,0 -152,0 Z" />
+        <path android:fillColor="#FF7AA5"
+            android:pathData="M317,380 a61,61 0 1,0 122,0 a61,61 0 1,0 -122,0 Z" />
+        <path android:strokeColor="#1F2238" android:strokeWidth="18" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M348,382 L370,404 L410,360" />
+        <path android:fillColor="#F7D35C"
+            android:pathData="M404,106 Q404,136 434,136 Q404,136 404,166 Q404,136 374,136 Q404,136 404,106 Z" />
+        <path android:fillColor="#F7D35C" android:fillAlpha="0.8"
+            android:pathData="M112,161 Q112,176 127,176 Q112,176 112,191 Q112,176 97,176 Q112,176 112,161 Z" />
+    </group>
+</vector>

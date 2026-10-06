@@ -1,15 +1,18 @@
 package com.workercat.catdo.ui
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -17,13 +20,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.workercat.catdo.data.AppData
 import com.workercat.catdo.data.Recurrence
 import com.workercat.catdo.data.Task
-import java.time.LocalDate
+import com.workercat.catdo.ui.kirakira.*
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +43,7 @@ fun TaskEditorSheet(
     onDismiss: () -> Unit, onSave: (Task) -> Unit, onDelete: () -> Unit,
     onAddSubtask: (Task) -> Unit, onEditSubtask: (Task) -> Unit, onCompleteSubtask: (Task) -> Unit,
 ) {
+    val kk = Kirakira.colors
     var draft by remember(task.id) { mutableStateOf(task) }
     var projectMenu by remember { mutableStateOf(false) }
     var repeatMenu by remember { mutableStateOf(false) }
@@ -47,69 +58,76 @@ fun TaskEditorSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
+        containerColor = kk.paper, contentColor = kk.ink, tonalElevation = 0.dp,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        scrimColor = Color.Black.copy(alpha = 0.5f),
+        dragHandle = { SheetHandle() }) {
         Column(Modifier.fillMaxWidth().imePadding().animateContentSize()) {
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    if (!isNew) IconButton(onClick = { deleteConfirmation = true }) {
-                        Icon(Icons.Outlined.DeleteOutline, "Delete task", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    if (!isNew) PopIconButton(Icons.Outlined.DeleteOutline, "Delete task", { deleteConfirmation = true },
+                        tint = kk.mutedInk, iconSize = 20.dp)
                     Spacer(Modifier.weight(1f))
-                    IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, "Close task", Modifier.size(20.dp)) }
+                    PopIconButton(Icons.Outlined.Close, "Close task", onDismiss, iconSize = 20.dp)
                 }
-                BasicTextField(value = draft.title, onValueChange = { draft = draft.copy(title = it) }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).semantics { contentDescription = "Task title" },
-                    textStyle = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                // Long titles wrap instead of scrolling sideways; Enter moves on and pasted line breaks become spaces.
+                BasicTextField(value = draft.title, onValueChange = { draft = draft.copy(title = it.replace('\n', ' ')) }, maxLines = 4,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { contentDescription = "Task title" },
+                    textStyle = MaterialTheme.typography.titleLarge.copy(color = kk.ink),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     decorationBox = { inner -> Box {
                         if (draft.title.isEmpty()) Text("What needs doing?", style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            color = kk.mutedInk.copy(alpha = 0.8f))
                         inner()
                     } })
                 BasicTextField(value = draft.notes, onValueChange = { draft = draft.copy(notes = it) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(top = 8.dp, bottom = 16.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(top = 6.dp, bottom = 16.dp)
                         .semantics { contentDescription = "Notes" },
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = kk.mutedInk),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     decorationBox = { inner -> Box {
                         if (draft.notes.isEmpty()) Text("Add notes…", style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            color = kk.mutedInk.copy(alpha = 0.8f))
                         inner()
                     } })
                 if (!isNew) {
-                    Spacer(Modifier.height(4.dp))
                     val subtasks = data.tasks.filter { it.parentId == task.id }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (subtasks.isNotEmpty()) Text("Subtasks · ${subtasks.size}", modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = {
+                            style = MaterialTheme.typography.labelMedium, color = kk.mutedInk)
+                        PopButton(onClick = {
                             if (draft != task && draft.title.isNotBlank()) onSave(draft)
                             onAddSubtask(draft)
-                        }) { Text("Add subtask") }
+                        }, variant = PopVariant.Secondary, size = PopSize.Small, icon = Icons.Outlined.Add) { Text("Add subtask") }
                     }
-                    subtasks.forEach { child ->
-                        TaskRow(child, data, {
-                            if (draft != task && draft.title.isNotBlank()) onSave(draft)
-                            onEditSubtask(child.copy(workspaceId = draft.workspaceId, projectId = draft.projectId))
-                        }, { onCompleteSubtask(child) })
+                    Column(Modifier.offset(x = (-16).dp)) {
+                        subtasks.forEach { child ->
+                            TaskRow(child, data, {
+                                if (draft != task && draft.title.isNotBlank()) onSave(draft)
+                                onEditSubtask(child.copy(workspaceId = draft.workspaceId, projectId = draft.projectId))
+                            }, { onCompleteSubtask(child) })
+                        }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Column {
+                Spacer(Modifier.height(12.dp))
+                // The properties sit in one card, each row a labelled option.
+                Column(Modifier.popCard().padding(vertical = 4.dp)) {
                     Box {
-                        EditorOption(Icons.Outlined.FolderOpen, "Project", projects.firstOrNull { it.id == draft.projectId }?.name ?: "Inbox") {
+                        EditorOption(Icons.Outlined.FolderOpen, "Project", projects.firstOrNull { it.id == draft.projectId }?.name ?: "Inbox",
+                            hue = draft.projectId?.let { Accents.project(it) }) {
                             if (draft.parentId == null) projectMenu = true
                         }
-                        DropdownMenu(projectMenu, { projectMenu = false }) {
-                            DropdownMenuItem(text = { Text("Inbox") }, onClick = { draft = draft.copy(projectId = null, parentId = null); projectMenu = false })
-                            projects.forEach { project -> DropdownMenuItem(text = { Text(project.name) }, onClick = {
+                        PopMenu(projectMenu, { projectMenu = false }) {
+                            PopMenuItem("Inbox", draft.projectId == null) { draft = draft.copy(projectId = null, parentId = null); projectMenu = false }
+                            projects.forEach { project -> PopMenuItem(project.name, draft.projectId == project.id, Accents.project(project.id)) {
                                 draft = draft.copy(projectId = project.id, parentId = null); projectMenu = false
-                            }) }
+                            } }
                         }
                     }
-
+                    OptionDivider()
                     EditorOption(Icons.Outlined.EventAvailable, "Planned for", draft.scheduled?.let(::formatDay) ?: "Any day",
+                        hue = Accents.scheduled().text,
                         onClear = if (draft.scheduled != null) ({ draft = draft.copy(scheduled = null, recurrence = null) }) else null,
                         clearLabel = "Clear planned date") {
                         pickDate(draft.scheduled) { date -> draft = draft.copy(
@@ -118,8 +136,10 @@ fun TaskEditorSheet(
                                 draft.recurrence?.copy(monthDay = LocalDate.parse(date).dayOfMonth) else draft.recurrence,
                         ) }
                     }
-
+                    OptionDivider()
+                    val late = draft.due != null && draft.due!! < LocalDate.now().toString()
                     EditorOption(Icons.Outlined.Flag, "Deadline", draft.due?.let(::formatDay) ?: "None",
+                        hue = if (late) Accents.overdue().text else Accents.today().text,
                         onClear = if (draft.due != null) ({ draft = draft.copy(due = null, recurrence = if (draft.scheduled == null) null else draft.recurrence) }) else null,
                         clearLabel = "Clear deadline") {
                         pickDate(draft.due) { date -> draft = draft.copy(
@@ -128,17 +148,18 @@ fun TaskEditorSheet(
                                 draft.recurrence?.copy(monthDay = LocalDate.parse(date).dayOfMonth) else draft.recurrence,
                         ) }
                     }
-
+                    OptionDivider()
                     Box {
-                        EditorOption(Icons.Outlined.Repeat, "Repeat", when (draft.recurrence?.unit) {
+                        val repeatLabel = when (draft.recurrence?.unit) {
                             "Days" -> "Daily"
                             "Weeks" -> "Weekly"
                             "Months" -> "Monthly"
                             else -> "Never"
-                        }) { repeatMenu = true }
-                        DropdownMenu(repeatMenu, { repeatMenu = false }) {
+                        }
+                        EditorOption(Icons.Outlined.Repeat, "Repeat", repeatLabel, hue = Accents.repeat().text) { repeatMenu = true }
+                        PopMenu(repeatMenu, { repeatMenu = false }) {
                             listOf("Never", "Daily", "Weekly", "Monthly").forEach { label ->
-                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                PopMenuItem(label, label == repeatLabel) {
                                     val date = draft.scheduled ?: draft.due ?: LocalDate.now().toString()
                                     val rule = when (label) {
                                         "Daily" -> Recurrence("Days")
@@ -148,57 +169,129 @@ fun TaskEditorSheet(
                                     }
                                     draft = draft.copy(scheduled = if (rule != null && draft.due == null) date else draft.scheduled, recurrence = rule)
                                     repeatMenu = false
-                                })
+                                }
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
             }
-            HorizontalDivider()
-            Button(onClick = { onSave(draft) }, enabled = draft.title.trim().isNotBlank(),
-                shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).height(48.dp)) { Text(if (isNew) "Add task" else "Save changes") }
+            HorizontalDivider(color = kk.border)
+            PopButton(onClick = { onSave(draft) }, enabled = draft.title.trim().isNotBlank(), size = PopSize.Large,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp)) { Text(if (isNew) "Add task" else "Save changes") }
         }
     }
 
     datePicked?.let { onPicked ->
         val picker = rememberDatePickerState(initialSelectedDateMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-        DatePickerDialog(onDismissRequest = { datePicked = null },
-            confirmButton = { TextButton(onClick = {
-                picker.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()) }
-                datePicked = null
-            }, enabled = picker.selectedDateMillis != null) { Text("Done") } },
-            dismissButton = { TextButton(onClick = { datePicked = null }) { Text("Cancel") } },
-        ) { DatePicker(state = picker) }
+        PopDialog(onDismissRequest = { datePicked = null }, width = 380.dp,
+            modifier = Modifier.padding(horizontal = 0.dp),
+            buttons = { dialog ->
+                PopButton(onClick = { dialog.dismiss { datePicked = null } }, variant = PopVariant.Ghost) { Text("Cancel") }
+                PopButton(onClick = {
+                    dialog.dismiss {
+                        picker.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()) }
+                        datePicked = null
+                    }
+                }, enabled = picker.selectedDateMillis != null) { Text("Done") }
+            },
+        ) {
+            DatePicker(state = picker, modifier = Modifier.offset(x = (-12).dp).requiredWidth(344.dp),
+                title = null, headline = null, showModeToggle = false, colors = popDatePickerColors())
+        }
     }
 
-    if (deleteConfirmation) AlertDialog(
-        onDismissRequest = { deleteConfirmation = false }, title = { Text("Delete task?") },
-        text = { Text("This also removes its subtasks. You can undo the action right after deleting.") },
-        confirmButton = { TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = { deleteConfirmation = false }) { Text("Cancel") } },
-    )
+    if (deleteConfirmation) PopDialog(
+        onDismissRequest = { deleteConfirmation = false }, title = "Delete task?",
+        buttons = { dialog ->
+            PopButton(onClick = { dialog.dismiss { deleteConfirmation = false } }, variant = PopVariant.Ghost) { Text("Cancel") }
+            PopButton(onClick = { dialog.dismiss(onDelete) }, variant = PopVariant.Destructive) { Text("Delete") }
+        },
+    ) {
+        Text("This also removes its subtasks. You can undo the action right after deleting.", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/** Pop Drawer's handle: it squashes and stretches as the sheet lands (1.3x0.6, 0.9x1.2, 1.05x0.95, 1). */
+@Composable
+private fun SheetHandle() {
+    val kk = Kirakira.colors
+    val reduced = Kirakira.reducedMotion
+    val sx = remember { Animatable(1f) }
+    val sy = remember { Animatable(1f) }
+    LaunchedEffect(Unit) {
+        if (reduced) return@LaunchedEffect
+        coroutineScope {
+            launch { sx.animateTo(1f, keyframes { durationMillis = 680; 1f at 280; 1.3f at 400; 0.9f at 520; 1.05f at 600 }) }
+            launch { sy.animateTo(1f, keyframes { durationMillis = 680; 1f at 280; 0.6f at 400; 1.2f at 520; 0.95f at 600 }) }
+        }
+    }
+    Box(Modifier.padding(top = 12.dp, bottom = 4.dp).size(40.dp, 5.dp)
+        .graphicsLayer { scaleX = sx.value; scaleY = sy.value }
+        .background(kk.mutedInk.copy(alpha = 0.35f), CircleShape))
 }
 
 @Composable
-private fun EditorOption(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String,
+private fun OptionDivider() = HorizontalDivider(Modifier.padding(start = 58.dp, end = 12.dp), color = Kirakira.colors.border)
+
+@Composable
+private fun EditorOption(icon: ImageVector, title: String, value: String, hue: Color? = null,
     onClear: (() -> Unit)? = null, clearLabel: String = "Clear", onClick: () -> Unit) {
+    val kk = Kirakira.colors
     val set = value != "Inbox" && value != "Any day" && value != "None" && value != "Never"
-    Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable(onClick = onClick).heightIn(min = 52.dp),
+    val tone = if (set && hue != null) hue else kk.mutedInk
+    Row(Modifier.fillMaxWidth().popClickable(onClick, sink = 0.99f).heightIn(min = 52.dp).padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(30.dp).background(
-            if (set) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerHigh,
-            MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(16.dp), tint = if (set) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(Modifier.size(32.dp).background(if (set) tone.copy(alpha = 0.14f) else kk.muted, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(17.dp), tint = tone)
         }
-        Text(title, Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, Modifier.weight(1f).padding(start = 14.dp), style = MaterialTheme.typography.bodyMedium, color = kk.mutedInk)
         Text(value, Modifier.widthIn(max = 150.dp).padding(start = 8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium, color = if (set) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
-        if (onClear != null) IconButton(onClick = onClear, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Outlined.Close, clearLabel, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else Box(Modifier.width(32.dp), contentAlignment = Alignment.CenterEnd) {
-            Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            style = MaterialTheme.typography.bodyMedium, color = if (set) kk.ink else kk.mutedInk)
+        if (onClear != null) PopIconButton(Icons.Outlined.Close, clearLabel, onClear, tint = kk.mutedInk, iconSize = 16.dp)
+        else Box(Modifier.size(width = 36.dp, height = 48.dp), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp), tint = kk.mutedInk)
         }
     }
+}
+
+/** A Material dropdown dressed as Pop Dropdown Menu: a white card with a hairline and soft corners. */
+@Composable
+private fun PopMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val kk = Kirakira.colors
+    DropdownMenu(expanded, onDismiss, shape = RoundedCornerShape(18.dp), containerColor = kk.card,
+        tonalElevation = 0.dp, shadowElevation = 8.dp, border = androidx.compose.foundation.BorderStroke(1.dp, kk.border),
+        modifier = Modifier.widthIn(min = 200.dp), content = content)
+}
+
+@Composable
+private fun PopMenuItem(label: String, chosen: Boolean, dot: Color? = null, onClick: () -> Unit) {
+    val kk = Kirakira.colors
+    DropdownMenuItem(
+        text = { Text(label, style = MaterialTheme.typography.bodyMedium, color = kk.ink) },
+        onClick = onClick,
+        leadingIcon = dot?.let { { Box(Modifier.size(10.dp).background(it, CircleShape)) } },
+        trailingIcon = if (chosen) ({ Icon(Icons.Outlined.Check, null, Modifier.size(18.dp).popIn(from = 0f), tint = MaterialTheme.colorScheme.primary) }) else null,
+        modifier = Modifier.padding(horizontal = 6.dp).background(if (chosen) kk.blush else Color.Transparent, RoundedCornerShape(12.dp)),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun popDatePickerColors(): DatePickerColors {
+    val kk = Kirakira.colors
+    val today = Accents.today()
+    return DatePickerDefaults.colors(
+        containerColor = Color.Transparent,
+        titleContentColor = kk.mutedInk, headlineContentColor = kk.ink,
+        weekdayContentColor = kk.mutedInk, subheadContentColor = kk.mutedInk,
+        navigationContentColor = kk.ink, yearContentColor = kk.ink,
+        currentYearContentColor = MaterialTheme.colorScheme.primary,
+        selectedYearContentColor = kk.onPrimary, selectedYearContainerColor = kk.primary,
+        dayContentColor = kk.ink, selectedDayContentColor = kk.onPrimary, selectedDayContainerColor = kk.primary,
+        todayContentColor = today.text, todayDateBorderColor = today.text.copy(alpha = 0.6f),
+        dayInSelectionRangeContainerColor = kk.blush, dayInSelectionRangeContentColor = kk.ink,
+        dividerColor = kk.border,
+    )
 }
