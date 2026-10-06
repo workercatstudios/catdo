@@ -5,6 +5,7 @@ import { ClerkProvider, SignIn, useClerk, useAuth } from "@clerk/react";
 import { App } from "./App";
 import { AgeEligibility, LegalAccess, LegalLinks } from "./LegalAccess";
 import { PrivacyRequests } from "./PrivacyRequests";
+import { ageAnswered, rememberAge } from "./lib/legal";
 const offlineToken = async () => null;
 function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
   const [local, setLocal] = useState(false);
@@ -50,7 +51,6 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
       size="xs"
       onClick={() => {
         localStorage.removeItem("catdo:last-user");
-        sessionStorage.removeItem("catdo:age-confirmed");
         void signOut({ redirectUrl: "/" });
       }}
     >
@@ -91,14 +91,8 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
   );
 }
 
-function OfflineGate({
-  unavailable = false,
-  openInitially = false,
-}: {
-  unavailable?: boolean;
-  openInitially?: boolean;
-}) {
-  const [open, setOpen] = useState(openInitially),
+function OfflineGate({ unavailable = false }: { unavailable?: boolean }) {
+  const [open, setOpen] = useState(false),
     [offline, setOffline] = useState(!navigator.onLine);
   const owner = localStorage.getItem("catdo:last-user");
   useEffect(() => {
@@ -163,14 +157,11 @@ export function AuthApp({
 }: {
   privacyRequests?: boolean;
 }) {
-  const [ageConfirmed, setAgeConfirmed] = useState(
-    () => sessionStorage.getItem("catdo:age-confirmed") === "yes",
-  );
-  const [local, setLocal] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(ageAnswered);
   const [config, setConfig] = useState<{ publishableKey: string } | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
-    if ((!ageConfirmed && !privacyRequests) || local) return;
+    if (!ageConfirmed && !privacyRequests) return;
     if (!navigator.onLine) {
       setUnavailable(true);
       return;
@@ -190,20 +181,14 @@ export function AuthApp({
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [ageConfirmed, privacyRequests, local]);
-  if (local) return <OfflineGate openInitially />;
+  }, [ageConfirmed, privacyRequests]);
   if (!privacyRequests && !ageConfirmed && navigator.onLine)
     return (
       <AgeEligibility
         onContinue={() => {
-          sessionStorage.setItem("catdo:age-confirmed", "yes");
+          rememberAge();
           setAgeConfirmed(true);
         }}
-        onSavedTasks={
-          localStorage.getItem("catdo:last-user")
-            ? () => setLocal(true)
-            : undefined
-        }
       />
     );
   if (!config)

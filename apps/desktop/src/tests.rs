@@ -25,6 +25,35 @@ fn initial_sign_in_requires_age_confirmation_without_changing_local_data(cx: &mu
 }
 
 #[gpui_kit::test]
+fn the_age_question_is_asked_once_per_device(cx: &mut TestAppContext) {
+    let temp = tempfile::tempdir().unwrap();
+    cx.update(gpui_kit::init);
+    for (case, (setup, answered)) in [
+        (None, false),
+        (Some(("age_confirmed", serde_json::json!(true))), true),
+        (Some(("age_confirmed", serde_json::json!(false))), false),
+        // A device that has synced before answered the question to sign in.
+        (Some(("sync", serde_json::json!({ "revision": 3 }))), true),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut store = Store::open(&temp.path().join(format!("{case}.sqlite3"))).unwrap();
+        if let Some((key, value)) = setup {
+            store.set_preference(key, &value).unwrap();
+        }
+        let data = store.load().unwrap();
+        let window = cx.add_window(|window, cx| CatDo::new(store, data, window, cx));
+        window
+            .update(cx, |app, _, _| {
+                assert_eq!(app.age_answered, answered);
+                assert_eq!(app.sign_in_age_confirmed, answered);
+            })
+            .unwrap();
+    }
+}
+
+#[gpui_kit::test]
 fn capture_switch_complete_undo_and_restart(cx: &mut TestAppContext) {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("test.sqlite3");

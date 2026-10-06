@@ -42,7 +42,9 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
     var syncStatus by mutableStateOf<String?>(null)
     var syncTermsRequired by mutableStateOf(false)
     var authOpen by mutableStateOf(false)
-    var eligibilityOpen by mutableStateOf(false)
+    /** Whether this device answered the 13+ question before this launch; then it isn't shown. */
+    val ageAnswered = repository.ageAnswered
+    var ageConfirmed by mutableStateOf(ageAnswered)
     val clerkReady = Clerk.isInitialized
     val clerkError = Clerk.initializationError
     private var syncJob: Job? = null
@@ -64,13 +66,12 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
     }
 
     fun startLogin() {
-        eligibilityOpen = true
+        if (ageConfirmed) authOpen = true
     }
 
-    fun confirmEligibility(ageConfirmed: Boolean) {
-        if (!eligibilityOpen || !ageConfirmed) return
-        eligibilityOpen = false
-        authOpen = true
+    fun confirmAge(value: Boolean) {
+        ageConfirmed = value
+        repository.rememberAge(value)
     }
 
     fun authComplete() {
@@ -85,7 +86,6 @@ class CatDoViewModel(val repository: CatDoRepository, private val syncClient: Sy
         else error.message ?: fallback
 
     fun closeAuth() {
-        eligibilityOpen = false
         authOpen = false
     }
 

@@ -48,3 +48,25 @@ export function downloadJson(value: unknown, filename: string) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// CatDo asks for the 13+ declaration once per browser, ever. A browser that has
+// signed in before answered it to get there, so it counts as answered too.
+const ageKey = "catdo:age-confirmed";
+export function ageAnswered() {
+  try {
+    if (localStorage.getItem(ageKey) === "yes") return true;
+    if (
+      localStorage.getItem("catdo:last-user") ||
+      sessionStorage.getItem(ageKey) === "yes"
+    ) {
+      rememberAge();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+export function rememberAge() {
+  try {
+    localStorage.setItem(ageKey, "yes");
+  } catch {}
+}
