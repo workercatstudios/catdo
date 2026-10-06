@@ -4,6 +4,7 @@ export const release = {
   appImage: `${repository}/releases/latest/download/catdo-linux-x86_64.AppImage`,
   archive: `${repository}/releases/latest/download/catdo-linux-x86_64.tar.gz`,
   android: "/download/android",
+  windows: `${repository}/releases/latest/download/catdo-windows-x86_64.exe`,
 };
 export const guides = [
   {

@@ -10,9 +10,15 @@ import {
   Sun,
 } from "lucide-react";
 import { projectColorIndex } from "./lib/colors";
+import { Burst } from "./components/ui/burst";
 import { useEffect, useRef, useState } from "react";
 
-const LEAVE_MS = 380;
+const LEAVE_MS = 520;
+const BURST_COLORS = [
+  "var(--kk-pink, #ec5f8f)",
+  "var(--kk-yellow, #f7d35c)",
+  "var(--kk-sky, #5aa9e6)",
+];
 function immediateMotion() {
   return (
     document.documentElement.dataset.input === "keyboard" ||
@@ -143,13 +149,21 @@ export function TaskList({
                     key={t.id}
                     style={{ "--i": order } as React.CSSProperties}
                   >
-                    <button
-                      className={`check ${t.completed_at ? "done" : ""}`}
-                      aria-label={`${t.completed_at ? "Reopen" : "Complete"} ${t.title}`}
-                      onClick={() => finish(t)}
+                    <Burst
+                      className="check-burst"
+                      effects={["ring", "confetti"]}
+                      colors={BURST_COLORS}
+                      size={0.62}
+                      fire={leaving.includes(t.id) ? 1 : 0}
                     >
-                      <Check size={12} aria-hidden="true" />
-                    </button>
+                      <button
+                        className={`check ${t.completed_at ? "done" : ""}`}
+                        aria-label={`${t.completed_at ? "Reopen" : "Complete"} ${t.title}`}
+                        onClick={() => finish(t)}
+                      >
+                        <Check size={12} strokeWidth={3} aria-hidden="true" />
+                      </button>
+                    </Burst>
                     <button
                       className="task-body"
                       onClick={() => open(t)}

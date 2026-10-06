@@ -10,25 +10,54 @@
   margin-inline: auto;
 }
 .site-header {
-  height: 100px;
+  height: 84px;
   display: flex;
   align-items: center;
   gap: 24px;
 }
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
 .site-nav {
   display: flex;
-  gap: 30px;
+  gap: 6px;
   margin-left: auto;
-  margin-right: 16px;
-  font-size: 13px;
-  color: var(--muted);
+  margin-right: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+.site-nav a {
+  padding: 7px 14px;
+  border-radius: 999px;
+  transition:
+    background-color var(--fast) var(--ease-out),
+    color var(--fast) var(--ease-out);
+}
+.site-nav a:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.site-open {
+  border-radius: 999px;
+  font-weight: 700;
+}
+.brand-spark {
+  margin-left: 3px;
+  color: var(--kk-pink);
+  font-size: 0.6em;
+  vertical-align: 0.6em;
 }
 .site-menu {
   display: none;
 }
 .site-footer {
   padding-block: 44px 28px;
-  border-top: 1px solid var(--border);
+  border-top: 2px dotted var(--border);
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -37,7 +66,7 @@
 }
 .site-footer p {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-top: 14px;
 }
 .site-footer nav {
@@ -52,82 +81,197 @@
   margin-top: 0;
 }
 .home-hero {
-  padding-top: 66px;
+  padding-top: 18px;
   padding-bottom: 76px;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  column-gap: 64px;
+  column-gap: 56px;
   align-items: center;
 }
-.hero-heading .eyebrow {
-  margin-bottom: 26px;
+/* The Kirakira stage: a blush panel of screentone dots with floating shapes. */
+.hero-stage {
+  grid-area: 1 / 1 / 2 / -1;
+  align-self: stretch;
+  position: relative;
+  overflow: hidden;
+  border-radius: 44px;
+  background-color: var(--accent);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--kk-pink) 34%, transparent) 1.3px,
+    transparent 1.8px
+  );
+  background-size: 22px 22px;
 }
-.hero-heading h1 {
-  font-size: clamp(60px, 6.6vw, 88px);
-  letter-spacing: -0.065em;
-  line-height: 1.04;
-  font-weight: 570;
+.hero-heading {
+  grid-area: 1 / 1;
+  position: relative;
+  padding: 92px 0 96px 64px;
 }
 .hero-copy {
+  grid-area: 1 / 2;
+  position: relative;
   max-width: 440px;
-  padding-top: 30px;
+  padding: 30px 48px 30px 0;
+}
+.shape {
+  position: absolute;
+  display: block;
+  animation: kk-float 6s ease-in-out infinite;
+}
+.shape-sun {
+  top: 12%;
+  left: 4.5%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--kk-yellow);
+  opacity: 0.75;
+}
+.shape-pill {
+  top: 10%;
+  right: 11%;
+  width: 58px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--kk-teal);
+  opacity: 0.55;
+  rotate: -16deg;
+  animation-delay: -1.8s;
+}
+.shape-ring {
+  top: 56%;
+  right: 5%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 4px solid var(--kk-sky);
+  opacity: 0.7;
+  animation-delay: -3.1s;
+}
+.shape-square {
+  bottom: 13%;
+  left: 3%;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--kk-lilac);
+  opacity: 0.6;
+  rotate: 14deg;
+  animation-delay: -4.2s;
+}
+.shape-star {
+  top: 46%;
+  left: 47%;
+  color: var(--kk-pink);
+  font-size: 22px;
+  line-height: 1;
+  animation: kk-twinkle 2.6s ease-in-out infinite;
+}
+.shape-star-2 {
+  top: 18%;
+  left: 37%;
+  font-size: 14px;
+  color: var(--kk-orange);
+  animation-delay: -1.3s;
+}
+.hero-cat {
+  position: absolute;
+  right: 6%;
+  bottom: -14px;
+}
+@keyframes kk-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -9px;
+  }
+}
+@keyframes kk-twinkle {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+  50% {
+    scale: 0.55;
+    opacity: 0.55;
+  }
+}
+.hero-heading .eyebrow {
+  margin-bottom: 24px;
+  color: var(--primary);
+}
+.hero-heading h1 {
+  font-size: clamp(56px, 6.2vw, 84px);
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  font-weight: 800;
+}
+.hero-sparkles {
+  color: var(--primary);
 }
 .hero-intro {
-  font-size: 25px;
-  line-height: 1.4;
-  letter-spacing: -0.6px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   margin-bottom: 18px;
 }
 .hero-copy > p:not(.hero-intro) {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 15px;
 }
 .hero-actions {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 22px;
   flex-wrap: wrap;
   margin: 26px 0 14px;
 }
-.hero-actions .ui-button {
-  gap: 22px;
+.hero-actions [data-slot="button"] {
+  gap: 14px;
+  height: 48px;
+  padding-inline: 26px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 10px 22px -10px
+    color-mix(in srgb, var(--primary) 80%, transparent);
 }
 .hero-actions .inline-link {
-  font-size: 13px;
+  font-size: 14px;
 }
 .hero-copy > .availability {
   font-size: 12px !important;
 }
 .product-tour {
   grid-column: 1/-1;
-  margin-top: 58px;
+  margin-top: 56px;
   min-width: 0;
   scroll-margin-top: 24px;
 }
 .preview-controls {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
+  width: fit-content;
+  margin: 0 auto 22px;
 }
-.preview-controls button {
-  border: 0;
-  background: transparent;
+.preview-controls [data-slot="toggle-group-item"] {
+  gap: 7px;
   font-size: 13px;
-  padding: 10px 16px;
-  color: var(--muted);
-}
-.preview-controls button[aria-pressed="true"] {
-  background: var(--selected);
-  color: var(--foreground);
+  font-weight: 700;
+  padding-inline: 16px;
 }
 .screenshot-frame {
   position: relative;
   aspect-ratio: 1440 / 880;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  border-radius: 28px;
+  background: var(--muted);
+  box-shadow: var(--shadow-lg);
 }
 .screenshot-layer {
   display: block;
@@ -149,13 +293,14 @@
   margin-top: 22px;
   text-align: center;
   font-size: 18px;
-  letter-spacing: -0.4px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 .product-note {
   margin-top: 8px;
   text-align: center;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .home-section {
   padding-block: 90px;
@@ -163,15 +308,20 @@
 }
 .home-section h2 {
   font-size: clamp(30px, 3vw, 40px);
-  letter-spacing: -1.5px;
+  letter-spacing: -0.03em;
   line-height: 1.2;
-  font-weight: 550;
+  font-weight: 800;
 }
 .download-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 70px;
-  border-block: 1px solid var(--border);
+  padding: 64px;
+  margin-block: 30px;
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  background: var(--card);
+  box-shadow: var(--shadow-md);
 }
 .download-heading img {
   margin-bottom: 26px;
@@ -180,7 +330,7 @@
   margin-bottom: 14px;
 }
 .download-copy > p {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 15px;
 }
 .download-actions {
@@ -197,21 +347,21 @@
   font-size: 11px;
 }
 .install-details {
-  margin: 22px 0;
+  margin: 18px 0;
   font-size: 13px;
 }
-.site summary {
-  cursor: pointer;
-  padding: 8px 0;
+.site [data-slot="accordion-content"] p {
+  color: var(--muted-foreground);
+  margin-block: 0 12px;
 }
-.site details p {
-  color: var(--muted);
-  margin-block: 12px;
-}
-.site details a,
+.site [data-slot="accordion-content"] a,
 .platform-note a {
   text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 50%, transparent);
   text-underline-offset: 4px;
+}
+.site [data-slot="accordion-trigger"] {
+  font-weight: 700;
 }
 .download-copy .platform-note {
   font-size: 12px;
@@ -227,18 +377,13 @@
 .questions-section .inline-link {
   margin-top: 24px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
-.questions details {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
+.questions [data-slot="accordion-item"] {
+  border-bottom: 2px dotted var(--border);
 }
-.questions details:first-child {
-  padding-top: 0;
-}
-.questions summary {
+.questions [data-slot="accordion-trigger"] {
   font-size: 15px;
-  font-weight: 500;
 }
 .questions p,
 .questions a {
@@ -260,41 +405,50 @@
 .page-intro > .eyebrow {
   margin-bottom: 22px;
 }
+.page-intro > .eyebrow {
+  color: var(--primary);
+}
 .page-intro h1 {
   font-size: clamp(38px, 5vw, 60px);
-  letter-spacing: -0.05em;
+  letter-spacing: -0.035em;
   line-height: 1.12;
+  font-weight: 800;
 }
 .page-intro > p:last-child {
   font-size: 17px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-top: 24px;
   max-width: 570px;
 }
 .back-link {
-  display: block;
+  display: inline-block;
   font-size: 12px;
+  font-weight: 700;
   margin-bottom: 38px;
-  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
-.article-body details {
-  padding: 18px 0;
-  border-bottom: 1px solid var(--border);
+.back-link:hover {
+  color: var(--primary);
+}
+.article-body [data-slot="accordion-item"] {
+  border-bottom: 2px dotted var(--border);
 }
 .article-body {
   margin-bottom: 36px;
 }
-.article-body summary h2 {
+.article-body [data-slot="accordion-trigger"] h2 {
   font-size: 19px;
 }
 .article-body p {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 15px;
   line-height: 1.9;
-  margin-top: 15px;
 }
 .document-date {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12px;
   margin-block: -24px 32px;
 }
@@ -303,7 +457,7 @@
 }
 .information-body h2 {
   font-size: 20px;
-  font-weight: 550;
+  font-weight: 800;
 }
 .information-body ul {
   padding-left: 22px;
@@ -327,7 +481,13 @@
   }
   .home-hero {
     column-gap: 36px;
-    padding-top: 40px;
+    padding-top: 12px;
+  }
+  .hero-heading {
+    padding: 72px 0 80px 40px;
+  }
+  .hero-copy {
+    padding-right: 36px;
   }
   .hero-heading h1 {
     font-size: 64px;
@@ -335,11 +495,11 @@
   .hero-intro {
     font-size: 21px;
   }
-  .hero-copy {
-    padding-top: 0;
-  }
   .hero-actions {
     gap: 18px;
+  }
+  .download-section {
+    padding: 44px;
   }
   .download-section,
   .questions-section {
@@ -356,7 +516,7 @@
     height: 78px;
     gap: 12px;
   }
-  .site-header > .ui-button {
+  .site-header > .site-open {
     margin-left: auto;
   }
   .site-nav {
@@ -372,19 +532,49 @@
     padding-top: 18px;
   }
   .home-hero {
-    grid-template-columns: 1fr;
-    padding-top: 30px;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 8px;
     padding-bottom: 48px;
+  }
+  .hero-stage {
+    grid-area: 1 / 1 / 3 / 2;
+    border-radius: 32px;
+  }
+  .hero-heading {
+    grid-area: 1 / 1;
+    padding: 48px 26px 0;
+  }
+  .hero-copy {
+    grid-area: 2 / 1;
+    padding: 0 26px 120px;
+  }
+  .hero-cat {
+    right: 8%;
+  }
+  .shape-sun,
+  .shape-pill {
+    display: none;
+  }
+  .shape-star {
+    top: 42%;
+    left: 84%;
+  }
+  .shape-ring {
+    top: auto;
+    bottom: 34%;
+  }
+  .nav-dialog {
+    padding: 22px 24px;
   }
   .hero-heading .eyebrow {
     font-size: 10px;
     margin-bottom: 22px;
   }
   .hero-heading h1 {
-    font-size: clamp(52px, 12vw, 76px);
+    font-size: clamp(40px, 13vw, 76px);
   }
   .hero-copy {
-    padding-top: 28px;
+    margin-top: 24px;
     max-width: 490px;
   }
   .hero-intro {
@@ -400,13 +590,10 @@
   .product-tour {
     margin-top: 36px;
   }
-  .preview-controls {
-    gap: 0;
-  }
-  .preview-controls button {
+  .preview-controls [data-slot="toggle-group-item"] {
     gap: 5px;
     font-size: 11px;
-    padding: 10px 8px;
+    padding-inline: 9px;
   }
   .preview-controls svg {
     width: 14px;
@@ -421,6 +608,10 @@
   .questions-section {
     grid-template-columns: 1fr;
     gap: 28px;
+  }
+  .download-section {
+    padding: 32px 24px;
+    border-radius: 32px;
   }
   .download-heading {
     display: flex;
@@ -460,8 +651,19 @@
   }
 }
 
+@media (max-width: 400px) {
+  .preview-controls svg {
+    display: none;
+  }
+}
 @media (max-width: 600px) {
   .screenshot-frame {
     aspect-ratio: 780 / 1280;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape {
+    animation: none;
   }
 }

@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Button } from "./components/ui/pop-button";
+import { Checkbox } from "./components/ui/pop-checkbox";
 import {
   accountRequest,
   downloadJson,
@@ -36,7 +38,9 @@ export function AgeEligibility({
     <main className="auth-page">
       <a className="brand" href="/">
         <img src="/icon.png" alt="" />
-        CatDo
+        <span>
+          <strong>CatDo</strong>
+        </span>
       </a>
       <div className="legal-panel">
         <h1>Before you sign in</h1>
@@ -52,23 +56,24 @@ export function AgeEligibility({
           }}
         >
           <label className="legal-check">
-            <input
-              type="checkbox"
+            <Checkbox
               required
               checked={confirmed}
-              onChange={(event) => setConfirmed(event.target.checked)}
+              onCheckedChange={(checked) => setConfirmed(checked)}
             />
             <span>
               I’m at least 13 and meet the age and permission requirements where
               I live.
             </span>
           </label>
-          <button className="primary" type="submit" disabled={!confirmed}>
+          <Button type="submit" disabled={!confirmed}>
             Continue to sign in
-          </button>
+          </Button>
         </form>
         {onSavedTasks && (
-          <button onClick={onSavedTasks}>Open saved tasks</button>
+          <Button variant="outline" onClick={onSavedTasks}>
+            Open saved tasks
+          </Button>
         )}
         <p className="muted">
           You can request help with data in an existing account without
@@ -160,7 +165,9 @@ export function LegalAccess({
     <main className="auth-page">
       <a className="brand" href="/">
         <img src="/icon.png" alt="" />
-        CatDo
+        <span>
+          <strong>CatDo</strong>
+        </span>
       </a>
       <div className="legal-panel">
         <h1>
@@ -189,11 +196,10 @@ export function LegalAccess({
               }}
             >
               <label className="legal-check">
-                <input
-                  type="checkbox"
+                <Checkbox
                   required
                   checked={age}
-                  onChange={(event) => setAge(event.target.checked)}
+                  onCheckedChange={(checked) => setAge(checked)}
                 />
                 <span>
                   I’m at least {status.minimumAge} and meet any higher age or
@@ -201,11 +207,10 @@ export function LegalAccess({
                 </span>
               </label>
               <label className="legal-check">
-                <input
-                  type="checkbox"
+                <Checkbox
                   required
                   checked={accepted}
-                  onChange={(event) => setAccepted(event.target.checked)}
+                  onCheckedChange={(checked) => setAccepted(checked)}
                 />
                 <span>
                   I agree to the terms of service, version {status.version}.
@@ -216,13 +221,9 @@ export function LegalAccess({
                 acceptance time for your CatDo account. The privacy policy
                 explains how we use your data.
               </p>
-              <button
-                className="primary"
-                type="submit"
-                disabled={!age || !accepted || busy}
-              >
+              <Button type="submit" disabled={!age || !accepted || busy}>
                 {busy ? "Saving…" : "Accept and continue"}
-              </button>
+              </Button>
             </form>
           </>
         )}
@@ -232,15 +233,24 @@ export function LegalAccess({
           </p>
         )}
         {error && !status && (
-          <button onClick={() => setAttempt((value) => value + 1)}>
+          <Button
+            variant="outline"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
             Try again
-          </button>
+          </Button>
         )}
         <div className="legal-actions">
-          <button onClick={onLocal}>Open saved tasks without sync</button>
-          <button disabled={busy} onClick={() => void exportCloud()}>
+          <Button variant="outline" onClick={onLocal}>
+            Open saved tasks without sync
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void exportCloud()}
+          >
             Export cloud tasks
-          </button>
+          </Button>
           {signOut}
         </div>
         <p className="muted">

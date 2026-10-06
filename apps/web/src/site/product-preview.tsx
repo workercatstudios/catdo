@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Sun, Folder, CalendarDays } from "lucide-react";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../components/ui/pop-toggle-group";
 
 const views = [
   {
@@ -33,22 +37,25 @@ export function ProductPreview() {
       className="product-tour"
       aria-label="See CatDo in action"
     >
-      <div
+      <ToggleGroup
         className="preview-controls"
-        role="group"
         aria-label="Choose an app screenshot"
+        value={[selected.id]}
+        onValueChange={([id]) => {
+          const view = views.find((v) => v.id === id);
+          if (view) setSelected(view);
+        }}
       >
         {views.map((view) => (
-          <button
+          <ToggleGroupItem
             key={view.id}
-            aria-pressed={view.id === selected.id}
+            value={view.id}
             aria-controls="product-screen"
-            onClick={() => setSelected(view)}
           >
-            <view.icon size={16} /> {view.label}
-          </button>
+            <view.icon size={16} aria-hidden="true" /> {view.label}
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
       <figure
         className="app-screenshot"
         id="product-screen"

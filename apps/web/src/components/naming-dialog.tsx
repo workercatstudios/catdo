@@ -4,9 +4,9 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+} from "./ui/pop-dialog";
+import { Button } from "./ui/pop-button";
+import { Input } from "./ui/pop-input";
 export type Naming = {
   kind: "workspace" | "project";
   id?: string;
@@ -76,7 +76,7 @@ export function NamingDialog({
             >
               Cancel
             </Button>
-            <Button disabled={saving || !name.trim()}>
+            <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>

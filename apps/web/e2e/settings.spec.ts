@@ -11,9 +11,8 @@ test("workspace and project management, undo, keyboard navigation and dirty hist
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Work");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page
-    .getByRole("combobox", { name: "Workspace", exact: true })
-    .selectOption({ label: "Work" });
+  await page.getByRole("combobox", { name: "Workspace", exact: true }).click();
+  await page.getByRole("option", { name: "Work", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Complete Make time for a walk" }),
   ).toHaveCount(0);

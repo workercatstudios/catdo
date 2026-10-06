@@ -1,4 +1,9 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useId, useSyncExternalStore } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../components/ui/pop-toggle-group";
 export type Theme = "system" | "light" | "dark";
 export const themeScript = `try{let t=localStorage.getItem('catdo:theme')||'system';document.documentElement.classList.toggle('dark',t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches))}catch{}`;
 function snapshot(): Theme {
@@ -38,25 +43,42 @@ export function ThemeListener() {
   }, []);
   return null;
 }
-export function ThemeControl() {
+const choices = [
+  ["system", "System", Monitor],
+  ["light", "Light", Sun],
+  ["dark", "Dark", Moon],
+] as const;
+export function ThemeControl({ compact = false }: { compact?: boolean }) {
   const theme = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+  const id = useId();
   return (
-    <label className="theme-control">
-      <span>Appearance</span>
-      <select
-        aria-label="Appearance"
-        value={theme}
-        onChange={(e) => {
+    <div className="theme-control">
+      <span id={id}>Appearance</span>
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        aria-labelledby={id}
+        value={[theme]}
+        onValueChange={([value]) => {
+          if (!value) return;
           try {
-            localStorage.setItem("catdo:theme", e.target.value);
+            localStorage.setItem("catdo:theme", value);
           } catch {}
           window.dispatchEvent(new Event("catdo-theme"));
         }}
       >
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-    </label>
+        {choices.map(([value, label, Icon]) => (
+          <ToggleGroupItem
+            key={value}
+            value={value}
+            aria-label={label}
+            title={label}
+          >
+            <Icon aria-hidden="true" />
+            {!compact && label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
   );
 }

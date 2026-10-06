@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "../components/ui/pop-button";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "../components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "../components/ui/pop-sheet";
 import { termsUrl, privacyUrl } from "../lib/legal";
 import { repository } from "./content";
 export function Brand() {
@@ -16,7 +16,12 @@ export function Brand() {
     <a href="/" className="brand">
       <img src="/icon.png" width="36" height="36" alt="" />
       <span>
-        <strong>CatDo</strong>
+        <strong>
+          CatDo
+          <span className="brand-spark" aria-hidden="true">
+            ✦
+          </span>
+        </strong>
         <small>by WorkerCat</small>
       </span>
     </a>
@@ -44,30 +49,36 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <nav aria-label="Main navigation" className="site-nav">
           {navigation}
         </nav>
-        <Button asChild variant="outline" size="sm">
-          <a href="/app">
-            Open CatDo <span aria-hidden="true">↗</span>
-          </a>
+        <Button
+          variant="outline"
+          size="sm"
+          className="site-open"
+          nativeButton={false}
+          render={<a href="/app" />}
+        >
+          Open CatDo <span aria-hidden="true">↗</span>
         </Button>
-        <Dialog open={menu} onOpenChange={setMenu}>
-          <DialogTrigger asChild>
-            <Button
-              className="site-menu"
-              variant="ghost"
-              size="icon"
-              aria-label="Open menu"
-            >
-              <Menu />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="nav-dialog">
-            <DialogTitle>Explore CatDo</DialogTitle>
-            <DialogDescription className="sr-only">
+        <Sheet open={menu} onOpenChange={setMenu}>
+          <SheetTrigger
+            render={
+              <Button
+                className="site-menu"
+                variant="ghost"
+                size="icon"
+                aria-label="Open menu"
+              />
+            }
+          >
+            <Menu />
+          </SheetTrigger>
+          <SheetContent side="right" className="nav-dialog">
+            <SheetTitle>Explore CatDo</SheetTitle>
+            <SheetDescription className="sr-only">
               Sections on the homepage
-            </DialogDescription>
+            </SheetDescription>
             <nav>{navigation}</nav>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       </header>
       {children}
       <footer className="site-footer">
