@@ -1,8 +1,8 @@
 """Fail when the app version is not the same everywhere it is declared.
 
 The Cargo workspace version is the source of truth. The Cargo lockfile entries
-for the workspace crates and the Android default version name must match it,
-so a partial bump cannot reach main or a release.
+for the workspace crates that inherit it and the Android default version name
+must match it, so a partial bump cannot reach main or a release.
 """
 
 import re
@@ -16,9 +16,15 @@ ROOT = Path(__file__).resolve().parent.parent
 def declared_versions() -> dict[str, str]:
     cargo = tomllib.loads((ROOT / "Cargo.toml").read_text())
     versions = {"Cargo.toml": cargo["workspace"]["package"]["version"]}
-    members = {
-        tomllib.loads((ROOT / member / "Cargo.toml").read_text())["package"]["name"]
+    # Only CatDo's own crates share the app version; vendored crates keep theirs.
+    manifests = [
+        tomllib.loads((ROOT / member / "Cargo.toml").read_text())["package"]
         for member in cargo["workspace"]["members"]
+    ]
+    members = {
+        package["name"]
+        for package in manifests
+        if package.get("version") == {"workspace": True}
     }
     for package in tomllib.loads((ROOT / "Cargo.lock").read_text())["package"]:
         if package["name"] in members:

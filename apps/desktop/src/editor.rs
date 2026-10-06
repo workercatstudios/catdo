@@ -1,18 +1,21 @@
 use anyhow::{Result, ensure};
 use catdo_core::{Data, Recurrence, Reminder, RepeatUnit, Task};
 use chrono::{Datelike, Local, NaiveTime, TimeZone, Utc};
+use gpui_kit::assets::IconName as Lucide;
 use gpui_kit::component::ActiveTheme;
-use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::{
-    FocusTrapElement, IconName, Sizable, StyledExt,
-    button::{Button, ButtonVariants},
+    FocusTrapElement, Icon, IconName, Sizable, StyledExt,
     calendar::Date,
     date_picker::{DatePicker, DatePickerEvent, DatePickerState},
-    input::{Input, InputEvent, InputState, Textarea, TextareaState},
-    select::{Select, SelectEvent, SelectState},
 };
 use gpui_kit::{prelude::*, *};
+use kirakira::button::{Button, ButtonVariants};
+use kirakira::input::{Input, InputEvent, InputState, Textarea, TextareaState};
+use kirakira::scroll::ScrollableElement;
+use kirakira::select::{Select, SelectEvent, SelectState};
 use uuid::Uuid;
+
+use crate::theme::{Accent, accent};
 
 #[cfg(test)]
 #[path = "editor_tests.rs"]
@@ -360,7 +363,7 @@ impl TaskEditor {
             .child(
                 div()
                     .text_xs()
-                    .font_weight(FontWeight::MEDIUM)
+                    .font_weight(FontWeight::BOLD)
                     .text_color(cx.theme().muted_foreground)
                     .child(label.to_string()),
             )
@@ -394,28 +397,30 @@ impl Render for TaskEditor {
             })
             .track_focus(&self.focus)
             .v_flex()
-            .w(px(820.))
+            .w(rems(51.25))
             .max_w(relative(0.94))
-            .h(px(660.))
+            .h(rems(41.25))
             .max_h(relative(0.90))
-            .rounded(px(12.))
+            .rounded(cx.theme().radius_lg)
             .overflow_hidden()
-            .bg(p.background)
+            .bg(cx.theme().popover)
             .border_1()
             .border_color(p.border)
+            .shadow_lg()
             .child(
                 div()
                     .h_flex()
                     .items_center()
                     .justify_between()
                     .px_6()
-                    .h(px(52.))
+                    .h(rems(3.25))
                     .flex_shrink_0()
                     .border_b_1()
                     .border_color(p.border)
                     .child(
                         div()
                             .text_sm()
+                            .font_weight(FontWeight::BOLD)
                             .text_color(p.muted_foreground)
                             .child(if self.is_new {
                                 "New task"
@@ -454,7 +459,10 @@ impl Render for TaskEditor {
                                         Button::new("complete-editor")
                                             .ghost()
                                             .small()
-                                            .icon(IconName::CircleCheck)
+                                            .icon(
+                                                Icon::new(IconName::CircleCheck)
+                                                    .text_color(p.primary),
+                                            )
                                             .label(if self.original.active() {
                                                 "Complete task"
                                             } else {
@@ -468,7 +476,7 @@ impl Render for TaskEditor {
                             })
                             .child(self.field(
                                 "Notes",
-                                Textarea::new(&self.notes).h(px(160.)).appearance(false),
+                                Textarea::new(&self.notes).h(rems(10.)).appearance(false),
                                 cx,
                             ))
                             .when(!self.is_new, |el| {
@@ -482,6 +490,7 @@ impl Render for TaskEditor {
                                         .child(
                                             div()
                                                 .text_xs()
+                                                .font_weight(FontWeight::BOLD)
                                                 .text_color(p.muted_foreground)
                                                 .child("Subtasks"),
                                         )
@@ -491,11 +500,20 @@ impl Render for TaskEditor {
                                                 task.id
                                             )))
                                             .ghost()
-                                            .label(format!(
-                                                "{} {}",
-                                                if task.active() { "○" } else { "✓" },
-                                                task.title
-                                            ))
+                                            .justify_start()
+                                            .icon(
+                                                Icon::new(if task.active() {
+                                                    Lucide::Circle
+                                                } else {
+                                                    Lucide::CircleCheck
+                                                })
+                                                .text_color(if task.active() {
+                                                    p.muted_foreground
+                                                } else {
+                                                    p.primary
+                                                }),
+                                            )
+                                            .label(task.title.clone())
                                             .on_click(cx.listener(move |_, _, _, cx| {
                                                 cx.emit(EditorEvent::Open(task.id))
                                             }))
@@ -521,7 +539,7 @@ impl Render for TaskEditor {
                         div()
                             .id("editor-properties")
                             .v_flex()
-                            .w(px(252.))
+                            .w(rems(15.75))
                             .flex_shrink_0()
                             .min_h_0()
                             .overflow_y_scrollbar()
@@ -556,7 +574,7 @@ impl Render for TaskEditor {
                             .when(repeat != 0 && repeat != 4, |el| {
                                 el.child(self.field(
                                     "Every",
-                                    Input::new(&self.interval).small().w(px(80.)),
+                                    Input::new(&self.interval).small().w(rems(5.)),
                                     cx,
                                 ))
                             })
@@ -591,8 +609,13 @@ impl Render for TaskEditor {
                             .when_some(next_occurrence, |el, day| {
                                 el.child(
                                     div()
+                                        .h_flex()
+                                        .items_center()
+                                        .gap_1()
                                         .text_xs()
-                                        .text_color(p.primary)
+                                        .font_medium()
+                                        .text_color(accent(Accent::Repeat, cx))
+                                        .child(Icon::new(Lucide::Repeat).size_3())
                                         .child(format!("Next: {}", day.format("%b %-d, %Y"))),
                                 )
                             })
@@ -611,7 +634,7 @@ impl Render for TaskEditor {
                                 |el| {
                                     el.child(self.field(
                                         "Local time",
-                                        Input::new(&self.reminder_time).small().w(px(100.)),
+                                        Input::new(&self.reminder_time).small().w(rems(6.25)),
                                         cx,
                                     ))
                                 },

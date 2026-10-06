@@ -16,6 +16,7 @@ The APK is at `app/build/outputs/apk/debug/app-debug.apk`. Open this directory i
 ## Design and storage
 
 - A single Compose activity draws edge to edge and follows the system light or dark appearance.
+- The UI is a Compose port of [Kirakira UI](https://kk.workercat.com)'s theme and motion: `ui/Theme.kt` maps its tokens to Material 3, and `ui/kirakira/` holds the hand-ported pieces (Pop Button, Check, Switch, Dialog, Input, Toast, tab bar, Burst, Sparkles, Idle Cat). Motion follows Android's animator duration scale; at 0 only fades and instant state changes remain. Text is set in M PLUS 1 (SIL Open Font License; static Latin-subset weights shared with desktop, licence shipped as `assets/licenses/m-plus-1-OFL.txt`).
 - The repository is the only writer of `catdo.json`, using Android's `AtomicFile`; UI reads it as a `StateFlow`.
 - Sync freezes each upload with an operation ID before sending it. Interrupted requests retry the same ID. Whole-record three-way merge follows the existing desktop and web behavior; unresolved conflicts ask the user which side to keep.
 - Clerk manages session persistence and token refresh. Local task data and app credentials are excluded from Android backup and device transfer.

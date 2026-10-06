@@ -3,8 +3,15 @@ import { Settings, Plus, Search } from "lucide-react";
 import type { Data, Task } from "../../../../packages/domain/src/model";
 import { Icon } from "../icons";
 import { appPath } from "../lib/app-route";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
+import { Button } from "./ui/pop-button";
+import { ScrollArea } from "./ui/pop-scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/pop-select";
 import { ThemeControl } from "../lib/theme";
 import { projectColorIndex } from "../lib/colors";
 
@@ -42,6 +49,9 @@ export function AppSidebar({
     ["upcoming", "Upcoming"],
     ["calendar", "Calendar"],
   ];
+  const workspaces = data.workspaces
+    .filter((w) => !w.archived)
+    .map((w) => ({ value: w.id, label: w.name }));
   const navLink = (id: string, label: string, count?: number) => (
     <Link
       key={id}
@@ -61,7 +71,9 @@ export function AppSidebar({
         navigate(id);
       }}
     >
-      <Icon name={id.startsWith("project:") ? "project" : id} />
+      <span className="nav-icon">
+        <Icon name={id.startsWith("project:") ? "project" : id} />
+      </span>
       <span>{label}</span>
       {!!count && <small>{count}</small>}
     </Link>
@@ -71,32 +83,39 @@ export function AppSidebar({
       <a className="app-brand" href="/" aria-label="CatDo home">
         <img src="/icon.png" alt="" />
         <span>CatDo</span>
+        <span className="app-brand-spark" aria-hidden="true">
+          ✦
+        </span>
       </a>
       <div className="workspace-control">
-        <select
-          aria-label="Workspace"
+        <Select
+          items={workspaces}
           value={workspace}
-          onChange={(e) => navigate("today", e.target.value)}
+          onValueChange={(value) => value && navigate("today", value)}
         >
-          {data.workspaces
-            .filter((w) => !w.archived)
-            .map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
+          <SelectTrigger aria-label="Workspace" className="workspace-trigger">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {workspaces.map((w) => (
+              <SelectItem key={w.value} value={w.value}>
+                {w.label}
+              </SelectItem>
             ))}
-        </select>
+          </SelectContent>
+        </Select>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           aria-label="New workspace"
+          title="New workspace"
           onClick={() => naming("workspace")}
         >
           <Plus />
         </Button>
       </div>
       <Button className="sidebar-add" onClick={addTask}>
-        <Plus size={16} />
+        <Plus />
         Add task<kbd aria-hidden="true">⌃ ↵</kbd>
       </Button>
       <div className="search">
@@ -130,8 +149,9 @@ export function AppSidebar({
           <span>Projects</span>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-xs"
             aria-label="New project"
+            title="New project"
             onClick={() => naming("project")}
           >
             <Plus />
@@ -165,19 +185,21 @@ export function AppSidebar({
         {navLink("completed", "Completed")}
         <Link
           to={appPath(workspace, "settings")}
-          className={view === "settings" ? "selected" : ""}
+          className={`view-settings ${view === "settings" ? "selected" : ""}`}
           aria-current={view === "settings" ? "page" : undefined}
           onClick={(e) => {
             e.preventDefault();
             navigate("settings");
           }}
         >
-          <Settings size={18} />
+          <span className="nav-icon">
+            <Settings size={18} strokeWidth={1.8} aria-hidden="true" />
+          </span>
           <span>Settings</span>
         </Link>
       </nav>
       <div className="sidebar-footer">
-        <ThemeControl />
+        <ThemeControl compact />
         {syncStatus}
         <div className="account">
           {account}

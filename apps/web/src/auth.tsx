@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "./components/ui/pop-button";
+import { IdleCat } from "./components/ui/idle-cat";
 import { ClerkProvider, SignIn, useClerk, useAuth } from "@clerk/react";
 import { App } from "./App";
 import { AgeEligibility, LegalAccess, LegalLinks } from "./LegalAccess";
@@ -29,7 +31,9 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
       <div className="auth-page">
         <a className="brand" href="/">
           <img src="/icon.png" alt="" />
-          CatDo
+          <span>
+            <strong>CatDo</strong>
+          </span>
         </a>
         <SignIn
           routing="hash"
@@ -41,8 +45,9 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
       </div>
     );
   const signOutButton = (
-    <button
-      className="text-button"
+    <Button
+      variant="ghost"
+      size="xs"
       onClick={() => {
         localStorage.removeItem("catdo:last-user");
         sessionStorage.removeItem("catdo:age-confirmed");
@@ -50,7 +55,7 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
       }}
     >
       Sign out
-    </button>
+    </Button>
   );
   if (privacyRequests)
     return (
@@ -63,7 +68,9 @@ function SignedApp({ privacyRequests = false }: { privacyRequests?: boolean }) {
       getToken={local ? offlineToken : token}
       account={
         local ? (
-          <button onClick={() => setLocal(false)}>Review terms to sync</button>
+          <Button variant="ghost" size="xs" onClick={() => setLocal(false)}>
+            Review terms to sync
+          </Button>
         ) : (
           signOutButton
         )
@@ -108,11 +115,19 @@ function OfflineGate({
       key={owner}
       owner={owner}
       getToken={offlineToken}
-      account={<button onClick={() => location.reload()}>Reconnect</button>}
+      account={
+        <Button variant="ghost" size="xs" onClick={() => location.reload()}>
+          Reconnect
+        </Button>
+      }
     />
   ) : (
     <main className="loading">
-      <img src="/icon.png" alt="" />
+      <IdleCat
+        size={120}
+        mood={offline || unavailable ? "sleepy" : "idle"}
+        aria-hidden="true"
+      />
       <h1>
         {offline
           ? "You’re offline."
@@ -123,9 +138,7 @@ function OfflineGate({
       {owner ? (
         <>
           <p>Your saved tasks are available on this device.</p>
-          <button className="primary" onClick={() => setOpen(true)}>
-            Open saved tasks
-          </button>
+          <Button onClick={() => setOpen(true)}>Open saved tasks</Button>
         </>
       ) : (
         <>
@@ -135,7 +148,9 @@ function OfflineGate({
               : "Getting your workspace ready."}
           </p>
           {unavailable && (
-            <button onClick={() => location.reload()}>Try again</button>
+            <Button variant="outline" onClick={() => location.reload()}>
+              Try again
+            </Button>
           )}
         </>
       )}
@@ -199,7 +214,9 @@ export function AuthApp({
         </h1>
         <p>Connect to sign in and manage your private requests.</p>
         {unavailable && (
-          <button onClick={() => location.reload()}>Try again</button>
+          <Button variant="outline" onClick={() => location.reload()}>
+            Try again
+          </Button>
         )}
         <a href="/app">Back to tasks</a>
       </main>
@@ -226,9 +243,9 @@ export function AuthApp({
       }}
       appearance={{
         variables: {
-          colorPrimary: "#262626",
-          borderRadius: "8px",
-          fontFamily: "Inter Variable, system-ui, sans-serif",
+          colorPrimary: "#d6336f",
+          borderRadius: "14px",
+          fontFamily: "M PLUS 1, system-ui, sans-serif",
         },
       }}
     >

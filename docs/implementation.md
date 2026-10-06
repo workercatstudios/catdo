@@ -8,7 +8,7 @@ The desktop has one UI dependency, `gpui-kit = "=0.6.6"`, which supplies the mat
 
 ## Appearance
 
-The desktop uses GPUI Kit's shared color tokens for custom task/calendar surfaces and its standard components for inputs, textareas, date pickers, selectors, checkboxes, buttons, navigation buttons, and the appearance toggle. There is no separate hard-coded light/dark palette or per-switch color override.
+The desktop installs the Kirakira UI theme into GPUI Kit's shared color tokens, which custom task and calendar surfaces use. Inputs, textareas, selectors, checkboxes, buttons, navigation buttons, and the appearance toggle come from Kirakira's base kit in `crates/kirakira`; date pickers and the window shell stay GPUI Kit's and follow the theme. CatDo's meaning colours live in `apps/desktop/src/theme.rs`.
 
 Appearance is a local SQLite preference, separate from synced task data. **System** is the default. Startup resolves the current window appearance; an active window-appearance observer then follows the OS, including Linux XDG portal updates. **Light** and **Dark** overrides ignore later OS changes. Choosing **System** immediately resolves the current OS appearance again. The three-way Kit button group saves its choice before applying it and reports storage failures.
 

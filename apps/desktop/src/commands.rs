@@ -5,7 +5,15 @@ use crate::{
 use catdo_core::Task;
 use chrono::{Local, Utc};
 use gpui_kit::*;
+use std::time::Instant;
 use uuid::Uuid;
+
+/// A task that was just completed, shown as it was in `view` until its row has left.
+pub struct Leaving {
+    pub task: Task,
+    pub view: View,
+    pub started: Instant,
+}
 
 impl CatDo {
     fn task_for_view(&self, title: String) -> Task {
@@ -131,13 +139,9 @@ impl CatDo {
         }
         self.editor = None;
         self.resume_sync(cx);
-        let completed = self
-            .data
-            .tasks
-            .iter()
-            .find(|t| t.id == id)
-            .is_some_and(|t| !t.active());
-        self.change(
+        let before = self.data.tasks.iter().find(|t| t.id == id).cloned();
+        let completed = before.as_ref().is_some_and(|t| !t.active());
+        let changed = self.change(
             if completed {
                 "Task reopened"
             } else {
@@ -155,6 +159,35 @@ impl CatDo {
             },
             cx,
         );
+        if !changed {
+            return;
+        }
+        if completed {
+            self.leaving.remove(&id);
+            return;
+        }
+        *self.bursts.entry(id).or_default() += 1;
+        if let Some(task) = before.filter(|_| !cx.reduce_motion()) {
+            let started = Instant::now();
+            self.leaving.insert(
+                id,
+                Leaving {
+                    task,
+                    view: self.view,
+                    started,
+                },
+            );
+            cx.spawn(async move |this, cx| {
+                cx.background_executor().timer(crate::motion::LEAVE).await;
+                let _ = this.update(cx, |this, cx| {
+                    if this.leaving.get(&id).is_some_and(|l| l.started == started) {
+                        this.leaving.remove(&id);
+                        cx.notify();
+                    }
+                });
+            })
+            .detach();
+        }
     }
 
     pub fn undo(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -173,6 +206,7 @@ impl CatDo {
             Ok(()) => {
                 self.data = previous;
                 self.undo.pop();
+                self.leaving.clear();
                 self.editor = None;
                 self.resume_sync(cx);
                 if !self

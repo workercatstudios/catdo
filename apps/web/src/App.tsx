@@ -2,12 +2,16 @@ import { useBlocker, useLocation, useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./components/app-sidebar";
 import { NamingDialog, type Naming } from "./components/naming-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "./components/ui/dialog";
-import { Button } from "./components/ui/button";
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "./components/ui/pop-sheet";
+import { Button } from "./components/ui/pop-button";
+import { Alert, AlertTitle, AlertDescription } from "./components/ui/pop-alert";
+import { Badge } from "./components/ui/pop-badge";
+import { IdleCat } from "./components/ui/idle-cat";
+import { PopLoader } from "./components/ui/pop-loader";
 import { appPath, parseAppPath } from "./lib/app-route";
 import {
   useEffect,
@@ -151,7 +155,8 @@ export function App({
   if (!data || !activeWorkspace)
     return (
       <main className="loading">
-        <img src="/cat.png" alt="" />
+        <IdleCat mood="sleepy" size={120} label="CatDo is waking up" />
+        <PopLoader variant="dots" label={store.status} />
         <p>{store.status}</p>
       </main>
     );
@@ -218,6 +223,7 @@ export function App({
   )
     return (
       <main className="not-found">
+        <IdleCat size={120} label="A curious cat" />
         <h1>This space isn’t available.</h1>
         <p>It may be archived, or belong to another account.</p>
         <Button onClick={() => navigate("today")}>Back to Today</Button>
@@ -266,9 +272,13 @@ export function App({
   const syncStatus = (
     <footer className="status" aria-live="polite">
       <span>{store.status}</span>
-      <button onClick={() => void store.sync()}>Sync now</button>
+      <Button variant="ghost" size="xs" onClick={() => void store.sync()}>
+        Sync now
+      </Button>
       {undo.length > 0 && (
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() =>
             act(async () => {
               const last = undo.at(-1)!;
@@ -286,7 +296,7 @@ export function App({
           }
         >
           Undo
-        </button>
+        </Button>
       )}
     </footer>
   );
@@ -309,26 +319,28 @@ export function App({
   return (
     <div className="app-shell">
       <aside className="sidebar desktop-sidebar">{sidebar}</aside>
-      <Dialog open={menu} onOpenChange={setMenu}>
-        <DialogContent className="mobile-sidebar">
-          <DialogTitle className="sr-only">Navigation</DialogTitle>
-          <DialogDescription className="sr-only">
+      <Sheet open={menu} onOpenChange={setMenu}>
+        <SheetContent side="left" className="mobile-sidebar">
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetDescription className="sr-only">
             Workspaces and task views
-          </DialogDescription>
+          </SheetDescription>
           {sidebar}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
       <main className="main">
         <header className="topbar">
-          <button
-            className="icon-button mobile-menu"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mobile-menu"
             aria-label="Open navigation"
             onClick={() => setMenu(!menu)}
           >
             <Icon name="menu" />
-          </button>
+          </Button>
           <span className="breadcrumb">{activeWorkspace.name}</span>
-          <Button onClick={add}>
+          <Button size="sm" onClick={add}>
             <Icon name="plus" />
             Add task
           </Button>
@@ -337,41 +349,62 @@ export function App({
           className={`content ${view === "calendar" && !search ? "wide" : ""}`}
         >
           {store.state?.conflict && (
-            <div className="conflict" role="alert">
-              <strong>Changed on two devices</strong>
-              <p>
-                {store.conflicts.length
-                  ? store.conflicts.map((c) => c.name).join(", ")
-                  : "A project or task was moved while this device was offline."}
-                .
-              </p>
-              <p>
-                {store.structuralConflict
-                  ? "These moves cannot be combined. Choose one complete task list, or export a backup first."
-                  : "Choose which conflicting versions to keep. Other changes will be combined."}
-              </p>
-              <button onClick={() => act(() => store.resolve("local"))}>
-                {store.structuralConflict
-                  ? "Keep this device’s entire list"
-                  : "Keep this device’s versions"}
-              </button>
-              <button onClick={() => act(() => store.resolve("remote"))}>
-                {store.structuralConflict
-                  ? "Use the entire synced list"
-                  : "Use synced versions"}
-              </button>
-              <button onClick={() => act(() => store.export())}>
-                Export a backup
-              </button>
-            </div>
+            <Alert className="conflict" trigger="mount">
+              <AlertTitle>Changed on two devices</AlertTitle>
+              <AlertDescription>
+                <p>
+                  {store.conflicts.length
+                    ? store.conflicts.map((c) => c.name).join(", ")
+                    : "A project or task was moved while this device was offline."}
+                  .
+                </p>
+                <p>
+                  {store.structuralConflict
+                    ? "These moves cannot be combined. Choose one complete task list, or export a backup first."
+                    : "Choose which conflicting versions to keep. Other changes will be combined."}
+                </p>
+                <div className="conflict-actions">
+                  <Button
+                    size="sm"
+                    onClick={() => act(() => store.resolve("local"))}
+                  >
+                    {store.structuralConflict
+                      ? "Keep this device’s entire list"
+                      : "Keep this device’s versions"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => act(() => store.resolve("remote"))}
+                  >
+                    {store.structuralConflict
+                      ? "Use the entire synced list"
+                      : "Use synced versions"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => act(() => store.export())}
+                  >
+                    Export a backup
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
           {error && (
-            <div className="error" role="alert">
-              {error}
-              <button aria-label="Dismiss error" onClick={() => setError("")}>
+            <Alert variant="destructive" className="error" trigger="mount">
+              <AlertDescription>{error}</AlertDescription>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="alert-dismiss"
+                aria-label="Dismiss error"
+                onClick={() => setError("")}
+              >
                 ×
-              </button>
-            </div>
+              </Button>
+            </Alert>
           )}
           <div className="view" key={search ? "search" : view}>
             {view === "settings" && !search ? (
@@ -422,11 +455,13 @@ export function App({
                   </div>
                   {view === "today" && !search && (
                     <p className="heading-date">
-                      {new Date().toLocaleDateString(undefined, {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      <Badge variant="tape" tilt={-2} trigger="mount">
+                        {new Date().toLocaleDateString(undefined, {
+                          weekday: "long",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </Badge>
                     </p>
                   )}
                   {search && (
@@ -470,19 +505,24 @@ export function App({
                       value={quick}
                       onChange={(e) => setQuick(e.target.value)}
                     />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="sm"
-                      disabled={!quick.trim()}
-                    >
+                    <Button type="submit" size="xs" disabled={!quick.trim()}>
                       Add <span aria-hidden="true">↵</span>
                     </Button>
                   </form>
                 )}
                 {visible.length === 0 && (
                   <div className="empty-state">
-                    <img src="/cat.png" alt="" />
+                    <IdleCat
+                      size={132}
+                      aria-hidden="true"
+                      mood={
+                        search
+                          ? "idle"
+                          : view === "completed"
+                            ? "happy"
+                            : "sleepy"
+                      }
+                    />
                     <h2>
                       {search
                         ? "No matching tasks"

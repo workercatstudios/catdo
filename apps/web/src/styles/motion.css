@@ -28,35 +28,32 @@
     transform: translateY(0);
   }
 }
-@keyframes check-pop {
+/* Kirakira's checkbox rebound: 0.85 -> 1.08 -> 0.97 -> 1. */
+@keyframes kk-check-pop {
   0% {
-    transform: scale(0.8);
+    scale: 0.85;
   }
-  55% {
-    transform: scale(1.18);
+  40% {
+    scale: 1.08;
+  }
+  72% {
+    scale: 0.97;
   }
   100% {
-    transform: scale(1);
+    scale: 1;
   }
 }
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(-2deg);
-  }
-}
-@keyframes drawer-in {
+/* A tile lands with Kirakira's spring: up from 0.6 past full size. */
+@keyframes kk-tile-pop {
   from {
-    transform: translateX(-100%);
+    opacity: 0;
+    scale: 0.6;
   }
   to {
-    transform: none;
+    opacity: 1;
+    scale: 1;
   }
 }
-
 /* Views and list rows settle in when the list changes. */
 .view > .page-heading,
 .view > .calendar-controls {
@@ -78,20 +75,16 @@
   animation: fade-up 240ms var(--ease-out) backwards;
 }
 
-/* Pointer feedback. */
-.ui-button,
+/* Pointer feedback. Kirakira buttons bring their own sink and pop. */
 .icon-button,
 .text-button {
   transition:
     background-color var(--fast) var(--ease-out),
-    border-color var(--fast) var(--ease-out),
     color var(--fast) var(--ease-out),
-    box-shadow var(--base) var(--ease-out),
     transform 120ms var(--ease-out);
 }
-html[data-input="pointer"] .ui-button:active,
 html[data-input="pointer"] .icon-button:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
   transition-duration: 80ms;
 }
 input,
@@ -101,32 +94,6 @@ textarea {
     border-color var(--fast) var(--ease-out),
     background-color var(--fast) var(--ease-out),
     box-shadow var(--fast) var(--ease-out);
-}
-
-/* Dialogs rise into place over a fading scrim. */
-.dialog-overlay {
-  transition: opacity var(--base) var(--ease-out);
-}
-.dialog-content {
-  transition:
-    opacity var(--base) var(--ease-out),
-    transform var(--base) var(--ease-out);
-}
-@starting-style {
-  .dialog-overlay {
-    opacity: 0;
-  }
-  .dialog-content {
-    opacity: 0;
-    transform: scale(0.96) translateY(10px);
-  }
-  .dialog-content.mobile-sidebar {
-    opacity: 1;
-    transform: translateX(-100%);
-  }
-}
-.dialog-content.mobile-sidebar {
-  transition: transform 320ms var(--ease-drawer);
 }
 
 html[data-input="keyboard"] *,
@@ -145,25 +112,13 @@ html[data-input="keyboard"] *::after {
     background: var(--hover);
     color: var(--foreground);
   }
-  .sidebar-inner nav a:not(.selected):hover svg {
-    color: var(--foreground);
+  .sidebar-inner nav a:not(.selected):hover .nav-icon {
+    scale: 1.08;
+    rotate: -6deg;
   }
-  .ui-button.bg-primary:hover,
-  .primary:hover {
-    background: var(--primary-strong);
-    box-shadow: var(--shadow-md);
-  }
-  .ui-button.bg-background:hover,
-  .ui-button.bg-transparent:hover,
   .icon-button:hover,
   .text-button:hover {
     background: var(--hover);
-  }
-  .ui-button.bg-transparent:hover {
-    color: var(--foreground);
-  }
-  .scroll-thumb:hover {
-    background: color-mix(in srgb, var(--foreground) 42%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -179,32 +134,25 @@ html[data-input="keyboard"] *::after {
     animation: fade-in 160ms var(--ease-out) backwards;
     animation-delay: 0s;
   }
-  .empty-state img {
-    animation: none;
-  }
   .check.done,
-  .task-row.is-leaving .check {
+  .task-row.is-leaving .check,
+  .view-icon,
+  .task-count {
     animation: none;
   }
   .task-row.is-leaving {
     transform: none;
   }
-  .ui-button,
-  .icon-button,
-  .dialog-content,
-  .dialog-overlay {
+  .icon-button {
     transition: opacity 150ms var(--ease-out);
   }
-  html[data-input="pointer"] .ui-button:active,
   html[data-input="pointer"] .icon-button:active,
-  .check:hover {
+  html[data-input="pointer"] .check:active,
+  .check:hover,
+  .nav-icon {
     transform: none;
-  }
-  @starting-style {
-    .dialog-content,
-    .dialog-content.mobile-sidebar {
-      transform: none;
-    }
+    scale: none;
+    rotate: none;
   }
 }
 
@@ -240,37 +188,12 @@ html:not([data-input="keyboard"]) .screenshot-layer {
 html:not([data-input="keyboard"]) .screenshot-layer[data-active="true"] {
   transform: translateY(0);
 }
-.site summary {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.site summary::-webkit-details-marker {
-  display: none;
-}
-.site summary::after {
-  content: "+";
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1;
-  flex-shrink: 0;
-  transition: transform 180ms var(--ease-out);
-}
-.site details[open] > summary::after {
-  transform: rotate(45deg);
-}
 @media (hover: hover) and (pointer: fine) {
   .hero-actions .inline-link svg {
     transition: transform 160ms var(--ease-out);
   }
   .hero-actions .inline-link:hover svg {
     transform: translateY(2px);
-  }
-  .preview-controls button:hover {
-    background: var(--surface);
-    color: var(--foreground);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -284,9 +207,6 @@ html:not([data-input="keyboard"]) .screenshot-layer[data-active="true"] {
     transition:
       opacity 150ms var(--ease-out),
       visibility 150ms;
-  }
-  .site summary::after {
-    transition: none;
   }
   .hero-actions .inline-link:hover svg {
     transform: none;

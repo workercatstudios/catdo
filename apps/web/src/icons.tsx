@@ -29,5 +29,5 @@ const icons: Record<string, LucideIcon> = {
 
 export function Icon({ name }: { name: string }) {
   const Component = icons[name] ?? Folder;
-  return <Component size={18} strokeWidth={1.6} aria-hidden="true" />;
+  return <Component size={18} strokeWidth={1.9} aria-hidden="true" />;
 }

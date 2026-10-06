@@ -229,9 +229,8 @@ test("offline tasks, recurrence, subtasks, history, URLs, reload, theme and acco
   await page
     .getByRole("textbox", { name: "Task", exact: true })
     .fill("A recurring task");
-  await page
-    .getByRole("combobox", { name: "Repeat", exact: true })
-    .selectOption("Days:false");
+  await page.getByRole("combobox", { name: "Repeat", exact: true }).click();
+  await page.getByRole("option", { name: "Every day", exact: true }).click();
   await page.getByRole("button", { name: "Save task", exact: true }).click();
   await page
     .getByRole("button", { name: "Complete A recurring task", exact: true })
@@ -270,7 +269,10 @@ test("offline tasks, recurrence, subtasks, history, URLs, reload, theme and acco
   await expect(
     page.getByRole("button", { name: "Previous month" }),
   ).toBeVisible();
-  await page.getByLabel("Appearance", { exact: true }).selectOption("dark");
+  await page
+    .getByRole("group", { name: "Appearance", exact: true })
+    .getByRole("button", { name: "Dark", exact: true })
+    .click();
   await expect(page.locator("html")).toHaveClass("dark");
   await page.reload();
   await expect(page.locator("html")).toHaveClass("dark");
@@ -334,6 +336,12 @@ test("mobile navigation, editor focus, unsaved changes and reduced motion", asyn
       .getByRole("dialog")
       .evaluate((el) => getComputedStyle(el).transform),
   ).toBe("none");
+  // Check the settled dialog: a fade still in progress blends its colours.
+  await page
+    .getByRole("dialog")
+    .evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+    );
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations).toEqual([]);
 });

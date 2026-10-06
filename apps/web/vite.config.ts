@@ -46,7 +46,6 @@ export default defineConfig({
               JSON.stringify([
                 "/app",
                 "/icon.png",
-                "/cat.png",
                 ...files.map((name) => "/" + name),
               ]),
             ),

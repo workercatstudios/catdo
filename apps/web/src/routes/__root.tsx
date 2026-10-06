@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { themeScript, ThemeListener } from "../lib/theme";
+import { Button } from "../components/ui/pop-button";
 import stylesheet from "../style.css?url";
 export const Route = createRootRoute({
   head: () => ({
@@ -98,7 +99,9 @@ function Updates() {
   return waiting && inApp ? (
     <div className="update-notice" role="status">
       A fresh CatDo is ready.{" "}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => {
           if (!confirm("Reload CatDo? Save any open task first.")) return;
           navigator.serviceWorker.addEventListener(
@@ -110,7 +113,7 @@ function Updates() {
         }}
       >
         Reload
-      </button>
+      </Button>
     </div>
   ) : null;
 }

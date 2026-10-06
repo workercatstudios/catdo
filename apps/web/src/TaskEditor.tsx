@@ -3,9 +3,18 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from "./components/ui/dialog";
-import { Button } from "./components/ui/button";
-import { Input, Textarea } from "./components/ui/input";
+} from "./components/ui/pop-dialog";
+import { Button } from "./components/ui/pop-button";
+import { Input } from "./components/ui/pop-input";
+import { Textarea } from "./components/ui/pop-textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/pop-select";
+import { ToggleGroup, ToggleGroupItem } from "./components/ui/pop-toggle-group";
 import { useEffect, useState } from "react";
 import { Check, Circle, Plus, Trash2 } from "lucide-react";
 import {
@@ -69,17 +78,28 @@ export function TaskEditor({
     }
   };
   const repeat = draft.recurrence;
+  const workspaces = data.workspaces.map((w) => ({
+    value: w.id,
+    label: w.name + (w.archived ? " (archived)" : ""),
+  }));
+  const projects = [
+    { value: "", label: "Inbox" },
+    ...data.projects
+      .filter((p) => p.workspace_id === draft.workspace_id)
+      .map((p) => ({
+        value: p.id,
+        label: p.name + (p.archived ? " (archived)" : ""),
+      })),
+  ];
   return (
     <Dialog
       open
+      disablePointerDismissal
       onOpenChange={(isOpen) => {
         if (!isOpen && !saving) dismiss();
       }}
     >
-      <DialogContent
-        className="editor"
-        onInteractOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent className="editor">
         <header className="editor-header">
           <DialogTitle>Task details</DialogTitle>
         </header>
@@ -181,48 +201,63 @@ export function TaskEditor({
             </div>
             <div className="editor-properties">
               <div className="editor-property-group">
-                <label>
-                  Workspace
-                  <select
+                <div className="field">
+                  <span className="field-label" id="editor-workspace">
+                    Workspace
+                  </span>
+                  <Select
+                    items={workspaces}
                     value={draft.workspace_id}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
+                      value &&
                       update({
-                        workspace_id: e.target.value,
+                        workspace_id: value,
                         project_id: null,
                         parent_id: null,
                       })
                     }
                   >
-                    {data.workspaces.map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                        {w.archived ? " (archived)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Project
-                  <select
+                    <SelectTrigger
+                      aria-labelledby="editor-workspace"
+                      className="field-select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {workspaces.map((w) => (
+                        <SelectItem key={w.value} value={w.value}>
+                          {w.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="field">
+                  <span className="field-label" id="editor-project">
+                    Project
+                  </span>
+                  <Select
+                    items={projects}
                     value={draft.project_id ?? ""}
-                    onChange={(e) =>
-                      update({
-                        project_id: e.target.value || null,
-                        parent_id: null,
-                      })
+                    onValueChange={(value) =>
+                      update({ project_id: value || null, parent_id: null })
                     }
                   >
-                    <option value="">Inbox</option>
-                    {data.projects
-                      .filter((p) => p.workspace_id === draft.workspace_id)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                          {p.archived ? " (archived)" : ""}
-                        </option>
+                    <SelectTrigger
+                      aria-labelledby="editor-project"
+                      className="field-select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {projects.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
                       ))}
-                  </select>
-                </label>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="editor-property-group">
                 <label>
@@ -277,14 +312,17 @@ export function TaskEditor({
               <p className="field-help">
                 Scheduled is when you plan to work. Due is the deadline.
               </p>
-              <label>
-                Repeat
-                <select
+              <div className="field">
+                <span className="field-label" id="editor-repeat">
+                  Repeat
+                </span>
+                <Select
+                  items={repeatOptions}
                   value={
                     repeat ? `${repeat.unit}:${repeat.after_completion}` : ""
                   }
-                  onChange={(e) => {
-                    const [unit, after] = e.target.value.split(":");
+                  onValueChange={(value) => {
+                    const [unit, after] = (value ?? "").split(":");
                     update({
                       recurrence: unit
                         ? {
@@ -308,16 +346,21 @@ export function TaskEditor({
                     });
                   }}
                 >
-                  <option value="">Does not repeat</option>
-                  <option value="Days:false">Every day</option>
-                  <option value="Weeks:false">Every week</option>
-                  <option value="Months:false">Every month</option>
-                  <option value="Weekdays:false">Selected weekdays</option>
-                  <option value="Days:true">Days after completion</option>
-                  <option value="Weeks:true">Weeks after completion</option>
-                  <option value="Months:true">Months after completion</option>
-                </select>
-              </label>
+                  <SelectTrigger
+                    aria-labelledby="editor-repeat"
+                    className="field-select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {repeatOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {repeat && repeat.unit !== "Weekdays" && (
                 <label>
                   Interval
@@ -338,38 +381,33 @@ export function TaskEditor({
                 </label>
               )}
               {repeat?.unit === "Weekdays" && (
-                <div className="weekdays">
-                  {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
-                    <Button
+                <ToggleGroup
+                  multiple
+                  variant="outline"
+                  size="sm"
+                  spacing={1}
+                  className="weekdays"
+                  aria-label="Repeat on"
+                  value={repeat.weekdays.map(String)}
+                  onValueChange={(values) =>
+                    update({
+                      recurrence: {
+                        ...repeat,
+                        weekdays: values.map(Number).sort(),
+                      },
+                    })
+                  }
+                >
+                  {weekdayNames.map((name, i) => (
+                    <ToggleGroupItem
                       key={i}
-                      type="button"
-                      aria-label={
-                        [
-                          "Monday",
-                          "Tuesday",
-                          "Wednesday",
-                          "Thursday",
-                          "Friday",
-                          "Saturday",
-                          "Sunday",
-                        ][i]
-                      }
-                      aria-pressed={repeat.weekdays.includes(i)}
-                      onClick={() =>
-                        update({
-                          recurrence: {
-                            ...repeat,
-                            weekdays: repeat.weekdays.includes(i)
-                              ? repeat.weekdays.filter((d) => d !== i)
-                              : [...repeat.weekdays, i],
-                          },
-                        })
-                      }
+                      value={String(i)}
+                      aria-label={name}
                     >
-                      {day}
-                    </Button>
+                      {name[0]}
+                    </ToggleGroupItem>
                   ))}
-                </div>
+                </ToggleGroup>
               )}
               <label>
                 Reminder
@@ -439,6 +477,25 @@ export function TaskEditor({
     </Dialog>
   );
 }
+const weekdayNames = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+const repeatOptions = [
+  { value: "", label: "Does not repeat" },
+  { value: "Days:false", label: "Every day" },
+  { value: "Weeks:false", label: "Every week" },
+  { value: "Months:false", label: "Every month" },
+  { value: "Weekdays:false", label: "Selected weekdays" },
+  { value: "Days:true", label: "Days after completion" },
+  { value: "Weeks:true", label: "Weeks after completion" },
+  { value: "Months:true", label: "Months after completion" },
+];
 function toLocal(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;

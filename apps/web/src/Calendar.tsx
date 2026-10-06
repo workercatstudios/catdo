@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "./components/ui/button";
+import { Button } from "./components/ui/pop-button";
 import {
   type Task,
   addDays,
@@ -38,15 +38,15 @@ export function Calendar({
         </h1>
         <div>
           <Button
-            variant="outline"
-            size="icon"
+            variant="ghost"
+            size="icon-sm"
             aria-label="Previous month"
             onClick={() => shift(-1)}
           >
             <ChevronLeft />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => {
               setMonth(localDay().slice(0, 7) + "-01");
@@ -56,8 +56,8 @@ export function Calendar({
             Today
           </Button>
           <Button
-            variant="outline"
-            size="icon"
+            variant="ghost"
+            size="icon-sm"
             aria-label="Next month"
             onClick={() => shift(1)}
           >

@@ -1,10 +1,10 @@
 [workspace]
-members = ["crates/catdo-core", "apps/desktop"]
+members = ["crates/catdo-core", "crates/kirakira", "apps/desktop"]
 resolver = "2"
 
 [workspace.package]
 edition = "2024"
-version = "0.2.13"
+version = "0.3.0"
 publish = false
 license = "PolyForm-Noncommercial-1.0.0"
 

@@ -1,12 +1,10 @@
 use chrono::{Datelike, Days, Local, Months, NaiveDate};
 use gpui_kit::component::ActiveTheme;
-use gpui_kit::component::scroll::ScrollableElement;
-use gpui_kit::component::{
-    IconName, Sizable, StyledExt,
-    button::{Button, ButtonVariants},
-    input::Input,
-};
+use gpui_kit::component::{IconName, Sizable, StyledExt};
 use gpui_kit::{prelude::*, *};
+use kirakira::button::{Button, ButtonVariants};
+use kirakira::input::Input;
+use kirakira::scroll::ScrollableElement;
 use uuid::Uuid;
 
 use crate::app::CatDo;
@@ -24,11 +22,12 @@ impl Render for DragTask {
         div()
             .px_3()
             .py_2()
-            .bg(p.accent)
-            .text_color(p.primary)
+            .bg(cx.theme().popover)
+            .text_color(p.foreground)
+            .font_medium()
             .border_1()
-            .border_color(p.border)
-            .rounded_md()
+            .border_color(p.primary)
+            .rounded(cx.theme().radius)
             .shadow_md()
             .child(self.title.clone())
     }
@@ -58,13 +57,18 @@ impl CatDo {
             .cloned()
             .collect::<Vec<_>>();
         let total = tasks.len();
+        let scheduled_tone = accent(Accent::Scheduled, cx);
+        let deadline_tone = accent(Accent::Overdue, cx);
+        let chip_hover = p.primary.opacity(0.14);
+        let today_ink: Hsla = rgb(0x4B3832).into();
         div()
             .id(SharedString::from(format!("day-{date}")))
             .v_flex()
             .flex_1()
             .min_w_0()
-            .h(px(100.))
-            .p_2()
+            .h(px(118.))
+            .p_1p5()
+            .overflow_hidden()
             .gap_1()
             .border_b_1()
             .border_r_1()
@@ -120,19 +124,17 @@ impl CatDo {
                             .h(px(24.))
                             .rounded_full()
                             .text_xs()
+                            .font_medium()
                             .text_color(if date.month() != self.month.month() {
                                 p.muted_foreground
                             } else {
                                 p.foreground
                             })
+                            // Today is a Kirakira-yellow sticker with cocoa ink, in both themes.
                             .when(date == today, |el| {
-                                el.bg(accent(Accent::Today, cx))
-                                    .text_color(if cx.theme().is_dark() {
-                                        p.background
-                                    } else {
-                                        gpui_kit::white()
-                                    })
-                                    .font_weight(FontWeight::BOLD)
+                                el.bg(rgb(0xF7D35C))
+                                    .text_color(today_ink)
+                                    .font_weight(FontWeight::EXTRA_BOLD)
                             })
                             .child(date.day().to_string()),
                     )
@@ -157,17 +159,17 @@ impl CatDo {
                     .gap_1p5()
                     .px_1p5()
                     .py_0p5()
-                    .rounded(px(6.))
+                    .rounded_full()
                     .text_xs()
                     .text_color(p.foreground)
                     .bg(p.muted)
-                    .hover(|s| s.bg(p.primary.opacity(0.14)))
+                    .hover(move |s| s.bg(chip_hover))
                     .child(
                         div()
                             .size(px(6.))
                             .flex_shrink_0()
                             .rounded_full()
-                            .bg(if due { p.destructive } else { p.primary }),
+                            .bg(if due { deadline_tone } else { scheduled_tone }),
                     )
                     .child(div().flex_1().min_w_0().truncate().child(title))
                     .when(due && scheduled, |el| {
@@ -176,7 +178,7 @@ impl CatDo {
                                 .size(px(6.))
                                 .flex_shrink_0()
                                 .rounded_full()
-                                .bg(p.primary),
+                                .bg(scheduled_tone),
                         )
                     })
                     .on_click(cx.listener(move |this, _, window, cx| {
@@ -233,12 +235,7 @@ impl CatDo {
                     .items_center()
                     .justify_between()
                     .mb_6()
-                    .child(
-                        div()
-                            .text_3xl()
-                            .font_weight(FontWeight::SEMIBOLD)
-                            .child(self.title()),
-                    )
+                    .child(self.render_heading(self.title(), None, false, cx))
                     .child(
                         div()
                             .h_flex()
@@ -293,6 +290,7 @@ impl CatDo {
                                         .flex_1()
                                         .px_2()
                                         .text_xs()
+                                        .font_weight(FontWeight::BOLD)
                                         .text_color(p.muted_foreground)
                                         .child(day)
                                 }),
@@ -300,6 +298,8 @@ impl CatDo {
                             .child(
                                 div()
                                     .v_flex()
+                                    .rounded(cx.theme().radius_lg)
+                                    .overflow_hidden()
                                     .border_t_1()
                                     .border_l_1()
                                     .border_color(p.border)
@@ -340,7 +340,10 @@ impl CatDo {
                                             .items_center()
                                             .gap_1p5()
                                             .child(
-                                                div().size(px(6.)).rounded_full().bg(p.destructive),
+                                                div()
+                                                    .size(px(6.))
+                                                    .rounded_full()
+                                                    .bg(accent(Accent::Overdue, cx)),
                                             )
                                             .child("Deadline"),
                                     ),
@@ -358,7 +361,7 @@ impl CatDo {
                             .child(
                                 div()
                                     .text_base()
-                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .font_weight(FontWeight::EXTRA_BOLD)
                                     .mb_4()
                                     .child(self.selected_day.format("%a, %b %-d").to_string()),
                             )

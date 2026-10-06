@@ -1,5 +1,5 @@
 import { LegalLinks } from "./LegalAccess";
-import { Button } from "./components/ui/button";
+import { Button } from "./components/ui/pop-button";
 import { ThemeControl } from "./lib/theme";
 import type { Data } from "../../../packages/domain/src/model";
 export function Management({
@@ -24,6 +24,8 @@ export function Management({
       </div>
       <div className="manage-body">
         <section className="settings-section">
+          <h2>Appearance</h2>
+          <p className="muted">Follow your device, or pick paper or night.</p>
           <ThemeControl />
         </section>
         <section className="settings-section">
@@ -40,13 +42,15 @@ export function Management({
                   {w.archived ? " · archived" : ""}
                 </strong>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => naming("workspace", w.id)}
                 >
                   Rename
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={() =>
                     act(() =>
                       change((d) => {
@@ -68,13 +72,15 @@ export function Management({
                       {p.archived ? " · archived" : ""}
                     </span>
                     <Button
-                      variant="outline"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => naming("project", p.id)}
                     >
                       Rename
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
+                      size="sm"
                       onClick={() =>
                         act(() =>
                           change((d) => {

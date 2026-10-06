@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icon: the CatDo cat's silhouette, placed like the foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:pivotX="270"
+        android:pivotY="276"
+        android:scaleX="0.68"
+        android:scaleY="0.68"
+        android:translateX="-14"
+        android:translateY="-20">
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M116,312 C116,240 140,202 164,184 L151,122 Q147,102 165,110 L218,142 C244,135 268,135 294,142 L347,110 Q365,102 361,122 L348,184 C372,202 396,240 396,312 C396,392 336,430 256,430 C176,430 116,392 116,312 Z" />
+    </group>
+</vector>

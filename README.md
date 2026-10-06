@@ -29,6 +29,12 @@
       <img alt="Desktop: GPUI Kit" src="https://shieldcn.dev/badge/Desktop-GPUI_Kit-grey.svg?variant=outline&amp;size=sm&amp;logo=rust&amp;mode=light">
     </picture>
   </a>
+  <a href="https://kk.workercat.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Design-Kirakira_UI-pink.svg?variant=outline&amp;size=sm&amp;logo=false&amp;mode=dark">
+      <img alt="Design: Kirakira UI" src="https://shieldcn.dev/badge/Design-Kirakira_UI-pink.svg?variant=outline&amp;size=sm&amp;logo=false&amp;mode=light">
+    </picture>
+  </a>
   <a href="apps/web/src/server">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Sync-Cloudflare-orange.svg?variant=outline&amp;size=sm&amp;logo=cloudflare&amp;mode=dark">
@@ -46,7 +52,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/today.png">
   <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/today-light.png">
-  <img src="docs/screenshots/today-light.png" alt="CatDo desktop: a quiet Today list with separate workspaces, projects, and an appearance toggle">
+  <img src="docs/screenshots/today-light.png" alt="CatDo desktop: a Today list with overdue and current tasks, workspaces, and colour-coded projects">
 </picture>
 
 ## Somewhere to put it all
@@ -65,6 +71,7 @@ Inspired by Todoist, built for individuals, and starting with the machine we use
 | **Things that come around again** | Repeat daily, weekly, monthly, on selected weekdays, or after completion. Finished occurrences stay in history.     |
 | **A little flexibility**          | Work offline, undo task actions, and sync through your WorkerCat account when connected.                            |
 | **Your own setup**                | A native Rust desktop built with GPUI Kit. Follow the OS theme or choose Light or Dark, with your preference saved. |
+| **A little sparkle**              | Designed with [Kirakira UI](https://kk.workercat.com): warm paper, a navy night, and checks that pop when you finish. |
 
 ## See the week ahead
 
@@ -162,9 +169,9 @@ Text fields keep their own undo history.
 
 | Part                         | Stack                                       | Source                                   |
 | ---------------------------- | ------------------------------------------- | ---------------------------------------- |
-| Desktop                      | Rust + GPUI Kit                             | [`apps/desktop`](apps/desktop)           |
+| Desktop                      | Rust + GPUI Kit + Kirakira UI               | [`apps/desktop`](apps/desktop)           |
 | Desktop domain and storage   | Rust + SQLite                               | [`crates/catdo-core`](crates/catdo-core) |
-| Website and web app          | TanStack Start + shadcn/ui + IndexedDB                    | [`apps/web`](apps/web)                   |
+| Website and web app          | TanStack Start + Kirakira UI + IndexedDB    | [`apps/web`](apps/web)                   |
 | Android                      | Kotlin + Jetpack Compose + local atomic storage         | [`apps/android`](apps/android)           |
 | Web domain and sync contract | TypeScript                                  | [`packages/domain`](packages/domain)     |
 | API and account storage      | Cloudflare Workers + SQLite Durable Objects | [`apps/web/src/server`](apps/web/src/server)             |

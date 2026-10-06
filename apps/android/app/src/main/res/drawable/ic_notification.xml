@@ -1,9 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The CatDo cat's silhouette (assets/catdo-icon.svg body path), centred in 24dp. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M3,3 L8,6 C10.5,5 13.5,5 16,6 L21,3 L21,10 C23,12 23,16 20.5,19 C18.5,21.5 15.5,22 12,22 C8.5,22 5.5,21.5 3.5,19 C1,16 1,12 3,10 Z" />
+    android:viewportWidth="360"
+    android:viewportHeight="360">
+    <group android:translateX="-76" android:translateY="-86">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M116,312 C116,240 140,202 164,184 L151,122 Q147,102 165,110 L218,142 C244,135 268,135 294,142 L347,110 Q365,102 361,122 L348,184 C372,202 396,240 396,312 C396,392 336,430 256,430 C176,430 116,392 116,312 Z" />
+    </group>
 </vector>

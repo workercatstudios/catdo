@@ -1,60 +1,14 @@
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(12 12 12 / 0.34);
-  backdrop-filter: blur(2px);
-  z-index: 50;
-}
-.dialog-content {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  z-index: 51;
-  width: min(460px, calc(100vw - 32px));
-  max-height: calc(100dvh - 40px);
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 28px;
-  box-shadow: var(--shadow-lg);
-}
-.dialog-content > h2 {
+/* Kirakira's Pop Dialog draws the popup, scrim and close button. CatDo
+   sizes the task editor and lays out forms inside. */
+[data-slot="dialog-content"] > h2 {
   padding-right: 28px;
   font-size: 20px;
-  margin-bottom: 12px;
+  font-weight: 800;
 }
-.dialog-content > p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 24px;
-}
-.dialog-content form {
+[data-slot="dialog-content"] form {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-.dialog-close {
-  position: absolute;
-  right: 15px;
-  top: 15px;
-  background: transparent;
-  border: 0;
-  padding: 6px;
-  border-radius: 8px;
-  color: var(--muted);
-  transition:
-    background-color var(--fast) var(--ease-out),
-    color var(--fast) var(--ease-out),
-    transform var(--base) var(--ease-spring);
-}
-.dialog-close:hover {
-  background: var(--hover);
-  color: var(--foreground);
-  transform: rotate(90deg);
 }
 .dialog-actions {
   display: flex;
@@ -65,12 +19,15 @@
 .editor {
   display: flex;
   flex-direction: column;
+  gap: 0;
   width: min(840px, calc(100vw - 48px));
+  max-width: none;
   height: min(680px, calc(100dvh - 64px));
   max-height: calc(100dvh - 64px);
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 28px;
   padding: 0;
+  background: var(--card);
 }
 .editor-header {
   display: flex;
@@ -78,25 +35,21 @@
   flex-shrink: 0;
   height: 58px;
   padding: 0 30px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px dotted var(--border);
 }
 .editor-header h2 {
   margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
-.editor .dialog-close {
-  top: 13px;
-  right: 17px;
+.editor [data-slot="dialog-close"] {
+  top: 14px;
+  right: 16px;
   width: 32px;
   height: 32px;
-  color: var(--muted);
-}
-.editor .dialog-close:hover {
-  color: var(--foreground);
-  background: var(--surface);
 }
 .editor > form {
   flex: 1;
@@ -135,8 +88,8 @@
   left: 0;
   right: 0;
   bottom: -2px;
-  height: 2px;
-  border-radius: 2px;
+  height: 3px;
+  border-radius: 3px;
   background: var(--primary);
   transform: scaleX(0);
   transform-origin: left;
@@ -153,19 +106,20 @@
   border-radius: 0;
   background: transparent;
   font-size: 25px;
-  font-weight: 600;
+  font-weight: 800;
   line-height: 1.4;
-  letter-spacing: -0.7px;
+  letter-spacing: -0.02em;
   resize: none;
+  box-shadow: none;
 }
 .editor .editor-title-input:focus-visible {
   outline: none;
 }
 .editor-title-input::placeholder {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .editor-notes-field > span {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-weight: 500;
 }
 .editor-notes-field textarea {
@@ -173,6 +127,7 @@
   padding: 0;
   border: 0;
   border-radius: 0;
+  box-shadow: none;
   background: transparent;
   font-size: 14px;
   line-height: 1.75;
@@ -184,26 +139,33 @@
   gap: 14px;
   min-width: 0;
   padding: 24px 22px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
+  background: var(--muted);
+  border-left: 2px dotted var(--border);
 }
 .editor-property-group {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-.editor-properties label {
-  color: var(--muted);
+.editor-properties label,
+.editor-properties .field-label {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
 }
-.editor-properties select,
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.editor-properties .field-select,
 .editor-properties input {
   width: 100%;
   min-width: 0;
-  height: 34px;
-  min-height: 34px;
-  padding: 6px 9px;
-  border-color: var(--border);
-  background: var(--background);
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 12px;
+  background: var(--card);
   color: var(--foreground);
   font-size: 12px;
 }
@@ -225,7 +187,7 @@
   padding-top: 22px;
 }
 .editor-section-heading {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 500;
   margin-bottom: 9px;
@@ -236,29 +198,30 @@
   white-space: normal;
   height: auto;
   min-height: 38px;
-  margin: 0 -8px;
-  padding: 8px 8px;
+  margin: 0 -10px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 8px;
+  box-shadow: none;
+  border-radius: 14px;
   background: transparent;
   text-align: left;
   font-size: 13px;
 }
 .editor .subtask-link > svg {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .editor .subtask-link > span {
   overflow-wrap: anywhere;
 }
 .editor .subtask-link:hover {
   color: var(--primary);
-  background: var(--surface);
+  background: var(--muted);
 }
 .editor .editor-add-subtask {
   align-self: flex-start;
   height: 34px;
   padding: 6px 0;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .editor .editor-add-subtask:hover {
@@ -276,26 +239,25 @@
   flex-shrink: 0;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 22px;
-  border-top: 1px solid var(--border);
-  background: var(--background);
+  padding: 14px 22px;
+  border-top: 2px dotted var(--border);
+  background: var(--card);
 }
 .editor-submit-actions {
   display: flex;
   gap: 8px;
   margin-left: auto;
 }
-.editor-actions .ui-button {
-  height: 36px;
-  font-size: 12px;
+.editor-actions [data-slot="button"] {
+  font-size: 13px;
 }
 .editor-actions .editor-delete {
-  color: var(--muted);
+  color: var(--muted-foreground);
   padding-inline: 8px;
 }
 .editor-actions .editor-delete:hover {
   color: var(--destructive);
-  background: var(--surface);
+  background: var(--muted);
 }
 .editor form > .error {
   flex-shrink: 0;
@@ -311,29 +273,25 @@
 }
 .weekdays {
   display: flex;
-  gap: 3px;
+  width: 100%;
 }
-.weekdays .ui-button {
+.weekdays [data-slot="toggle-group-item"] {
   flex: 1;
   padding: 0;
   min-width: 0;
-  height: 30px;
-  border: 1px solid var(--border);
-  background: var(--background);
-  color: var(--muted);
   font-size: 11px;
-  border-radius: 7px;
+  background: var(--card);
 }
-.weekdays [aria-pressed="true"] {
+.weekdays [data-slot="toggle-group-item"][aria-pressed="true"] {
   background: var(--primary);
   border-color: var(--primary);
   color: var(--primary-foreground);
-  box-shadow: var(--shadow-sm);
 }
 @media (max-width: 640px) {
-  .dialog-content.editor {
+  [data-slot="dialog-content"].editor {
     inset: 0;
     translate: none;
+    transform: none;
     width: 100%;
     height: 100dvh;
     max-height: none;
@@ -368,7 +326,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
-  .editor-properties select,
+  .editor-properties .field-select,
   .editor-properties input {
     height: 40px;
     min-height: 40px;
@@ -381,7 +339,7 @@
     padding: 12px 14px max(12px, env(safe-area-inset-bottom));
     gap: 4px;
   }
-  .editor-actions .ui-button {
+  .editor-actions [data-slot="button"] {
     padding-inline: 12px;
   }
   .editor-actions .editor-delete {
@@ -390,12 +348,15 @@
   }
 }
 .settings-section {
-  padding: 0 0 28px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--border);
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
 }
-.manage-body > .ui-button {
-  margin-bottom: 28px;
+.manage-body > [data-slot="button"] {
+  margin-bottom: 18px;
 }
 .settings-section > h2 {
   font-size: 16px;
@@ -406,32 +367,37 @@
   margin-bottom: 18px;
 }
 .settings-section > .theme-control {
-  max-width: 320px;
+  justify-content: flex-start;
   font-size: 13px;
 }
-.settings-section > .theme-control select {
-  min-width: 120px;
+.settings-section > .theme-control > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .manage-group {
   padding: 8px 0;
   margin-top: 14px;
 }
 .manage-group + .manage-group {
-  border-top: 1px solid var(--border);
+  border-top: 2px dotted var(--border);
   padding-top: 20px;
 }
 .manage-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 -10px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  margin: 0 -12px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
   font-size: 13px;
   transition: background-color var(--fast) var(--ease-out);
 }
 .manage-row:hover {
-  background: var(--surface);
+  background: var(--muted);
 }
 .manage-row > strong,
 .manage-row > span {
@@ -439,15 +405,11 @@
   overflow-wrap: anywhere;
   min-width: 0;
 }
-.manage-row .ui-button {
-  background: transparent;
-  border-color: transparent;
-  color: var(--muted);
+.manage-row [data-slot="button"] {
+  color: var(--muted-foreground);
   font-size: 12px;
-  padding: 5px 8px;
-  height: 30px;
 }
 .manage-row.indented {
   padding-left: 28px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }

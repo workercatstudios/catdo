@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Button } from "./components/ui/pop-button";
+import { Textarea } from "./components/ui/pop-textarea";
 import { accountRequest, type GetToken } from "./lib/legal";
 import { LegalLinks } from "./LegalAccess";
 
@@ -119,7 +121,7 @@ export function PrivacyRequests({
           </label>
           <label>
             Details (optional)
-            <textarea
+            <Textarea
               rows={4}
               maxLength={2000}
               value={message}
@@ -137,13 +139,9 @@ export function PrivacyRequests({
               below.
             </p>
           )}
-          <button
-            className="primary"
-            type="submit"
-            disabled={busy || !loaded || pending}
-          >
+          <Button type="submit" disabled={busy || !loaded || pending}>
             {busy ? "Submitting…" : "Submit private request"}
-          </button>
+          </Button>
         </form>
         {error && (
           <>
@@ -151,9 +149,12 @@ export function PrivacyRequests({
               {error}
             </p>
             {!loaded && (
-              <button onClick={() => setAttempt((value) => value + 1)}>
+              <Button
+                variant="outline"
+                onClick={() => setAttempt((value) => value + 1)}
+              >
                 Try again
-              </button>
+              </Button>
             )}
           </>
         )}
