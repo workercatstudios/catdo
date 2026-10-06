@@ -38,10 +38,16 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-  if (ASSETS.includes(url.pathname) && url.pathname !== "/app")
-    event.respondWith(
-      caches
-        .match(request, { cacheName: CACHE, ignoreVary: true })
-        .then((hit) => hit || fetch(request)),
-    );
+  if (!ASSETS.includes(url.pathname) || url.pathname === "/app") return;
+  const cached = () =>
+    caches.match(request, { cacheName: CACHE, ignoreVary: true });
+  // Fingerprinted build files never change, so the cache wins. Public files
+  // such as the icon keep their names, so the network wins while online.
+  event.respondWith(
+    url.pathname.startsWith("/assets/")
+      ? cached().then((hit) => hit || fetch(request))
+      : fetch(request).catch(() =>
+          cached().then((hit) => hit || Response.error()),
+        ),
+  );
 });
