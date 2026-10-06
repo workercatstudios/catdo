@@ -18,7 +18,7 @@ cargo run -p catdo-desktop -- --data-dir /tmp/my-catdo
 
 A database becomes bound to its first signed-in account to prevent accidental uploads to someone else's account. Signing out keeps local tasks. Sync runs about every ten seconds and pauses while task details are open.
 
-The sidebar’s **Appearance** toggle follows the OS by default, including changes while CatDo is running. Select **Light** or **Dark** to override it; **System** resumes automatic updates. This device preference is saved immediately and restored at startup. All desktop screens and controls use GPUI Kit’s shared theme colors.
+The sidebar’s **Appearance** toggle follows the OS by default, including changes while CatDo is running. Select **Light** or **Dark** to override it; **System** resumes automatic updates. This device preference is saved immediately and restored at startup. All desktop screens and controls use the Kirakira UI theme installed into GPUI Kit's shared theme colors; see [UI design](ui-design.md).
 
 The app supports Wayland and X11; visual checks have used Fedora through XWayland. If the Wayland graphics path has trouble:
 
@@ -26,7 +26,7 @@ The app supports Wayland and X11; visual checks have used Fedora through XWaylan
 env -u WAYLAND_DISPLAY cargo run -p catdo-desktop
 ```
 
-GPUI Kit 0.6.6 supplies the matched framework, components, assets, and test tools through one dependency. On Linux, the Cargo configuration uses the font backend’s supported runtime Fontconfig loading; the regular Fedora `fontconfig` package is required, but its development headers are not.
+GPUI Kit 0.6.6 supplies the matched framework, components, assets, and test tools through one dependency. Kirakira UI for GPUI is vendored in `crates/kirakira` and builds on it. The desktop embeds static M PLUS 1 weights from `assets/fonts`. On Linux, the Cargo configuration uses the font backend’s supported runtime Fontconfig loading; the regular Fedora `fontconfig` package is required, but its development headers are not.
 
 Build an optimized binary with `cargo build --locked --release -p catdo-desktop`, then run `target/release/catdo`. `bash scripts/install-desktop.sh` builds and installs to the user's application launcher without root access or changing task data.
 
@@ -130,8 +130,9 @@ It checks native task upload, offline edit and database reopen, retry idempotenc
 ## Structure and current limits
 
 - `crates/catdo-core`: Rust domain rules, recurrence, SQLite storage, sync, and tests.
+- `crates/kirakira`: Kirakira UI for GPUI (MIT), vendored and trimmed to what the desktop uses.
 - `apps/desktop`: GPUI screens, browser authorization, keyring credentials, reminders.
-- `apps/web`: TanStack Start public site, shadcn task app, API, IndexedDB storage, and offline shell.
+- `apps/web`: TanStack Start public site, Kirakira UI task app, API, IndexedDB storage, and offline shell.
 - `packages/domain`: TypeScript domain rules and sync contract.
 - `apps/web/src/server`: authenticated HTTP API and per-account Durable Object storage.
 
@@ -196,4 +197,4 @@ Public pages render on the server. The app authenticates on the client so the ca
 
 `pnpm test:e2e` runs Playwright against the production preview, with disposable local accounts and offline browser data. Install its browser once with `pnpm exec playwright install chromium`; on Linux CI use `--with-deps`. An installed Chrome can be selected with `CHROME_PATH=/path/to/chrome`. Tests do not require production credentials.
 
-Public page content and stable latest-release links live in `apps/web/src/site/content.ts`. shadcn components are source-owned in `src/components/ui` and configured in `components.json`; theme tokens and reduced-motion styles are shared by the site and app.
+Public page content and stable latest-release links live in `apps/web/src/site/content.ts`. Kirakira UI components from its shadcn registry are source-owned in `src/components/ui` and configured in `components.json`; keep them as the registry ships them and style CatDo in `src/styles`; theme tokens and reduced-motion styles are shared by the site and app.
