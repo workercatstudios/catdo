@@ -29,7 +29,7 @@ CatDo's web, desktop and Android clients use the same CatDo account. Blossom use
 
 CatDo records acceptance in the authenticated account's Durable Object. The server records the version, document references, time and separate eligibility declaration; the client cannot choose another identity or acceptance time. Repeat acceptance is idempotent. New versions retain previous records. POST sync requires the current receipt; account lookup, cloud export and private requests remain accessible without accepting. Native clients direct users to CatDo's web app to review terms for that same account.
 
-The sign-in UI asks for 13+ eligibility before offering registration. Terms agreement uses an unchecked explicit control. This is a declaration, not identity-based age verification or evidence of parental permission. Do not collect full birth dates or identity documents without a demonstrated need and retention plan.
+The sign-in UI asks for 13+ eligibility before offering registration, as one unchecked checkbox. Each device asks once and remembers the answer, including after sign-out; a device that has signed in before already answered it. The terms step then asks only for the terms agreement, recording the device's eligibility answer with it. Terms agreement uses an unchecked explicit control. This is a declaration, not identity-based age verification or evidence of parental permission. Do not collect full birth dates or identity documents without a demonstrated need and retention plan.
 
 Declining does not erase saved work. Users can access and export local tasks, export the cloud snapshot, read policies, sign out and submit private requests. Offline app access still works.
 

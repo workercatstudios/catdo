@@ -63,6 +63,9 @@ pub struct CatDo {
     pub(crate) events_stop: Option<Arc<AtomicBool>>,
     pub(crate) sync_terms_required: bool,
     pub(crate) sign_in_age_confirmed: bool,
+    /// The 13+ question is asked once per device, ever. Set when this device has answered it,
+    /// or has signed in before, which required answering it.
+    pub(crate) age_answered: bool,
     pub(crate) login_url: Option<String>,
     pub(crate) workspace_select_dirty: bool,
     pub(crate) store: Store,
@@ -121,6 +124,13 @@ impl CatDo {
             .ok()
             .flatten()
             .unwrap_or(false);
+        let age_answered = store
+            .preference::<bool>("age_confirmed")
+            .ok()
+            .flatten()
+            .unwrap_or(false)
+            || sync_enabled
+            || matches!(store.preference::<serde_json::Value>("sync"), Ok(Some(_)));
         let mut app = Self {
             appearance,
             update_state: Default::default(),
@@ -132,7 +142,8 @@ impl CatDo {
             sync_requested: false,
             events_stop: None,
             sync_terms_required: false,
-            sign_in_age_confirmed: false,
+            sign_in_age_confirmed: age_answered,
+            age_answered,
             login_url: None,
             workspace_select_dirty: false,
             store,

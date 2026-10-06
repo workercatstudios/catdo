@@ -24,6 +24,7 @@ data class StoredState(
 
 class CatDoRepository(context: Context) {
     private val file = AtomicFile(File(context.filesDir, "catdo.json"))
+    private val device = context.getSharedPreferences("catdo-device", Context.MODE_PRIVATE)
     private val mutex = Mutex()
     private val _state = MutableStateFlow(load())
     val state = _state.asStateFlow()
@@ -88,6 +89,11 @@ class CatDoRepository(context: Context) {
         _state.value = value
         true
     }
+
+    /** The 13+ question is asked once per device, ever. A device bound to an account answered it to sign in. */
+    val ageAnswered: Boolean get() = device.getBoolean("age_confirmed", false) || _state.value.owner != null
+
+    fun rememberAge(answer: Boolean) = device.edit().putBoolean("age_confirmed", answer).apply()
 
     suspend fun bindOwner(userId: String) = mutex.withLock {
         val current = _state.value

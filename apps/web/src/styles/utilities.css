@@ -134,3 +134,26 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* Sign-in intro: the one-time 13+ answer is a quiet line, not a gate. */
+.sign-in-intro {
+  width: min(100%, 420px);
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
+}
+.sign-in-intro .auth-links {
+  justify-content: center;
+}
+.age-check {
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.legal-check.age-check [data-slot="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin-top: 0;
+}

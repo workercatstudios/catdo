@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "./components/ui/pop-button";
 import { Checkbox } from "./components/ui/pop-checkbox";
 import {
+  ageAnswered,
   accountRequest,
   downloadJson,
   privacyUrl,
@@ -26,13 +27,7 @@ export function LegalLinks() {
   );
 }
 
-export function AgeEligibility({
-  onContinue,
-  onSavedTasks,
-}: {
-  onContinue: () => void;
-  onSavedTasks?: () => void;
-}) {
+export function AgeEligibility({ onContinue }: { onContinue: () => void }) {
   const [confirmed, setConfirmed] = useState(false);
   return (
     <main className="auth-page">
@@ -42,43 +37,20 @@ export function AgeEligibility({
           <strong>CatDo</strong>
         </span>
       </a>
-      <div className="legal-panel">
-        <h1>Before you sign in</h1>
-        <p>
-          CatDo accounts are for people aged 13 and older. If your country
-          requires a higher age or a parent’s or guardian’s permission, those
-          requirements apply too.
-        </p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (confirmed) onContinue();
-          }}
-        >
-          <label className="legal-check">
-            <Checkbox
-              required
-              checked={confirmed}
-              onCheckedChange={(checked) => setConfirmed(checked)}
-            />
-            <span>
-              I’m at least 13 and meet the age and permission requirements where
-              I live.
-            </span>
-          </label>
-          <Button type="submit" disabled={!confirmed}>
-            Continue to sign in
-          </Button>
-        </form>
-        {onSavedTasks && (
-          <Button variant="outline" onClick={onSavedTasks}>
-            Open saved tasks
-          </Button>
-        )}
-        <p className="muted">
-          You can request help with data in an existing account without
-          accepting the terms.
-        </p>
+      <div className="legal-panel sign-in-intro">
+        <h1>Sign in to CatDo</h1>
+        <p className="muted">Your tasks, on every device.</p>
+        <label className="legal-check age-check">
+          <Checkbox
+            checked={confirmed}
+            onCheckedChange={(checked) => {
+              setConfirmed(checked);
+              // Let the tick land before the sign-in form takes its place.
+              if (checked) setTimeout(onContinue, 280);
+            }}
+          />
+          <span>I’m 13 or older and meet any age rules where I live</span>
+        </label>
         <LegalLinks />
       </div>
     </main>
@@ -98,7 +70,9 @@ export function LegalAccess({
 }) {
   const [status, setStatus] = useState<LegalStatus | null>(null);
   const [error, setError] = useState("");
-  const [age, setAge] = useState(false);
+  // The device's one-time 13+ answer stands in for asking again.
+  const [askAge] = useState(() => !ageAnswered());
+  const [age, setAge] = useState(!askAge);
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -195,17 +169,19 @@ export function LegalAccess({
                 void accept();
               }}
             >
-              <label className="legal-check">
-                <Checkbox
-                  required
-                  checked={age}
-                  onCheckedChange={(checked) => setAge(checked)}
-                />
-                <span>
-                  I’m at least {status.minimumAge} and meet any higher age or
-                  parent or guardian permission requirements where I live.
-                </span>
-              </label>
+              {askAge && (
+                <label className="legal-check">
+                  <Checkbox
+                    required
+                    checked={age}
+                    onCheckedChange={(checked) => setAge(checked)}
+                  />
+                  <span>
+                    I’m at least {status.minimumAge} and meet any higher age or
+                    parent or guardian permission requirements where I live.
+                  </span>
+                </label>
+              )}
               <label className="legal-check">
                 <Checkbox
                   required

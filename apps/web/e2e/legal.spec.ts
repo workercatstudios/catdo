@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { seed } from "./fixtures";
 
-test("age eligibility precedes sign-in and is an explicit unchecked choice", async ({
+test("the 13+ answer is a quiet checkbox before sign-in, asked once", async ({
   page,
 }) => {
   let configRequests = 0;
@@ -13,12 +13,10 @@ test("age eligibility precedes sign-in and is an explicit unchecked choice", asy
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app");
   await expect(
-    page.getByRole("heading", { name: "Before you sign in" }),
+    page.getByRole("heading", { name: "Sign in to CatDo" }),
   ).toBeVisible();
-  const eligibility = page.getByRole("checkbox", { name: /I’m at least 13/ });
-  const proceed = page.getByRole("button", { name: "Continue to sign in" });
+  const eligibility = page.getByRole("checkbox", { name: /I’m 13 or older/ });
   await expect(eligibility).not.toBeChecked();
-  await expect(proceed).toBeDisabled();
   expect(configRequests).toBe(0);
   await expect(
     page.getByRole("link", { name: "Terms of service" }),
@@ -32,29 +30,33 @@ test("age eligibility precedes sign-in and is an explicit unchecked choice", asy
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  // Ticking it is the whole step: sign-in loads in its place.
   await eligibility.check();
-  await expect(proceed).toBeEnabled();
-  expect(configRequests).toBe(0);
-  await proceed.click();
   await expect(
     page.getByRole("heading", { name: "Connection unavailable." }),
   ).toBeVisible();
   expect(configRequests).toBe(1);
+  // The answer is kept for good, across sessions.
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Connection unavailable." }),
+  ).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  expect(configRequests).toBe(2);
 });
 
-test("saved tasks and export remain available without confirming eligibility or terms", async ({
+test("saved tasks and export remain available without accepting the terms", async ({
   page,
 }) => {
   await seed(page);
   let apiRequests = 0;
   await page.route("**/api/**", async (route) => {
-    apiRequests += 1;
+    if (!route.request().url().endsWith("/api/config")) apiRequests += 1;
     await route.abort();
   });
   await page.goto("/app");
-  await expect(
-    page.getByRole("checkbox", { name: /I’m at least 13/ }),
-  ).not.toBeChecked();
+  // This browser has signed in before, so it isn't asked about age again.
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
   await page
     .getByRole("button", { name: "Open saved tasks", exact: true })
     .click();

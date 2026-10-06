@@ -212,44 +212,6 @@ fun CatDoApp(vm: CatDoViewModel) {
     }
 
 
-    if (vm.eligibilityOpen) {
-        var ageConfirmed by remember { mutableStateOf(false) }
-        val uriHandler = LocalUriHandler.current
-        val ageInteraction = remember { MutableInteractionSource() }
-        PopDialog(
-            onDismissRequest = vm::closeAuth,
-            title = "Before you sign in",
-            art = { IdleCat(size = 96.dp) },
-            buttons = { dialog ->
-                PopButton(onClick = { dialog.dismiss(vm::closeAuth) }, variant = PopVariant.Ghost) { Text("Keep using locally") }
-                PopButton(onClick = { dialog.dismiss { vm.confirmEligibility(ageConfirmed) } }, enabled = ageConfirmed) { Text("Continue to sign in") }
-            },
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
-                    .toggleable(value = ageConfirmed, interactionSource = ageInteraction, indication = null, role = Role.Checkbox,
-                        onValueChange = { ageConfirmed = it })) {
-                PopCheck(ageConfirmed, onCheckedChange = null, contentDescription = null, size = 20.dp, round = false,
-                    interaction = ageInteraction, modifier = Modifier.offset(x = (-12).dp))
-                Text("I am 13 or older", style = MaterialTheme.typography.bodyLarge, color = Kirakira.colors.ink)
-            }
-            Text("By checking this, I also confirm I meet any higher local minimum age and have guardian permission where required.",
-                style = MaterialTheme.typography.bodyMedium)
-            Text("You will review and accept the WorkerCat terms before syncing. Local tasks remain available without an account.",
-                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
-            Row(Modifier.padding(top = 8.dp).offset(x = (-12).dp)) {
-                for ((label, path) in listOf("Terms" to "terms", "Privacy" to "privacy")) {
-                    PopButton(onClick = {
-                        runCatching { uriHandler.openUri("https://workercat.com/$path") }
-                            .onFailure { vm.message = "Open https://workercat.com/$path in your browser." }
-                    }, variant = PopVariant.Ghost, size = PopSize.Small) {
-                        Text(label, color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline)
-                    }
-                }
-            }
-        }
-    }
-
     if (vm.authOpen) {
         val ready by vm.clerkReady.collectAsStateWithLifecycle()
         val error by vm.clerkError.collectAsStateWithLifecycle()
@@ -827,9 +789,26 @@ private fun SettingsScreen(workspace: Workspace, vm: CatDoViewModel, notificatio
             } else {
                 SettingsRow(if (vm.syncing) "Connecting…" else "Sign in to sync",
                     "Use your WorkerCat account across devices", Icons.Outlined.CloudSync, Accents.inbox(),
-                    enabled = !vm.syncing, onClick = { vm.startLogin() })
+                    enabled = !vm.syncing && vm.ageConfirmed, onClick = { vm.startLogin() })
+                // Asked once per device, ever: a quiet checkbox under the sign-in row.
+                if (!vm.ageAnswered) AgeCheck(vm.ageConfirmed, vm::confirmAge)
             }
         }
+    }
+}
+
+@Composable
+private fun AgeCheck(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .toggleable(value = checked, interactionSource = interaction, indication = null, role = Role.Checkbox,
+                onValueChange = onCheckedChange)
+            .padding(start = 52.dp, end = 16.dp, bottom = 6.dp)) {
+        PopCheck(checked, onCheckedChange = null, contentDescription = null, size = 18.dp, round = false,
+            interaction = interaction)
+        Text("I'm 13 or older and meet any age rules where I live", style = MaterialTheme.typography.bodySmall,
+            color = Kirakira.colors.mutedInk)
     }
 }
 
