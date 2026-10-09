@@ -70,7 +70,7 @@ jobs:
             dist/*.AppImage
             dist/*.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   windows:
     name: Build Windows x86-64
@@ -101,7 +101,7 @@ jobs:
             dist/*.zip
             dist/*.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   android:
     name: Build signed Android APK
@@ -157,7 +157,7 @@ jobs:
             dist/*.apk
             dist/*.apk.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   publish:
     name: Publish GitHub release
